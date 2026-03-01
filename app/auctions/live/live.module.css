@@ -1,0 +1,237 @@
+/* Live Auctions Page Styles */
+
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0b1026 0%, #130b2b 100%);
+  padding: 2rem;
+  color: #f8f5ff;
+}
+
+.loadingMessage,
+.noAuctionsMessage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 1rem;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(30, 144, 255, 0.2);
+  border-top: 3px solid #1E90FF;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.backButton {
+  padding: 0.75rem 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0.5rem;
+  color: #d9d5ff;
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.backButton:hover {
+  background: rgba(30, 144, 255, 0.1);
+  border-color: #1E90FF;
+  color: #f8f5ff;
+}
+
+.titleSection h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.titleSection p {
+  margin: 0.5rem 0 0 0;
+  color: #b8afff;
+  font-size: 0.875rem;
+}
+
+/* Auctions Grid */
+.auctionsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.auctionsGrid a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.auctionCard {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.auctionCard:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(30, 144, 255, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(30, 144, 255, 0.2);
+}
+
+/* Card Image */
+.cardImageWrapper {
+  position: relative;
+  width: 100%;
+  padding-bottom: 133.33%; /* 3:4 aspect ratio */
+  background: linear-gradient(135deg, #1E90FF 0%, #0052CC 100%);
+  overflow: hidden;
+}
+
+.cardImage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.liveBadge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: #D32F2F;
+  color: white;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* Card Info */
+.cardInfo {
+  padding: 1rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.cardInfo h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #f8f5ff;
+}
+
+/* Bid Row */
+.bidRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.bidItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.label {
+  font-size: 0.75rem;
+  color: #99afff;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #FF8C00;
+}
+
+/* Time Left */
+.timeLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(212, 47, 47, 0.1);
+  border-left: 3px solid #D32F2F;
+  margin-bottom: 0.75rem;
+  border-radius: 0.25rem;
+}
+
+.timeLabel {
+  font-size: 0.75rem;
+  color: #FFB300;
+}
+
+.timeValue {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #FFB300;
+}
+
+/* Action Button */
+.viewButton {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: #1E90FF;
+  color: #f8f5ff;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: auto;
+}
+
+.viewButton:hover {
+  background: #1a7acc;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .auctionsGrid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+
+  .titleSection h1 {
+    font-size: 1.75rem;
+  }
+
+  .container {
+    padding: 1rem;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+  }
+}

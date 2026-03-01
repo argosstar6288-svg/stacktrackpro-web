@@ -1,0 +1,172 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function: Check if user is admin
+    // ONLY argos.star6288@gmail.com has admin access
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'argos.star6288@gmail.com';
+    }
+
+    // Helper function: Check if user is a founder (lifetime member)
+    function isFounder(userId) {
+      return get(/databases/{database}/documents/users/$(userId)).data.role == "founder" ||
+             get(/databases/{database}/documents/users/$(userId)).data.subscription.isLifetime == true;
+    }
+
+    // ADMIN OVERRIDE: Admin email has full access to everything
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // Users: Owner can read/write profile; Admins can manage roles
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+      allow write: if request.auth != null && request.auth.uid == userId && 
+        !request.resource.data.keys().hasAny(['role', 'customClaims', 'suspended']) &&
+        !request.resource.data.keys().hasAny(['subscription.isLifetime', 'subscription.lifetimeActivatedAt']);
+      
+      // Only admins can modify roles and claims
+      // Note: Founder role cannot be changed to anything else except by admin
+      allow update: if request.auth != null && isAdmin() && 
+        request.resource.data.keys().hasAny(['role', 'customClaims', 'suspended']);
+
+      // Subscription data: protect lifetime subscriptions
+      match /subscription/{doc} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        // User can update most subscription fields but NOT lifetime flags
+        allow write: if request.auth != null && request.auth.uid == userId &&
+          !request.resource.data.keys().hasAny(['isLifetime', 'lifetimeActivatedAt', 'lifetimeChargeId']);
+        // Admin can modify any subscription data
+        allow write: if isAdmin();
+      }
+    }
+
+    // Cards: Only owner can read/write
+    match /cards/{cardId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow write: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId &&
+        request.resource.data.name != null &&
+        request.resource.data.value >= 0 &&
+        request.resource.data.sport != null;
+      allow update: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+
+    // Auctions: Seller create + authenticated updates
+    match /auctions/{auctionId} {
+      // Anyone can read
+      allow read: if true;
+      
+      // Only authenticated sellers can create their own auctions
+      allow create: if request.auth != null && 
+        request.resource.data.sellerId == request.auth.uid &&
+        request.resource.data.currentBid == request.resource.data.startingPrice &&
+        request.resource.data.currentBid >= 0 &&
+        request.resource.data.status == "active" &&
+        request.resource.data.endTime > request.time;
+      
+      // Authenticated updates allowed (bid logic is transaction-validated in app)
+      allow update: if request.auth != null;
+      
+      // Delete only if no bids placed
+      allow delete: if request.auth != null && 
+        request.auth.uid == resource.data.sellerId &&
+        !exists(/databases/{database}/documents/auctions/{auctionId}/bids);
+      
+      // Bids subcollection
+      match /bids/{bidId} {
+        allow read: if true;
+        
+        // Only authenticated users can place bids
+        allow create: if request.auth != null && 
+          request.auth.uid == request.resource.data.userId &&
+          request.resource.data.amount > 0;
+        
+        // Bids are immutable (no updates or deletes)
+        allow update: if false;
+        allow delete: if false;
+      }
+    }
+
+    // Auction chat: Only authenticated users can read/write
+    match /auctionChats/{auctionId}/messages/{msgId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.senderId &&
+        request.resource.data.message != null && 
+        request.resource.data.message.size() > 0 &&
+        request.resource.data.message.size() <= 2000;
+    }
+
+    // Direct (friend) chat: Only sender or recipient can read/write
+    match /directChats/{chatId}/messages/{msgId} {
+      allow read, write: if request.auth != null && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.recipientId);
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.senderId &&
+        request.resource.data.message != null && 
+        request.resource.data.message.size() > 0 &&
+        request.resource.data.message.size() <= 2000;
+    }
+
+    // Marketplace Listings: Only owner can edit
+    match /marketplace/{listingId} {
+      allow read: if true;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.sellerId;
+      allow update: if request.auth != null && request.auth.uid == resource.data.sellerId;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.sellerId && resource.data.status != "sold";
+    }
+
+    // Marketplace Offers: Immutable after creation
+    match /marketplace/{listingId}/offers/{offerId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.offererId;
+    }
+
+    // Folders: User-specific organization
+    match /folders/{folderId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
+    // ADMIN COLLECTIONS
+
+    // Admin logs: Only admins can read/write
+    match /admin/logs/{logId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Admin settings: Only admins can read/write
+    match /admin/settings/{settingId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Moderation queue: Admins and moderators
+    match /moderation/queue/{reportId} {
+      allow read: if isAdmin() || request.auth.token.moderator == true;
+      allow write: if isAdmin() || request.auth.token.moderator == true;
+    }
+
+    // Suspended accounts: Only admins
+    match /admin/suspendedAccounts/{userId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Feature flags: Admins can manage
+    match /admin/featureFlags/{flagId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // System analytics: Admins only
+    match /analytics/system/{docId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+  }
+}

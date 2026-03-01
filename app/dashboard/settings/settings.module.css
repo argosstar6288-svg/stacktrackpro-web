@@ -1,0 +1,207 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.loading {
+  padding: 2rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.title {
+  margin: 6px 0 0;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.panelSubtitle {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.settingItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.settingItem:last-child {
+  border-bottom: none;
+}
+
+.settingInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settingLabel {
+  font-size: 15px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.settingDescription {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #FF9900;
+}
+
+.select {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.select:focus {
+  outline: none;
+  border-color: rgba(255, 122, 71, 0.5);
+}
+
+.dangerButton {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #ff4444, #cc0000);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dangerButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 68, 68, 0.4);
+}
+
+.accountItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #1E90FF;
+  border: 2px solid #1E90FF;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  transition: background 0.2s;
+}
+
+.accountItem:nth-child(even) {
+  background: #FF8C00;
+  border-color: #FF8C00;
+}
+
+.accountItem:hover {
+  background: rgba(30, 144, 255, 0.85);
+}
+
+.accountItem:nth-child(even):hover {
+  background: rgba(255, 140, 0, 0.85);
+}
+
+.accountLabel {
+  font-size: 14px;
+  color: #fff;
+}
+
+.accountIcon {
+  font-size: 16px;
+}
+
+.helpText {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.6;
+}
+
+.helpLink {
+  display: inline-block;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #0052CC, #1E90FF);
+  color: #0b0915;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.helpLink:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 122, 71, 0.4);
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .pageHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+

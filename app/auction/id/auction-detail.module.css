@@ -1,0 +1,377 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.title {
+  margin: 6px 0 0;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.layoutGrid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 32px;
+}
+
+.leftPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.imageWrap {
+  width: 100%;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.cardImage {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 16px;
+}
+
+.imagePlaceholder {
+  width: 100%;
+  aspect-ratio: 5/7;
+  background: linear-gradient(135deg, rgba(30, 144, 255, 0.2), rgba(255, 140, 0, 0.2));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.6);
+  border: 2px dashed rgba(255, 255, 255, 0.18);
+}
+
+.cardName {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.metaList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.bidSummaryPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.summaryLabel {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.currentBidValue {
+  margin: 0;
+  font-size: 48px;
+  font-weight: 700;
+  color: #FF8C00;
+}
+
+.highestBidder {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.nextBid {
+  margin-top: 8px;
+  font-size: 15px;
+  color: #6a7bff;
+}
+
+.bidInput {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+  font-size: 15px;
+  transition: all 0.2s;
+}
+
+.bidInput:focus {
+  outline: none;
+  border-color: #1E90FF;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.actionRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.primaryButton,
+.secondaryButton {
+  padding: 12px 14px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.primaryButton {
+  background: linear-gradient(135deg, #0052CC, #1E90FF);
+  color: #fff;
+}
+
+.primaryButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(30, 144, 255, 0.4);
+}
+
+.secondaryButton {
+  background: linear-gradient(135deg, #FF8C00, #ff2f92);
+  color: #fff;
+}
+
+.secondaryButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 140, 0, 0.4);
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.errorBox {
+  padding: 12px 14px;
+  background: rgba(220, 38, 38, 0.16);
+  border: 1px solid rgba(220, 38, 38, 0.45);
+  border-radius: 8px;
+  color: #ff6b6b;
+  font-size: 14px;
+  margin-top: 10px;
+}
+
+.countdownPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: center;
+}
+
+.timeValue {
+  margin: 0;
+  font-size: 42px;
+  font-weight: 700;
+  color: #FF8C00;
+}
+
+.timeEnded {
+  color: #ff3d5a;
+}
+
+.historyPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.scrollList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.historyItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.historyAmount {
+  display: block;
+  font-size: 16px;
+  color: #FF8C00;
+  font-weight: 700;
+}
+
+.historyUser {
+  margin-top: 4px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.historyTime {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.chatPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chatMessages {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 260px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.chatMessage {
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border-left: 3px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+}
+
+.chatMine {
+  background: rgba(30, 144, 255, 0.16);
+  border-left-color: #1E90FF;
+}
+
+.chatSender {
+  font-weight: 600;
+  font-size: 14px;
+  color: #fff;
+}
+
+.chatMine .chatSender {
+  color: #1E90FF;
+}
+
+.chatText {
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.chatTime {
+  margin-top: 4px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.chatForm {
+  display: flex;
+  gap: 12px;
+}
+
+.chatInput {
+  flex: 1;
+  padding: 11px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.chatInput:focus {
+  outline: none;
+  border-color: #1E90FF;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.chatError {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #ff6b6b;
+}
+
+.emptyMini {
+  padding: 16px 12px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 14px;
+}
+
+.loadingWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.loadingText {
+  font-size: 20px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+@media (max-width: 1024px) {
+  .layoutGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .title {
+    font-size: 24px;
+  }
+
+  .currentBidValue {
+    font-size: 36px;
+  }
+
+  .actionRow {
+    grid-template-columns: 1fr;
+  }
+
+  .scrollList,
+  .chatMessages {
+    max-height: 200px;
+  }
+}

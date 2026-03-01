@@ -1,0 +1,548 @@
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3rem;
+  animation: slideDown 0.5s ease-out;
+}
+
+.headerContent h1 {
+  font-size: 2.5rem;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.headerContent p {
+  font-size: 1rem;
+  color: #666;
+}
+
+.refreshButton {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.refreshButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.refreshButton:active {
+  transform: translateY(0);
+}
+
+/* Metrics Section */
+.metricsSection,
+.breakdownSection,
+.userMetricsSection,
+.chartsSection,
+.topSellersSection,
+.summarySection {
+  margin-bottom: 3rem;
+}
+
+.metricsSection h2,
+.breakdownSection h2,
+.userMetricsSection h2,
+.chartsSection h2,
+.topSellersSection h2,
+.summarySection h2 {
+  font-size: 1.8rem;
+  color: #1a1a1a;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Breakdown Section */
+.breakdownGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.breakdownCard {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+  border-left: 4px solid #667eea;
+  transition: all 0.3s ease;
+}
+
+.breakdownCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+}
+
+.breakdownHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.breakdownLabel {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #666;
+}
+
+.breakdownIcon {
+  font-size: 1.8rem;
+  opacity: 0.7;
+}
+
+.breakdownAmount {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #1a1a1a;
+  margin-bottom: 0.75rem;
+}
+
+.breakdownDetail {
+  font-size: 0.9rem;
+  color: #999;
+  padding-top: 1rem;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* User Metrics */
+.userMetricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.userMetricCard {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+  border-top: 4px solid;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.userMetricCard:nth-child(1) {
+  border-top-color: #667eea;
+}
+
+.userMetricCard:nth-child(2) {
+  border-top-color: #764ba2;
+}
+
+.userMetricCard:nth-child(3) {
+  border-top-color: #30cfd0;
+}
+
+.userMetricCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+}
+
+.userMetricValue {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+}
+
+.userMetricLabel {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.userMetricIcon {
+  font-size: 2.5rem;
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  opacity: 0.5;
+}
+
+/* Charts Section */
+.chartsSection {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+}
+
+.chartContainer {
+  margin-top: 1.5rem;
+}
+
+/* Top Sellers Table */
+.topSellersSection {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+}
+
+.topSellersTable {
+  margin-top: 1.5rem;
+  overflow-x: auto;
+}
+
+.tableHeader {
+  display: grid;
+  grid-template-columns: 60px 200px 250px 150px 150px;
+  gap: 1rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-radius: 8px 8px 0 0;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #333;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.tableRow {
+  display: grid;
+  grid-template-columns: 60px 200px 250px 150px 150px;
+  gap: 1rem;
+  padding: 1rem;
+  border-bottom: 1px solid #f0f0f0;
+  align-items: center;
+  transition: background-color 0.2s ease;
+}
+
+.tableRow:hover {
+  background-color: #f9f9f9;
+}
+
+.rankCol,
+.sellerCol,
+.emailCol,
+.salesCol,
+.lastSaleCol {
+  display: flex;
+  align-items: center;
+}
+
+.rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.sellerName {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.email {
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.amount {
+  font-weight: bold;
+  color: #2e7d32;
+  font-size: 0.95rem;
+}
+
+.date {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.empty {
+  text-align: center;
+  padding: 3rem;
+  color: #999;
+  font-size: 1.1rem;
+}
+
+/* Summary Section */
+.summarySection {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+.summaryCard {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+  border-left: 4px solid #667eea;
+}
+
+.summaryCard h3 {
+  font-size: 1.3rem;
+  color: #1a1a1a;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+.summaryStats {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.stat:last-child {
+  border-bottom: none;
+}
+
+.statLabel {
+  color: #666;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #1a1a1a;
+}
+
+.statValue.positive {
+  color: #2e7d32;
+}
+
+.statValue.negative {
+  color: #c62828;
+}
+
+/* Loading and Error States */
+.loadingScreen,
+.errorScreen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  gap: 1rem;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f0f0f0;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.errorScreen h2 {
+  color: #1a1a1a;
+  font-size: 1.5rem;
+}
+
+.errorScreen p {
+  color: #666;
+  margin-bottom: 1.5rem;
+}
+
+.retryButton {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.retryButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Animations */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .summarySection {
+    grid-template-columns: 1fr;
+  }
+
+  .metricsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .breakdownGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    align-items: flex-start;
+  }
+
+  .headerContent h1 {
+    font-size: 2rem;
+  }
+
+  .headerContent p {
+    font-size: 0.9rem;
+  }
+
+  .metricsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .breakdownGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .userMetricsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .summarySection {
+    grid-template-columns: 1fr;
+  }
+
+  .chartsSection {
+    padding: 1rem;
+  }
+
+  .topSellersSection {
+    padding: 1rem;
+  }
+
+  .tableHeader,
+  .tableRow {
+    grid-template-columns: 50px 150px 150px auto auto;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .sellerName {
+    font-size: 0.85rem;
+  }
+
+  .email {
+    display: none;
+  }
+
+  .rank {
+    width: 35px;
+    height: 35px;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0.5rem;
+  }
+
+  .metricsSection h2,
+  .breakdownSection h2,
+  .userMetricsSection h2,
+  .chartsSection h2,
+  .topSellersSection h2,
+  .summarySection h2 {
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
+  }
+
+  .headerContent h1 {
+    font-size: 1.5rem;
+  }
+
+  .tableHeader,
+  .tableRow {
+    grid-template-columns: 40px 1fr;
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  .sellerCol,
+  .emailCol,
+  .salesCol,
+  .lastSaleCol {
+    display: none;
+  }
+
+  .breakdownCard {
+    padding: 1.5rem;
+  }
+
+  .userMetricCard {
+    padding: 1.5rem;
+  }
+
+  .summaryCard {
+    padding: 1.5rem;
+  }
+}
+
+

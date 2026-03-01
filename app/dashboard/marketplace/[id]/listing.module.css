@@ -1,0 +1,386 @@
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.loading {
+  padding: 3rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.backNav {
+  margin-bottom: 24px;
+}
+
+.backLink {
+  color: #ff7a47;
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.2s;
+}
+
+.backLink:hover {
+  color: #ff2f92;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 32px;
+}
+
+.imageSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.imageContainer {
+  width: 100%;
+  aspect-ratio: 2.5 / 3.5;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cardImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.placeholderImage {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.placeholderImage span {
+  font-size: 48px;
+}
+
+.imageMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 8px;
+}
+
+.views {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.statusBadge {
+  background: rgba(50, 200, 100, 0.2);
+  color: #4ade80;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.detailsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.listingHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  background: linear-gradient(135deg, rgba(255, 122, 71, 0.2), rgba(255, 47, 146, 0.2));
+  border: 1px solid rgba(255, 122, 71, 0.3);
+  color: #ff7a47;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cardName {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.player {
+  margin: 0;
+  font-size: 20px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+.cardDetails {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.cardDetails span {
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.priceSection {
+  background: #1E90FF;
+  border: 2px solid #1E90FF;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.priceLabel {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.price {
+  font-size: 36px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.tradeSection {
+  background: #FF8C00;
+  border: 2px solid #FF8C00;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tradeLabel {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.tradeFor {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.descriptionSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.descriptionSection h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.description {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.sellerSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sellerSection h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.sellerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sellerName {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.listedDate {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 20px;
+}
+
+.contactButton,
+.buyButton,
+.offerButton,
+.tradeButton,
+.editButton,
+.deleteButton {
+  padding: 14px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.contactButton {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.contactButton:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.buyButton {
+  background: linear-gradient(135deg, #ff7a47, #ff2f92);
+  color: #0b0915;
+}
+
+.buyButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 122, 71, 0.4);
+}
+
+.offerButton {
+  background: rgba(255, 122, 71, 0.2);
+  color: #ff7a47;
+  border: 1px solid rgba(255, 122, 71, 0.4);
+}
+
+.offerButton:hover {
+  background: rgba(255, 122, 71, 0.3);
+}
+
+.tradeButton {
+  background: rgba(106, 123, 255, 0.2);
+  color: #6a7bff;
+  border: 1px solid rgba(106, 123, 255, 0.4);
+}
+
+.tradeButton:hover {
+  background: rgba(106, 123, 255, 0.3);
+}
+
+.ownerActions {
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ownerNote {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+}
+
+.editButton {
+  background: rgba(106, 123, 255, 0.2);
+  color: #6a7bff;
+  border: 1px solid rgba(106, 123, 255, 0.4);
+}
+
+.editButton:hover {
+  background: rgba(106, 123, 255, 0.3);
+}
+
+.deleteButton {
+  background: rgba(255, 50, 50, 0.1);
+  color: #ff6b6b;
+  border: 1px solid rgba(255, 50, 50, 0.3);
+}
+
+.deleteButton:hover {
+  background: rgba(255, 50, 50, 0.2);
+}
+
+.authPrompt {
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  text-align: center;
+}
+
+.authPrompt p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.signInButton {
+  padding: 12px 28px;
+  background: linear-gradient(135deg, #ff7a47, #ff2f92);
+  color: #0b0915;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.signInButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 122, 71, 0.4);
+}
+
+@media (max-width: 968px) {
+  .content {
+    grid-template-columns: 1fr;
+  }
+
+  .imageContainer {
+    max-width: 400px;
+    margin: 0 auto;
+  }
+}

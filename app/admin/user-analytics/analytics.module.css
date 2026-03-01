@@ -1,0 +1,516 @@
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+}
+
+.title {
+  color: #1a202c;
+  margin-bottom: 2rem;
+  font-size: 2.5rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.subtitle {
+  color: #2d3748;
+  margin-bottom: 1.5rem;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  color: #718096;
+  font-size: 1.1rem;
+}
+
+.metricsOverview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.metricCard {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  border-top: 4px solid #667eea;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metricCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
+}
+
+.metricLabel {
+  color: #718096;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metricValue {
+  color: #1a202c;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.segmentSection {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.segmentCard {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.segmentCardTitle {
+  color: #2d3748;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.segment,
+.pattern,
+.engagement {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+.segment.whale,
+.pattern.aggressive,
+.engagement.high {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.segment.regular,
+.pattern.moderate,
+.engagement.medium {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+}
+
+.segment.casual,
+.pattern.conservative {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+}
+
+.segment.new {
+  background: #e2e8f0;
+  color: #4a5568;
+}
+
+.engagement.low {
+  background: #fed7d7;
+  color: #742a2a;
+}
+
+.segmentDesc {
+  color: #718096;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.preferencesSection {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.priceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.priceCard {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 10px;
+  padding: 1.5rem;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.priceCard .label {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin-bottom: 0.5rem;
+}
+
+.priceCard .value {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.categoriesSection {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.categoriesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.categoryCard {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-radius: 10px;
+  padding: 1.5rem;
+  border-left: 5px solid #667eea;
+}
+
+.categoryRank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #667eea;
+  color: white;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.categoryName {
+  color: #2d3748;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.categoryStats {
+  margin-bottom: 1rem;
+}
+
+.stat {
+  color: #4a5568;
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+.stat span {
+  color: #718096;
+}
+
+.stat strong {
+  color: #2d3748;
+  font-weight: 600;
+}
+
+.affinityBar {
+  background: white;
+  border-radius: 6px;
+  height: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+.affinityFill {
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.affinityLabel {
+  font-size: 0.8rem;
+  color: #718096;
+  margin-top: 0.5rem;
+  display: block;
+}
+
+.insightsSection {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.insightsList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+.insightCard {
+  background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+  border-radius: 10px;
+  padding: 1.5rem;
+  border-left: 5px solid #f5576c;
+}
+
+.insightText {
+  color: #742a2a;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.recommendedAction {
+  background: rgba(255, 255, 255, 0.7);
+  color: #742a2a;
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.historySection {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.filterButtons {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.filterBtn {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid #e2e8f0;
+  background: white;
+  color: #4a5568;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.filterBtn:hover {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.filterBtn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: transparent;
+}
+
+.historyTable {
+  overflow-x: auto;
+}
+
+.tableHeader {
+  display: grid;
+  grid-template-columns: 120px 1fr 150px 120px 150px;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f7fafc;
+  border-radius: 8px;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.tableRow {
+  display: grid;
+  grid-template-columns: 120px 1fr 150px 120px 150px;
+  gap: 1rem;
+  padding: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  align-items: center;
+  color: #4a5568;
+  transition: background 0.2s ease;
+}
+
+.tableRow:hover {
+  background: #f7fafc;
+}
+
+.tableRow:last-child {
+  border-bottom: none;
+}
+
+.colType,
+.colItem,
+.colCategory,
+.colPrice,
+.colDate {
+  font-size: 0.95rem;
+}
+
+.colItem {
+  font-weight: 500;
+  color: #2d3748;
+}
+
+.colCategory {
+  color: #667eea;
+  font-weight: 500;
+}
+
+.colPrice {
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge.bid {
+  background: #bee3f8;
+  color: #2c5282;
+}
+
+.badge.purchase {
+  background: #c6f6d5;
+  color: #22543d;
+}
+
+.badge.view {
+  background: #feebc8;
+  color: #7c2d12;
+}
+
+.badge.favorite {
+  background: #fed7d7;
+  color: #742a2a;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 3rem;
+  color: #718096;
+  font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .title {
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .subtitle {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+  }
+
+  .metricsOverview {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .metricCard {
+    padding: 1rem;
+  }
+
+  .metricValue {
+    font-size: 1.5rem;
+  }
+
+  .segmentSection {
+    grid-template-columns: 1fr;
+  }
+
+  .priceGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .categoriesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .insightsList {
+    grid-template-columns: 1fr;
+  }
+
+  .filterButtons {
+    flex-direction: column;
+  }
+
+  .filterBtn {
+    width: 100%;
+  }
+
+  .tableHeader,
+  .tableRow {
+    grid-template-columns: 80px 1fr 100px 100px;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .colCategory {
+    display: none;
+  }
+
+  .tableHeader > :nth-child(3),
+  .tableRow > :nth-child(3) {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .metricsOverview {
+    grid-template-columns: 1fr;
+  }
+
+  .tableHeader,
+  .tableRow {
+    grid-template-columns: 60px 1fr 80px;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .colDate {
+    display: none;
+  }
+
+  .tableHeader > :nth-child(5),
+  .tableRow > :nth-child(5) {
+    display: none;
+  }
+}
+
+

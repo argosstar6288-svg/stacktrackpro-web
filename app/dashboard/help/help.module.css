@@ -1,0 +1,288 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.title {
+  margin: 6px 0 0;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.panelHeader {
+  margin-bottom: 8px;
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.searchBox {
+  margin-bottom: 8px;
+}
+
+.searchInput {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: inherit;
+  font-size: 15px;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: rgba(255, 122, 71, 0.5);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.categoryButton {
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.categoryButton:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.categoryButtonActive {
+  background: linear-gradient(135deg, #0052CC, #1E90FF);
+  color: #0b0915;
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.faqList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.faqItem {
+  background: #1E90FF;
+  border: 2px solid #1E90FF;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: background 0.2s;
+}
+
+.faqItem:nth-child(even) {
+  background: #FF8C00;
+  border-color: #FF8C00;
+}
+
+.faqItem:hover {
+  background: rgba(30, 144, 255, 0.9);
+}
+
+.faqItem:nth-child(even):hover {
+  background: rgba(255, 140, 0, 0.9);
+}
+
+.faqQuestion {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.faqQuestion:hover {
+  color: #FF9900;
+}
+
+.faqIcon {
+  font-size: 20px;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 0.2s;
+}
+
+.faqQuestion:hover .faqIcon {
+  color: #FF9900;
+}
+
+.faqAnswer {
+  padding: 0 20px 20px 20px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  line-height: 1.6;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.noResults {
+  padding: 40px 20px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+}
+
+.quickLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.quickLink {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #1E90FF;
+  border: 2px solid #1E90FF;
+  border-radius: 8px;
+  color: #fff;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.quickLink:nth-child(even) {
+  background: #FF8C00;
+  border-color: #FF8C00;
+}
+
+.quickLink:hover {
+  background: rgba(30, 144, 255, 0.9);
+  transform: translateX(4px);
+}
+
+.quickLink:nth-child(even):hover {
+  background: rgba(255, 140, 0, 0.9);
+}
+
+.quickLinkIcon {
+  font-size: 18px;
+}
+
+.contactInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.contactText {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.contactButton {
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #0052CC, #1E90FF);
+  color: #0b0915;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.contactButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 122, 71, 0.4);
+}
+
+.resourceLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.resourceLink {
+  display: block;
+  padding: 10px 12px;
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  font-size: 14px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.resourceLink:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #FF9900;
+  padding-left: 16px;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .categories {
+    flex-wrap: wrap;
+  }
+}
+
+

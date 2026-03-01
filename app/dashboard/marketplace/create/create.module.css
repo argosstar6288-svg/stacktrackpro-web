@@ -1,0 +1,274 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.loading {
+  padding: 2rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.pageHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.backLink {
+  color: #FF9900;
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.2s;
+}
+
+.backLink:hover {
+  color: #0052CC;
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.title {
+  margin: 6px 0 0;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #1E90FF;
+  border: 2px solid #1E90FF;
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.section:nth-child(even) {
+  background: #FF8C00;
+  border-color: #FF8C00;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: #fff;
+}
+
+.select {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 12px;
+  color: inherit;
+  font-size: 14px;
+}
+
+.select:focus {
+  outline: none;
+  border-color: rgba(255, 122, 71, 0.5);
+}
+
+.selectedCardPreview {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.selectedCardPreviewImage {
+  width: 180px;
+  aspect-ratio: 2.5 / 3.5;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.selectedCardPreviewText {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.selectedCardMissingPhoto {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: rgba(255, 230, 150, 0.95);
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field span {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+.field input,
+.field select,
+.field textarea {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 12px;
+  color: inherit;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: rgba(255, 122, 71, 0.5);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.listingTypeButtons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.typeButton {
+  padding: 16px;
+  background: #1E90FF;
+  border: 2px solid #1E90FF;
+  border-radius: 12px;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.typeButton:nth-child(even) {
+  background: #FF8C00;
+  border-color: #FF8C00;
+}
+
+.typeButton:hover {
+  background: rgba(30, 144, 255, 0.9);
+  border-color: #1E90FF;
+}
+
+.typeButton:nth-child(even):hover {
+  background: rgba(255, 140, 0, 0.9);
+  border-color: #FF8C00;
+}
+
+.typeButtonActive {
+  background: linear-gradient(135deg, rgba(255, 122, 71, 0.2), rgba(255, 47, 146, 0.2));
+  border-color: #FF9900;
+  color: #FF9900;
+}
+
+.error {
+  background: rgba(255, 50, 50, 0.1);
+  border: 1px solid rgba(255, 50, 50, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  color: #ff6b6b;
+  font-size: 14px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cancelButton {
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+  display: inline-block;
+}
+
+.cancelButton:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.submitButton {
+  padding: 12px 32px;
+  background: linear-gradient(135deg, #0052CC, #1E90FF);
+  color: #0b0915;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.submitButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 122, 71, 0.4);
+}
+
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .listingTypeButtons {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+  }
+
+  .cancelButton,
+  .submitButton {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+

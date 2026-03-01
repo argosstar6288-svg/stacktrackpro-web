@@ -1,0 +1,393 @@
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+  min-height: 100vh;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 40px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.header h1 {
+  font-size: 2.5rem;
+  color: #1f2937;
+  margin: 0 0 10px 0;
+}
+
+.header p {
+  color: #6b7280;
+  font-size: 1.1rem;
+}
+
+.controls {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.sortSection {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sortSection label {
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.sortSelect {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  background: white;
+}
+
+.sortSelect:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.refreshBtn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.refreshBtn:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
+}
+
+.recommendationsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.recCard {
+  background: #1E90FF;
+  border: 2px solid #1E90FF;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  color: white;
+}
+
+.recCard:nth-child(even) {
+  background: #FF8C00;
+  border-color: #FF8C00;
+}
+
+.recCard:hover {
+  box-shadow: 0 4px 12px rgba(30, 144, 255, 0.5);
+  border-color: #1E90FF;
+  transform: translateY(-4px);
+}
+
+.recCard:nth-child(even):hover {
+  box-shadow: 0 4px 12px rgba(255, 140, 0, 0.5);
+  border-color: #FF8C00;
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  gap: 10px;
+}
+
+.cardHeader h3 {
+  margin: 0;
+  color: white;
+  font-size: 1.1rem;
+  flex: 1;
+}
+
+.matchScore {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 700;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.category {
+  display: inline-block;
+  background: #f0f9ff;
+  color: #0284c7;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 15px;
+}
+
+.metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 15px;
+  padding: 15px;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.metricRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.metricRow span {
+  color: #6b7280;
+}
+
+.metricRow strong {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.resaleValue {
+  color: #16a34a;
+  font-size: 1.05rem;
+}
+
+.savings {
+  background: #d1fae5;
+  color: #065f46;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.reason {
+  color: #6b7280;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin-bottom: 15px;
+  flex: 1;
+}
+
+.bidBtn {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+}
+
+.bidBtn:hover {
+  background: #059669;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.empty {
+  background: #f3f4f6;
+  color: #6b7280;
+  padding: 60px 20px;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 1.1rem;
+  grid-column: 1 / -1;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  color: #6b7280;
+  font-size: 1.2rem;
+}
+
+@media (max-width: 768px) {
+  .header h1 {
+    font-size: 1.8rem;
+  }
+
+  .controls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .recommendationsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .cardHeader {
+    flex-direction: column;
+  }
+
+  .matchScore {
+    align-self: flex-start;
+  }
+}
+/* Advanced ML Styles */
+.modeToggle {
+  display: flex;
+  gap: 8px;
+  background: #f3f4f6;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.modeToggle button {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.modeToggle.modeActive,
+.modeToggle button.modeActive {
+  background: white;
+  color: #1f2937;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.strategyToggle {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.strategyToggle label {
+  color: #1f2937;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.strategies {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.strategyBtn {
+  padding: 6px 12px;
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #6b7280;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.strategyBtn:hover {
+  border-color: #10b3f0;
+  color: #10b3f0;
+}
+
+.strategyBtn.strategyActive {
+  background: #10b3f0;
+  color: white;
+  border-color: #10b3f0;
+}
+
+.metricsPanel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.metricCard {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.metricLabel {
+  font-size: 0.85rem;
+  opacity: 0.9;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metricValue {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.metricDesc {
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+.strategyTag {
+  display: inline-block;
+  background: #10b3f0;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .modeToggle {
+    width: 100%;
+    justify-content: space-around;
+  }
+
+  .strategies {
+    justify-content: flex-start;
+  }
+
+  .metricsPanel {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+

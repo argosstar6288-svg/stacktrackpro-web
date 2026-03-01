@@ -1,0 +1,315 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.loading {
+  padding: 2rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.title {
+  margin: 6px 0 0;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.createButton {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #0052CC, #1E90FF);
+  color: #0b0915;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.createButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 122, 71, 0.4);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.statCard {
+  background: #1E90FF;
+  border: 2px solid #1E90FF;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  color: white;
+}
+
+.statCard:nth-child(even) {
+  background: #FF8C00;
+  border-color: #FF8C00;
+}
+
+.statValue {
+  font-size: 32px;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 8px;
+}
+
+.statLabel {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.filterPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.searchBox {
+  width: 100%;
+}
+
+.searchInput {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: inherit;
+  font-size: 15px;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: rgba(255, 122, 71, 0.5);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filterSelect {
+  flex: 1;
+  min-width: 160px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.filterSelect:focus {
+  outline: none;
+  border-color: rgba(255, 122, 71, 0.5);
+}
+
+.listingsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.listingCard {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: all 0.2s;
+  text-decoration: none;
+  color: inherit;
+  background: #1E90FF;
+  border: 2px solid #1E90FF;
+  border-radius: 16px;
+  cursor: pointer;
+}
+
+.listingCard:nth-child(even) {
+  background: #FF8C00;
+  border-color: #FF8C00;
+}
+
+.listingCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(30, 144, 255, 0.4);
+  border-color: #1E90FF;
+}
+
+.listingCard:nth-child(even):hover {
+  box-shadow: 0 8px 24px rgba(255, 140, 0, 0.4);
+  border-color: #FF8C00;
+}
+
+.listingImage {
+  width: 100%;
+  height: 200px;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.listingImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.noImage {
+  font-size: 48px;
+  opacity: 0.3;
+}
+
+.listingBadge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #0052CC, #1E90FF);
+  color: #0b0915;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.listingContent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+}
+
+.listingTitle {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: #fff;
+}
+
+.listingMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.listingCondition {
+  font-size: 13px;
+  color: #6a7bff;
+  font-weight: 500;
+}
+
+.listingPrice {
+  font-size: 24px;
+  font-weight: 700;
+  color: #FF9900;
+  margin-top: 8px;
+}
+
+.listingTrade {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.tradeLabel {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.tradeText {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.listingFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.listingSeller {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.listingViews {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.emptyState {
+  grid-column: 1 / -1;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.emptyIcon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.3;
+}
+
+.emptyState h3 {
+  font-size: 20px;
+  margin: 0 0 8px 0;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.emptyState p {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .pageHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .filters {
+    flex-direction: column;
+  }
+
+  .filterSelect {
+    width: 100%;
+  }
+
+  .listingsGrid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+}
+
+

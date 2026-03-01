@@ -1,0 +1,191 @@
+/* Metrics Grid */
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.metricCard {
+  background: #1E90FF;
+  border: 2px solid #1E90FF;
+  border-radius: 8px;
+  padding: 20px;
+  transition: all 0.2s;
+  color: white;
+}
+
+.metricCard:nth-child(even) {
+  background: #FF8C00;
+  border-color: #FF8C00;
+}
+
+.metricCard:hover {
+  border-color: #1E90FF;
+  box-shadow: 0 0 20px rgba(30, 144, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.metricCard:nth-child(even):hover {
+  border-color: #FF8C00;
+  box-shadow: 0 0 20px rgba(255, 140, 0, 0.3);
+}
+
+.metricLabel {
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.metricValue {
+  font-size: 28px;
+  font-weight: 700;
+  color: #f3f4f6;
+  margin-bottom: 4px;
+}
+
+.metricValue.positive {
+  color: #10b3f0;
+}
+
+.metricValue.negative {
+  color: #ff6b6b;
+}
+
+.metricValue.trend_bullish {
+  color: #10b3f0;
+}
+
+.metricValue.trend_bearish {
+  color: #ff6b6b;
+}
+
+.metricValue.trend_neutral {
+  color: #ffc107;
+}
+
+.metricSubtext {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* Trend Strength Bar */
+.trendStrengthBar {
+  width: 100%;
+  height: 8px;
+  background: #374151;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+  margin-top: 8px;
+}
+
+.trendStrengthFill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* Chart Section */
+.chartSection {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.chartSection h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Top Gainers Section */
+.topGainersSection {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.topGainersSection h3 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.cardChangesList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cardChangeItem {
+  padding: 12px;
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.cardChangeItem:hover {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+}
+
+.cardChangeName {
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.cardChangeValue {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.cardChangePercent {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cardChangePercent.positive {
+  color: #10b3f0;
+}
+
+.cardChangePercent.negative {
+  color: #ff6b6b;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .metricsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .metricValue {
+    font-size: 24px;
+  }
+
+  .chartSection {
+    padding: 16px;
+    margin-bottom: 24px;
+  }
+
+  .topGainersSection {
+    padding: 16px;
+    margin-bottom: 24px;
+  }
+}
+
+

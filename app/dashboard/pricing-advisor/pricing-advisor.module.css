@@ -1,0 +1,566 @@
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+.header {
+  margin-bottom: 40px;
+}
+
+.title {
+  margin: 0 0 8px 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 16px;
+  color: #6b7280;
+}
+
+.error {
+  background-color: #fee2e2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 16px 12px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-size: 14px;
+}
+
+.loadingState {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6b7280;
+  font-size: 16px;
+}
+
+/* Sections */
+.section {
+  margin-bottom: 48px;
+}
+
+.sectionHeader {
+  margin-bottom: 24px;
+}
+
+.sectionTitle {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.sectionDesc {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.empty {
+  text-align: center;
+  padding: 40px 20px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* ============================================================================
+   TRENDING CARDS
+   ============================================================================ */
+
+.cardsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.trendingCard {
+  background: #1E90FF;
+  border: 2px solid #1E90FF;
+  border-radius: 8px;
+  padding: 20px;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  color: white;
+}
+
+.trendingCard:nth-child(even) {
+  background: #FF8C00;
+  border-color: #FF8C00;
+}
+
+.trendingCard:hover {
+  border-color: #1E90FF;
+  box-shadow: 0 4px 12px rgba(30, 144, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.trendingCard:nth-child(even):hover {
+  border-color: #FF8C00;
+  box-shadow: 0 4px 12px rgba(255, 140, 0, 0.3);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.categoryName {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+  flex: 1;
+}
+
+.trendBadge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.trend_up {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.trend_down {
+  background-color: #fee2e2;
+  color: #992a2a;
+}
+
+.trend_stable {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.metricRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 14px;
+}
+
+.metricRow:last-of-type {
+  border-bottom: none;
+}
+
+.label {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.value {
+  color: #111827;
+  font-weight: 600;
+}
+
+.momentumBar {
+  margin-top: 12px;
+  height: 6px;
+  background: #f3f4f6;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.momentumFill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  transition: width 0.3s ease;
+}
+
+.momentumLabel {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #6b7280;
+  text-align: right;
+  font-weight: 500;
+}
+
+/* ============================================================================
+   FASTEST SELLING TABLE
+   ============================================================================ */
+
+.tableWrapper {
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.table thead {
+  background: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 14px;
+}
+
+.table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.categoryCell {
+  font-weight: 600;
+  color: #111827;
+}
+
+.progressBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.progress {
+  flex: 1;
+  height: 6px;
+  background: #f3f4f6;
+  border-radius: 3px;
+  overflow: hidden;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  min-width: 60px;
+}
+
+.momentumScore {
+  background: #f0fdf4;
+  color: #166534;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-align: center;
+  font-size: 13px;
+}
+
+/* ============================================================================
+   PRICE SIGNALS
+   ============================================================================ */
+
+.signalsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.signalCard {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 20px;
+  transition: all 0.2s;
+}
+
+.signal_rising {
+  border-left: 4px solid #059669;
+}
+
+.signal_falling {
+  border-left: 4px solid #dc2626;
+}
+
+.signal_stable {
+  border-left: 4px solid #f59e0b;
+}
+
+.signalCard:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.signalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.signalCategory {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  flex: 1;
+}
+
+.directionIcon {
+  font-size: 24px;
+}
+
+.signalBody {
+  margin-bottom: 16px;
+  padding: 12px 0;
+  border-top: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.signalMetric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.signalMetric:last-child {
+  margin-bottom: 0;
+}
+
+.price {
+  font-weight: 600;
+  color: #111827;
+  font-size: 16px;
+}
+
+.changeAmount {
+  margin-top: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.signal_rising .changeAmount {
+  color: #059669;
+}
+
+.signal_falling .changeAmount {
+  color: #dc2626;
+}
+
+.signal_stable .changeAmount {
+  color: #f59e0b;
+}
+
+.signalFooter {
+  margin-top: 12px;
+}
+
+.reasoning {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.confidence {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* ============================================================================
+   UNDERPRICED ALERTS
+   ============================================================================ */
+
+.alertsList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.alertCard {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 20px;
+  transition: all 0.2s;
+}
+
+.alertCard:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.alertTitle {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.alertMeta {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.category {
+  display: inline-block;
+  background: #f0fdf4;
+  color: #166534;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.confidence {
+  display: inline-block;
+  background: #fef3c7;
+  color: #92400e;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.alertMetrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px 0;
+  border-top: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.metricBox {
+  text-align: center;
+}
+
+.metricLabel {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.metricValue {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.discount {
+  color: #059669;
+}
+
+.recommendation {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.6;
+  background: #fef3c7;
+  padding: 12px;
+  border-radius: 6px;
+}
+
+.viewBtn {
+  display: inline-block;
+  padding: 8px 16px;
+  background: #3b82f6;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.viewBtn:hover {
+  background: #2563eb;
+}
+
+/* ============================================================================
+   FOOTER
+   ============================================================================ */
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 0;
+  border-top: 1px solid #e5e7eb;
+  margin-top: 48px;
+}
+
+.refreshBtn {
+  padding: 10px 20px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.refreshBtn:hover {
+  background: #2563eb;
+}
+
+.refreshNote {
+  margin: 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .container {
+    padding: 16px 12px;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .sectionTitle {
+    font-size: 20px;
+  }
+
+  .cardsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .signalsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .table th,
+  .table td {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .alertMetrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+

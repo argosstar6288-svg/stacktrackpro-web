@@ -1,0 +1,56 @@
+.auction-root {
+  display: flex;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0b2c4a, #1e90ff);
+  color: white;
+  padding: 40px;
+  gap: 60px;
+}
+
+.auction-left {
+  width: 350px;
+}
+
+.auction-right {
+  flex: 1;
+}
+
+.current-bid strong {
+  font-size: 48px;
+  color: #00ff3c;
+}
+
+.bid-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.bid-actions input {
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+}
+
+.quick-bid,
+.place-bid {
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: #0bb3f0;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.countdown {
+  margin-top: 40px;
+  text-align: center;
+}
+
+.countdown h2 {
+  color: red;
+}
+
+

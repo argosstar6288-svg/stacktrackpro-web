@@ -1,0 +1,82 @@
+.auth-bg {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0b2c4a, #0f6fb8);
+  background-image:
+    linear-gradient(135deg, #0b2c4a, #0f6fb8),
+    repeating-linear-gradient(
+      45deg,
+      rgba(255,255,255,0.06),
+      rgba(255,255,255,0.06) 1px,
+      transparent 1px,
+      transparent 40px
+    );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-logo {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+}
+
+.auth-card {
+  background: #10b3f0;
+  padding: 48px 40px;
+  width: 420px;
+  border-radius: 4px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  text-align: center;
+}
+
+.auth-card h1 {
+  font-size: 36px;
+  color: white;
+  margin-bottom: 32px;
+  line-height: 1.2;
+}
+
+.auth-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.auth-card input {
+  padding: 12px 14px;
+  border-radius: 3px;
+  border: none;
+  font-size: 14px;
+}
+
+.auth-card button {
+  margin-top: 20px;
+  background: black;
+  color: white;
+  border: none;
+  padding: 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.auth-card button:hover {
+  opacity: 0.85;
+}
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+

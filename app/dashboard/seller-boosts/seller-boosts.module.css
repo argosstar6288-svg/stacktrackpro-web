@@ -1,0 +1,214 @@
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+  min-height: 100vh;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 40px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.header h1 {
+  font-size: 2.5rem;
+  color: #1f2937;
+  margin: 0 0 10px 0;
+}
+
+.header p {
+  color: #6b7280;
+  font-size: 1.1rem;
+}
+
+.recommendationsGrid {
+  display: grid;
+  gap: 25px;
+}
+
+.recCard {
+  background: #1E90FF;
+  border: 2px solid #1E90FF;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  color: white;
+}
+
+.recCard:nth-child(even) {
+  background: #FF8C00;
+  border-color: #FF8C00;
+}
+
+.recCard:hover {
+  box-shadow: 0 4px 12px rgba(30, 144, 255, 0.5);
+  border-color: #1E90FF;
+}
+
+.recCard:nth-child(even):hover {
+  box-shadow: 0 4px 12px rgba(255, 140, 0, 0.5);
+  border-color: #FF8C00;
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  gap: 15px;
+}
+
+.cardHeader h3 {
+  margin: 0;
+  color: white;
+  font-size: 1.3rem;
+  flex: 1;
+}
+
+.roi {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  white-space: nowrap;
+  font-size: 0.95rem;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-bottom: 20px;
+  padding: 20px;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+}
+
+.metric span {
+  color: #6b7280;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.metric strong {
+  color: #1f2937;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.projected {
+  color: #3b82f6;
+}
+
+.increase {
+  color: #16a34a;
+}
+
+.reason {
+  color: #6b7280;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 25px;
+}
+
+.boostOptions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.boostBtn {
+  border: 2px solid;
+  background: white;
+  border-radius: 10px;
+  padding: 20px 15px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.boostBtn:hover:not(:disabled) {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.boostBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.boostLabel {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.boostPrice {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.boostDesc {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.empty {
+  background: #f3f4f6;
+  color: #6b7280;
+  padding: 60px 20px;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 1.1rem;
+}
+
+.empty p {
+  margin: 0 0 10px 0;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  color: #6b7280;
+  font-size: 1.2rem;
+}
+
+@media (max-width: 768px) {
+  .header h1 {
+    font-size: 1.8rem;
+  }
+
+  .cardHeader {
+    flex-direction: column;
+  }
+
+  .roi {
+    align-self: flex-start;
+  }
+
+  .metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .boostOptions {
+    grid-template-columns: 1fr;
+  }
+}
+
+

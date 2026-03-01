@@ -1,0 +1,541 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 3rem;
+  animation: slideDown 0.5s ease-out;
+}
+
+.header h1 {
+  font-size: 2.5rem;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.header p {
+  font-size: 1.1rem;
+  color: #666;
+}
+
+.currentUserCard {
+  background: #FF8C00;
+  border: 2px solid #FF8C00;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 15px rgba(255, 140, 0, 0.3);
+  animation: slideUp 0.5s ease-out;
+  color: white;
+}
+
+.cardContent {
+  display: flex;
+  gap: 3rem;
+  align-items: center;
+}
+
+.ranking {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  color: white;
+}
+
+.rankNumber {
+  font-size: 2.5rem;
+  font-weight: bold;
+}
+
+.rankLabel {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.stats {
+  display: flex;
+  gap: 2rem;
+  flex: 1;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stat .label {
+  font-size: 0.9rem;
+  color: #666;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.stat .value {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #1a1a1a;
+}
+
+.tierBadge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  width: fit-content;
+}
+
+.tierBadge.tierEmerging {
+  background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+  color: #1a1a1a;
+}
+
+.tierBadge.tierRising {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  color: #1a1a1a;
+}
+
+.tierBadge.tierInfluencer {
+  background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+  color: white;
+}
+
+.tierBadge.tierAmbassador {
+  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+  color: #1a1a1a;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.sortButtons {
+  display: flex;
+  gap: 0.5rem;
+  background: white;
+  padding: 0.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.sortBtn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  background: transparent;
+  color: #666;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.sortBtn:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.sortBtn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.tableWrapper {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  animation: slideUp 0.5s ease-out;
+}
+
+.leaderboard {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.leaderboard thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.leaderboard th {
+  padding: 1.25rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.rankCol {
+  width: 60px;
+  text-align: center;
+}
+
+.nameCol {
+  flex: 2;
+}
+
+.tierCol {
+  width: 140px;
+  text-align: center;
+}
+
+.referralsCol {
+  width: 100px;
+  text-align: center;
+}
+
+.bonusCol {
+  width: 120px;
+  text-align: center;
+}
+
+.nextCol {
+  width: 120px;
+  text-align: center;
+}
+
+.leaderboard td {
+  padding: 1.25rem;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+}
+
+.leaderboard tbody tr {
+  transition: background-color 0.3s ease;
+}
+
+.leaderboard tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+.leaderboard tbody tr.currentUserRow {
+  background-color: #f0f7ff;
+  border-left: 4px solid #667eea;
+}
+
+.rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.leaderboard tbody tr:nth-child(-n+3) .rank {
+  background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+}
+
+.nameInfo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #667eea;
+}
+
+.nameText {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.name {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.youBadge {
+  display: inline-block;
+  background: #667eea;
+  color: white;
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.tierCol {
+  text-align: center;
+}
+
+.count {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: #f0f0f0;
+  border-radius: 6px;
+  font-weight: 600;
+  color: #667eea;
+}
+
+.bonus {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: #e8f5e9;
+  border-radius: 6px;
+  font-weight: 600;
+  color: #2e7d32;
+}
+
+.nextBonus {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: #fff3e0;
+  border-radius: 6px;
+  font-weight: 600;
+  color: #e65100;
+}
+
+.empty {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: white;
+  border-radius: 12px;
+  color: #666;
+}
+
+.empty p {
+  margin: 0.5rem 0;
+  font-size: 1.1rem;
+}
+
+.tierSection {
+  margin-top: 4rem;
+}
+
+.tierSection h2 {
+  text-align: center;
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  color: #1a1a1a;
+}
+
+.tierCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.tierCard {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border-top: 4px solid;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.tierCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.tierCard.tierEmerging {
+  border-top-color: #84fab0;
+}
+
+.tierCard.tierRising {
+  border-top-color: #fa709a;
+}
+
+.tierCard.tierInfluencer {
+  border-top-color: #30cfd0;
+}
+
+.tierCard.tierAmbassador {
+  border-top-color: #a8edea;
+}
+
+.tierHeader {
+  margin-bottom: 1rem;
+}
+
+.tierHeader h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.3rem;
+  color: #1a1a1a;
+}
+
+.requirement {
+  display: inline-block;
+  background: #f5f5f5;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.tierBonus {
+  padding: 1rem;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.tierBonus strong {
+  font-size: 1.5rem;
+  color: #667eea;
+}
+
+.tierPerks {
+  margin-top: 1rem;
+}
+
+.perkTitle {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.tierPerks ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.perk {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.perkIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #4caf50;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.loading {
+  text-align: center;
+  padding: 4rem 2rem;
+  font-size: 1.1rem;
+  color: #666;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .header h1 {
+    font-size: 1.8rem;
+  }
+
+  .cardContent {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .stats {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .nameInfo {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .tierCards {
+    grid-template-columns: 1fr;
+  }
+
+  .leaderboard {
+    font-size: 0.85rem;
+  }
+
+  .leaderboard th,
+  .leaderboard td {
+    padding: 0.75rem;
+  }
+
+  .nameCol {
+    min-width: 150px;
+  }
+
+  .tierCol,
+  .referralsCol,
+  .bonusCol,
+  .nextCol {
+    width: auto;
+  }
+
+  .avatar {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+

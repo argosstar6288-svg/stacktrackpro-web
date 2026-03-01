@@ -1,0 +1,376 @@
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.header h1 {
+  font-size: 2.5rem;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.header p {
+  font-size: 1.1rem;
+  color: #666;
+}
+
+.loading {
+  text-align: center;
+  padding: 4rem 2rem;
+  font-size: 1.1rem;
+  color: #666;
+}
+
+.error {
+  background: #ffebee;
+  color: #c62828;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin: 2rem 0;
+  border-left: 4px solid #c62828;
+}
+
+/* Metrics Grid */
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.metricCard {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  border-top: 4px solid;
+  border-top-color: #667eea;
+}
+
+.metricCard:nth-child(2) {
+  border-top-color: #764ba2;
+}
+
+.metricCard:nth-child(3) {
+  border-top-color: #30cfd0;
+}
+
+.metricCard:nth-child(4) {
+  border-top-color: #fa709a;
+}
+
+.metricLabel {
+  font-size: 0.85rem;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.metricValue {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+}
+
+.metricDesc {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* Sections */
+.section {
+  margin-bottom: 3rem;
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.section h2 {
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+  color: #1a1a1a;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 0.75rem;
+}
+
+/* Tier Distribution */
+.tierGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+}
+
+.tierBox {
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  border: 2px solid;
+  background: #f9f9f9;
+}
+
+.tierBox.tierEmerging {
+  border-color: #84fab0;
+  background: linear-gradient(135deg, rgba(132, 250, 176, 0.1) 0%, rgba(143, 211, 244, 0.1) 100%);
+}
+
+.tierBox.tierRising {
+  border-color: #fa709a;
+  background: linear-gradient(135deg, rgba(250, 112, 154, 0.1) 0%, rgba(254, 225, 64, 0.1) 100%);
+}
+
+.tierBox.tierInfluencer {
+  border-color: #30cfd0;
+  background: linear-gradient(135deg, rgba(48, 207, 208, 0.1) 0%, rgba(51, 8, 103, 0.1) 100%);
+}
+
+.tierBox.tierAmbassador {
+  border-color: #a8edea;
+  background: linear-gradient(135deg, rgba(168, 237, 234, 0.1) 0%, rgba(254, 214, 227, 0.1) 100%);
+}
+
+.tierName {
+  font-size: 1.3rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  color: #1a1a1a;
+}
+
+.tierCount {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.tierCount .number {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #667eea;
+}
+
+.tierCount .label {
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.tierStats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.tierStats .stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.tierStats .stat small {
+  color: #999;
+  font-weight: 500;
+}
+
+.tierStats .stat strong {
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+/* Tables */
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.topReferrersTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.topReferrersTable thead {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-bottom: 2px solid #ddd;
+}
+
+.topReferrersTable th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+}
+
+.topReferrersTable td {
+  padding: 1rem;
+  border-bottom: 1px solid #f0f0f0;
+  color: #333;
+}
+
+.topReferrersTable tbody tr:hover {
+  background: #f9f9f9;
+}
+
+.rank {
+  font-weight: bold;
+  color: #667eea;
+  text-align: center;
+}
+
+.founderInfo {
+  text-align: left;
+}
+
+.founderName {
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 0.25rem;
+}
+
+.founderEmail {
+  font-size: 0.85rem;
+  color: #999;
+}
+
+.tierBadge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.tierBadge.tierEmerging {
+  background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+  color: #1a1a1a;
+}
+
+.tierBadge.tierRising {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  color: #1a1a1a;
+}
+
+.tierBadge.tierInfluencer {
+  background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+  color: white;
+}
+
+.tierBadge.tierAmbassador {
+  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+  color: #1a1a1a;
+}
+
+.center {
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Tier Bonus Reference */
+.tierReference {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.refRow {
+  display: grid;
+  grid-template-columns: 150px 150px 1fr;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  background: #f9f9f9;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+}
+
+.refTierName {
+  font-weight: 600;
+  color: #1a1a1a;
+  font-size: 1rem;
+}
+
+.refMinReferrals {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.refBonus {
+  font-weight: bold;
+  color: #667eea;
+  font-size: 1.1rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .header h1 {
+    font-size: 1.8rem;
+  }
+
+  .metricsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .tierGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .section {
+    padding: 1.5rem;
+  }
+
+  .section h2 {
+    font-size: 1.3rem;
+  }
+
+  .topReferrersTable {
+    font-size: 0.85rem;
+  }
+
+  .topReferrersTable th,
+  .topReferrersTable td {
+    padding: 0.75rem;
+  }
+
+  .founderInfo {
+    min-width: 150px;
+  }
+
+  .refRow {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .refMinReferrals,
+  .refBonus {
+    display: inline-block;
+    margin-left: auto;
+  }
+}
+
+

@@ -1,0 +1,371 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.breadcrumb {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+  font-size: 0.95rem;
+  color: #666;
+}
+
+.breadcrumb a {
+  color: #10b3f0;
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.breadcrumb span {
+  color: #ccc;
+}
+
+.mainContent {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  margin-bottom: 60px;
+}
+
+/* Image Section */
+.imageSection {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.mainImage {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.imagePlaceholder {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  background: #f0f0f0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 1rem;
+}
+
+.quickStats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+}
+
+.stat {
+  background: #f9f9f9;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.stat .label {
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.stat .value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #1f2937;
+}
+
+/* Details Section */
+.detailsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.title {
+  font-size: 2rem;
+  color: #1f2937;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.category {
+  display: inline-block;
+  padding: 8px 16px;
+  background: #e3f2fd;
+  color: #1976d2;
+  border-radius: 20px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  width: fit-content;
+}
+
+.badges {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  display: inline-block;
+  padding: 10px 15px;
+  background: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.badge strong {
+  color: #666;
+  font-weight: 600;
+}
+
+/* Pricing Section */
+.pricingSection {
+  background: #f5f5f5;
+  padding: 25px;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+}
+
+.currentBid {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #ddd;
+}
+
+.currentBid label {
+  display: block;
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.price {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #10b3f0;
+}
+
+.bidInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #ddd;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.95rem;
+}
+
+.infoRow span {
+  color: #666;
+}
+
+.infoRow strong {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.timeRemaining {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #ddd;
+}
+
+.timeRemaining label {
+  display: block;
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.time {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #4caf50;
+}
+
+.time.urgency {
+  color: #ff9800;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.bidButton {
+  display: inline-block;
+  width: 100%;
+  padding: 16px;
+  background: #10b3f0;
+  color: white;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.3s;
+  border: 2px solid #10b3f0;
+}
+
+.bidButton:hover {
+  background: #0a9fd9;
+  border-color: #0a9fd9;
+}
+
+/* Description Section */
+.descriptionSection {
+  padding: 20px 0;
+  border-top: 1px solid #ddd;
+}
+
+.descriptionSection h2 {
+  font-size: 1.3rem;
+  color: #1f2937;
+  margin: 0 0 15px 0;
+}
+
+.description {
+  color: #555;
+  line-height: 1.6;
+  font-size: 0.95rem;
+  white-space: pre-wrap;
+}
+
+/* Additional Details */
+.additionalDetails {
+  padding-top: 20px;
+  border-top: 1px solid #ddd;
+}
+
+.additionalDetails h3 {
+  font-size: 1.1rem;
+  color: #1f2937;
+  margin: 0 0 15px 0;
+}
+
+.detailsTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.detailsTable td {
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 0.95rem;
+}
+
+.detailsTable td:first-child {
+  color: #666;
+  width: 40%;
+  font-weight: 600;
+}
+
+.detailsTable td:last-child {
+  color: #1f2937;
+  text-align: right;
+}
+
+/* Related Section */
+.relatedSection {
+  padding-top: 40px;
+  border-top: 2px solid #e0e0e0;
+  margin-top: 40px;
+}
+
+.relatedSection h2 {
+  font-size: 1.5rem;
+  color: #1f2937;
+  margin: 0 0 25px 0;
+}
+
+.relatedGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.relatedCard {
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  text-decoration: none;
+  transition: all 0.3s;
+}
+
+.relatedCard:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  border-color: #10b3f0;
+}
+
+.relatedImage {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+}
+
+.relatedCard h3 {
+  padding: 12px;
+  margin: 0;
+  font-size: 0.95rem;
+  color: #1f2937;
+  line-height: 1.3;
+  flex-grow: 1;
+}
+
+.relatedCard .price {
+  padding: 0 12px 12px;
+  font-size: 1.2rem;
+  color: #10b3f0;
+  font-weight: bold;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .mainContent {
+    grid-template-columns: 1fr;
+    gap: 25px;
+  }
+
+  .title {
+    font-size: 1.5rem;
+  }
+
+  .price {
+    font-size: 2rem;
+  }
+
+  .relatedGrid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+  }
+
+  .breadcrumb {
+    flex-wrap: wrap;
+  }
+}

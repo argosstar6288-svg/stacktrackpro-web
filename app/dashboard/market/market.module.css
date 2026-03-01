@@ -1,0 +1,294 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.loading {
+  padding: 2rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.title {
+  margin: 6px 0 0;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.search {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.search input {
+  background: transparent;
+  border: none;
+  color: inherit;
+  outline: none;
+  min-width: 220px;
+}
+
+.actionLink {
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0052CC, #1E90FF);
+  color: #0b0915;
+  font-weight: 600;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.panelSubtitle {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.panelBadge {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.panelLink {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+}
+
+.highlight {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.highlightLabel {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.highlightValue {
+  margin: 10px 0 6px;
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.highlightSub {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.primaryButton {
+  border: none;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0052CC, #1E90FF);
+  color: #0b0915;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chartWrap {
+  height: 320px;
+}
+
+.cardsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #1E90FF;
+  border: 2px solid #1E90FF;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: white;
+}
+
+.card:nth-child(even) {
+  background: #FF8C00;
+  border-color: #FF8C00;
+}
+
+.card:hover {
+  box-shadow: 0 4px 12px rgba(30, 144, 255, 0.5);
+  border-color: #1E90FF;
+}
+
+.card:nth-child(even):hover {
+  box-shadow: 0 4px 12px rgba(255, 140, 0, 0.5);
+  border-color: #FF8C00;
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cardName {
+  font-weight: 600;
+}
+
+.cardBadge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.cardMeta {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.cardValue {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.rarityList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rarityRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.valuePanel {
+  align-items: flex-start;
+}
+
+.valueLabel {
+  margin: 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.valueAmount {
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.valueNote {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.muted {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+@media (max-width: 1100px) {
+  .pageHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .search input {
+    min-width: 160px;
+  }
+}
+
+@media (max-width: 700px) {
+  .headerActions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search {
+    width: 100%;
+  }
+
+  .highlight {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+
