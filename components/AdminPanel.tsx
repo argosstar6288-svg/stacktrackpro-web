@@ -307,6 +307,23 @@ export default function AdminPanel() {
         >
           Cards ({stats.totalCards})
         </button>
+        <a 
+          href="/dashboard/admin/system-check"
+          className={styles.systemCheckLink}
+          style={{
+            marginLeft: "auto",
+            padding: "0.5rem 1rem",
+            background: "#3b82f6",
+            color: "white",
+            borderRadius: "6px",
+            textDecoration: "none",
+            fontSize: "0.9rem",
+            fontWeight: "500",
+            transition: "all 0.2s"
+          }}
+        >
+          🔧 System Check
+        </a>
       </div>
 
       <div className={styles.content}>

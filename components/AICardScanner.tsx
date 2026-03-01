@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useFeatureAccess } from "../hooks/useFeatureAccess";
 import styles from "./AICardScanner.module.css";
 
 interface CardScanResult {
@@ -61,6 +62,7 @@ function normalizeErrorText(rawMessage: string): string {
 }
 
 export default function AICardScanner({ onScanComplete, onCancel, userId }: AICardScannerProps) {
+  const { canScan, scansRemaining, incrementScanCount, subscriptionPlan } = useFeatureAccess();
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [scanning, setScanning] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
@@ -197,6 +199,15 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
   const handleScan = async () => {
     if (selectedImages.length === 0) return;
 
+    // Check scan limits
+    if (!canScan) {
+      setError(
+        `You've reached your monthly scan limit (${scansRemaining} remaining). ` +
+        `Upgrade your plan to continue scanning. Current plan: ${subscriptionPlan}`
+      );
+      return;
+    }
+
     setScanning(true);
     setError("");
     setScanProgress({ current: 0, total: selectedImages.length });
@@ -287,6 +298,11 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
         setError(`Successfully scanned ${results.length} card(s). Skipped ${skippedCards.length}: ${skippedCards.join(', ')}`);
       }
 
+      // Increment scan count for successful scans
+      for (let i = 0; i < results.length; i++) {
+        await incrementScanCount();
+      }
+
       onScanComplete(results);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to scan cards");
@@ -297,7 +313,18 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
   return (
     <div className={styles.scanner}>
       <div className={styles.header}>
-        <h2>Scan Cards with AI</h2>
+        <div>
+          <h2>Scan Cards with AI</h2>
+          {!canScan ? (
+            <p style={{ color: "#ef4444", fontSize: "0.875rem", marginTop: "0.25rem" }}>
+              ⚠️ Scan limit reached - Upgrade to continue
+            </p>
+          ) : (
+            <p style={{ color: "#6b7280", fontSize: "0.875rem", marginTop: "0.25rem" }}>
+              {scansRemaining === 999999 ? "Unlimited scans" : `${scansRemaining} scans remaining this month`}
+            </p>
+          )}
+        </div>
         <button className={styles.closeButton} onClick={onCancel} type="button">
           ×
         </button>

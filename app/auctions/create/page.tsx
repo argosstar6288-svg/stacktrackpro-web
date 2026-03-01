@@ -1,9 +1,9 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { collection, doc, serverTimestamp, setDoc, Timestamp } from "firebase/firestore";
+import { collection, doc, getDoc, serverTimestamp, setDoc, Timestamp } from "firebase/firestore";
 import { getDownloadURL, ref, uploadString } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
 import { useCurrentUser } from "@/lib/useCurrentUser";
@@ -45,6 +45,29 @@ export default function CreateAuctionPage() {
     const validPrice = Number(startPrice) > 0;
     return !imageDataUrl || !cardName.trim() || !validPrice || !selectedDuration || submitting;
   }, [cardName, imageDataUrl, selectedDuration, startPrice, submitting]);
+
+  // Check for age verification
+  useEffect(() => {
+    const checkVerification = async () => {
+      if (!user) return;
+
+      try {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        const userData = userDoc.data();
+
+        if (!userData?.isAuctionVerified) {
+          // Redirect to age verification with return URL
+          router.push(`/verify-age?redirect=/auctions/create`);
+        }
+      } catch (error) {
+        console.error("Error checking verification:", error);
+      }
+    };
+
+    if (user && !userLoading) {
+      checkVerification();
+    }
+  }, [user, userLoading, router]);
 
   const onImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
