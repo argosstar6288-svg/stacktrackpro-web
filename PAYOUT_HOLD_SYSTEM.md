@@ -24,29 +24,59 @@ StackTrackPro holds seller funds after buyer payment and releases them only when
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
 │ 3. SELLER MARKS AS SHIPPED (3 business days to do this)    │
-│    Status: awaiting_shipment                                │
+│    Status: awaiting_shipment → shipped_pending_release      │
 │    Seller enters:                                           │
 │      • Carrier (Canada Post, UPS, FedEx, etc.)             │
 │      • Tracking number                                      │
 │      • Optional shipping note                               │
 │    StackTrack: Validates shipment info                      │
 │    Buyer notified: "Item shipped - Track here"              │
+│    StackTrack sets: releaseAt = shippedAt + 24 hours       │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ 4. FUNDS RELEASED                                           │
-│    Status: shipped                                          │
+│ 4. 24-HOUR REVIEW WINDOW (Most Important!)                 │
+│    Status: shipped_pending_release                          │
+│    During this time:                                        │
+│      ✔ Buyer can open dispute                              │
+│      ✔ StackTrack can manually review                      │
+│      ✔ Seller CANNOT access funds yet                      │
+│    If dispute opened:                                       │
+│      → disputeOpened = true                                │
+│      → Payout blocked (manual review)                      │
+│    If no dispute after 24 hours:                           │
+│      → Auto-trigger: Stripe transfer                       │
+│      → payoutReleased = true                               │
+│      → Status: completed                                    │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│ 5. FUNDS RELEASED (After 24 Hours or Delay if Dispute)     │
+│    Status: completed (or disputed)                          │
 │    StackTrack triggers Stripe transfer to seller            │
 │    Seller receives: Sale Price - Platform Fee - Processing │
 │    Timeline: Immediate to 1-2 business days                 │
+│    Seller notified: "Your payout has been released"        │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ 5. BUYER RECEIVES ITEM                                      │
+│ 6. BUYER RECEIVES ITEM                                      │
 │    Status: delivered                                        │
 │    Buyer can leave feedback                                 │
-│    Dispute window opens (if needed)                         │
+│    Dispute window closes (30 days from shipped)            │
 └─────────────────────────────────────────────────────────────┘
+```
+
+## Timeline Summary
+
+```
+T+0 sec:   Buyer pays → Payment captured, fees deducted
+T+0 min:   Seller sees "Mark as Shipped" button
+T+0-3d:    Seller marks shipped, enters tracking
+T+0:       Tracking confirmed → 24-hour hold begins
+T+24h:     Buyer did NOT open dispute? → FUNDS AUTO-RELEASED ✓
+T+24h:     Buyer DID open dispute? → Manual review, payout delayed
+T+30d:     Dispute window closes
 ```
 
 ## Database Schema
@@ -81,7 +111,7 @@ interface Auction {
   paidAt?: Timestamp;
   
   // Shipping & release status
-  status: 'active' | 'sold' | 'awaiting_shipment' | 'shipped' | 'delivered' | 'cancelled';
+  status: 'active' | 'sold' | 'awaiting_shipment' | 'shipped_pending_release' | 'shipped' | 'delivered' | 'cancelled' | 'disputed';
   shippingInfo?: {
     carrier: 'canada_post' | 'ups' | 'fedex' | 'dhl' | 'other';
     trackingNumber: string;
@@ -90,12 +120,21 @@ interface Auction {
     sellerNote?: string;
   };
   
+  // 24-Hour Release Hold (NEW)
+  releaseHold: {
+    releaseAt: Timestamp;           // shippedAt + 24 hours (or 12 for Pro)
+    disputeOpened: boolean;         // Set to true if buyer opens dispute
+    disputeOpenedAt?: Timestamp;
+    releasedEarlyManually?: boolean; // For admin override
+  };
+  
   // Payout release
   payoutInfo?: {
-    released: boolean;
+    payoutReleased: boolean;        // Released after 24-hour window
     releasedAt?: Timestamp;
     stripeTransferId?: string;      // Reference to Stripe transfer
     amount: number;                  // Amount transferred
+    failureReason?: string;
   };
   
   // Protection
@@ -203,6 +242,285 @@ Cancel               [✓ CONFIRM SHIPMENT]
 └─────────────────────────────────────────────┘
 ```
 
+### After "Mark as Shipped" - 24-Hour Review Window
+
+```
+┌─────────────────────────────────────────────┐
+│ ✓ TRACKING RECEIVED - PAYOUT PENDING        │
+├─────────────────────────────────────────────┤
+│ Your item has been recorded as shipped.     │
+│                                              │
+│ ⏳ PAYOUT RELEASE IN PROGRESS               │
+│ Your payment will be released automatically │
+│ in 24 hours (unless a dispute is opened).   │
+│                                              │
+│ Carrier: Canada Post                        │
+│ Tracking: 1234567890                        │
+│ Shipped: Dec 15, 2024                       │
+│ Expected release: Dec 16, 2024 @ 2:30 PM  │
+│                                              │
+│ Payout Amount: $367.70                      │
+│ To: Bank Account ••••••2458                 │
+├─────────────────────────────────────────────┤
+│ ℹ During this 24-hour window:               │
+│ • Buyer can dispute the transaction        │
+│ • StackTrack reviews for fraud              │
+│ • Your funds remain securely held           │
+│ • After 24h: Auto-released (no dispute)     │
+│                                              │
+│ [view tracking]  [Support]                  │
+└─────────────────────────────────────────────┘
+```
+
+### Pro Seller Badge (12-Hour Release)
+
+```
+┌─────────────────────────────────────────────┐
+│ ✓ TRACKING RECEIVED - PAYOUT PENDING        │
+│ 👑 PRO SELLER - 12-HOUR RELEASE             │
+├─────────────────────────────────────────────┤
+│ Your Pro subscription gets faster payouts!  │
+│                                              │
+│ Carrier: Canada Post                        │
+│ Tracking: 1234567890                        │
+│ Shipped: Dec 15, 2024                       │
+│ Expected release: Dec 15, 2024 @ 2:30 PM   │
+│ (12 hours instead of 24)                    │
+│                                              │
+│ Payout Amount: $367.70 (2% platform fee)    │
+│ To: Bank Account ••••••2458                 │
+├─────────────────────────────────────────────┤
+│ [Upgrade for faster releases]  [Support]    │
+└─────────────────────────────────────────────┘
+```
+
+## 24-Hour Auto-Release Mechanism
+
+### Overview
+
+The 24-hour hold is StackTrack's fraud protection window. Here's how it works:
+
+```
+1. Seller marks item as shipped
+   ↓
+2. TrackingStatus set to "shipped_pending_release"
+   ↓
+3. releaseAt = shippedAt + 24 hours (or 12 for Pro)
+   ↓
+4. WINDOW: Buyer can open dispute, you review
+   ↓
+5. IF no dispute AND releaseAt time has passed:
+   → Automatic Stripe transfer triggers
+   → Status → "completed"
+   ↓
+6. IF buyer opens dispute:
+   → disputeOpened = true
+   → Payout paused (manual review)
+   → You handle it in Admin Dashboard
+```
+
+### Option A: Firebase Scheduled Function (RECOMMENDED)
+
+```typescript
+// functions/services/payoutRelease.ts
+import * as functions from 'firebase-functions';
+import { db } from '../config/firebaseAdmin';
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+// Run every hour to check for eligible payouts
+export const autoReleasePayouts = functions.pubsub
+  .schedule('every 1 hours')
+  .onRun(async (context) => {
+    console.log('Starting payout release check...');
+
+    try {
+      // Find all auctions ready for release
+      const query = db.collection('auctions')
+        .where('status', '==', 'shipped_pending_release')
+        .where('releaseHold.disputeOpened', '==', false);
+
+      const snapshot = await query.get();
+      const now = new Date();
+      const toRelease = [];
+
+      snapshot.forEach((doc) => {
+        const auction = doc.data();
+        const releaseAt = auction.releaseHold?.releaseAt?.toDate();
+
+        // Check if 24-hour window has passed
+        if (releaseAt && now >= releaseAt) {
+          toRelease.push({
+            id: doc.id,
+            ...auction,
+          });
+        }
+      });
+
+      console.log(`Found ${toRelease.length} auctions ready to release`);
+
+      // Process each release
+      for (const auction of toRelease) {
+        try {
+          // 1. Create Stripe transfer to seller
+          const transfer = await stripe.transfers.create({
+            amount: Math.round(auction.sellerPayoutAmount * 100), // cents
+            currency: 'cad',
+            destination: auction.sellerStripeAccountId,
+            description: `Payout for auction "${auction.title}" (${auction.id})`,
+            metadata: {
+              auctionId: auction.id,
+              sellerId: auction.sellerId,
+            },
+          });
+
+          // 2. Update Firestore with release info
+          await db.collection('auctions').doc(auction.id).update({
+            status: 'completed',
+            'payoutInfo.payoutReleased': true,
+            'payoutInfo.releasedAt': new Date(),
+            'payoutInfo.stripeTransferId': transfer.id,
+            'payoutInfo.amount': auction.sellerPayoutAmount,
+          });
+
+          // 3. Send confirmation email to seller
+          await sendPayoutConfirmationEmail(auction);
+
+          console.log(`✓ Released payout for auction ${auction.id}`);
+        } catch (error) {
+          console.error(`✗ Failed to release payout for ${auction.id}:`, error);
+
+          // Update with failure reason
+          await db.collection('auctions').doc(auction.id).update({
+            'payoutInfo.failureReason': error.message,
+          });
+
+          // Alert admin
+          await sendAdminAlert({
+            type: 'PAYOUT_FAILURE',
+            auctionId: auction.id,
+            reason: error.message,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error in autoReleasePayouts:', error);
+    }
+  });
+```
+
+### Option B: Vercel Cron Job (Alternative)
+
+```typescript
+// app/api/cron/release-payouts/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/lib/firebase';
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+export async function GET(req: NextRequest) {
+  // Verify cron secret
+  if (req.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const startTime = Date.now();
+  let releasedCount = 0;
+
+  try {
+    // Same logic as Firebase function above
+    const query = db.collection('auctions')
+      .where('status', '==', 'shipped_pending_release')
+      .where('releaseHold.disputeOpened', '==', false);
+
+    const snapshot = await query.get();
+    const now = new Date();
+
+    for (const doc of snapshot.docs) {
+      const auction = doc.data();
+      const releaseAt = auction.releaseHold?.releaseAt?.toDate?.();
+
+      if (releaseAt && now >= releaseAt) {
+        try {
+          const transfer = await stripe.transfers.create({
+            amount: Math.round(auction.sellerPayoutAmount * 100),
+            currency: 'cad',
+            destination: auction.sellerStripeAccountId,
+          });
+
+          await db.collection('auctions').doc(doc.id).update({
+            status: 'completed',
+            'payoutInfo.payoutReleased': true,
+            'payoutInfo.releasedAt': new Date(),
+            'payoutInfo.stripeTransferId': transfer.id,
+          });
+
+          releasedCount++;
+        } catch (error) {
+          console.error(`Payout failed for ${doc.id}:`, error);
+        }
+      }
+    }
+
+    const duration = Date.now() - startTime;
+    return NextResponse.json({
+      success: true,
+      released: releasedCount,
+      durationMs: duration,
+    });
+  } catch (error) {
+    return NextResponse.json({
+      error: error.message,
+    }, { status: 500 });
+  }
+}
+```
+
+Configure in `vercel.json`:
+```json
+{
+  "crons": [
+    {
+      "path": "/api/cron/release-payouts",
+      "schedule": "0 * * * *"
+    }
+  ]
+}
+```
+
+### Option C: Dashboard Trigger (MVP Approach)
+
+```typescript
+// app/dashboard/seller/page.tsx
+// Check for eligible payouts every time seller loads dashboard
+
+useEffect(() => {
+  const checkAndReleasePayout = async () => {
+    const auctions = await db.collection('auctions')
+      .where('sellerId', '==', userId)
+      .where('status', '==', 'shipped_pending_release')
+      .where('releaseHold.disputeOpened', '==', false)
+      .get();
+
+    const now = new Date();
+
+    for (const doc of auctions.docs) {
+      const auction = doc.data();
+      const releaseAt = auction.releaseHold?.releaseAt?.toDate?.();
+
+      if (releaseAt && now >= releaseAt) {
+        // Trigger release
+        await releasePayout(doc.id);
+      }
+    }
+  };
+
+  checkAndReleasePayout();
+}, [userId]);
+```
+
 ## Implementation Code Examples
 
 ### Firestore Auction Schema Update
@@ -237,7 +555,7 @@ await updateDoc(auctionRef, {
 });
 ```
 
-### Seller Marks Item as Shipped
+### Seller Marks Item as Shipped (With 24-Hour Hold)
 
 ```typescript
 // In seller dashboard, when they submit shipping form:
@@ -246,130 +564,219 @@ const shipAuction = async (
   auctionId: string,
   carrier: string,
   trackingNumber: string,
-  note: string
+  note: string,
+  subscriptionTier: 'free' | 'starter' | 'pro' | 'lifetime' = 'free'
 ) => {
   try {
     const auctionRef = doc(db, 'auctions', auctionId);
     
-    // 1. Update auction with shipping info
+    // Calculate release time based on subscription tier
+    const now = new Date();
+    const holdHours = (subscriptionTier === 'pro' || subscriptionTier === 'lifetime') ? 12 : 24;
+    const releaseAt = new Date(now.getTime() + holdHours * 60 * 60 * 1000);
+    
+    // 1. Update auction with shipping info + 24-hour hold
     await updateDoc(auctionRef, {
-      status: 'shipped',
+      status: 'shipped_pending_release',  // ← NEW: Intermediate status
       shippingInfo: {
         carrier,
         trackingNumber,
         sellerNote: note,
-        shippedAt: serverTimestamp()
-      }
-    });
-    
-    // 2. Trigger Stripe transfer to seller's account
-    // (This would be done server-side via Cloud Function)
-    const response = await fetch('/api/auctions/release-payout', {
-      method: 'POST',
-      body: JSON.stringify({
-        auctionId,
-        sellerId: currentUser.uid,
-        amount: auctionData.sellerPayoutAmount
-      })
-    });
-    
-    // 3. Update auction with payout release info
-    const { stripeTransferId } = await response.json();
-    
-    await updateDoc(auctionRef, {
+        shippedAt: serverTimestamp(),
+        estimatedDelivery: calculateEstimatedDelivery(carrier) // e.g., "Dec 22"
+      },
+      releaseHold: {
+        releaseAt: Timestamp.fromDate(releaseAt),
+        disputeOpened: false
+      },
+      // DO NOT RELEASE PAYOUT YET - Funds remain held
       payoutInfo: {
-        released: true,
-        releasedAt: serverTimestamp(),
-        stripeTransferId,
+        payoutReleased: false,  // ← Still false
         amount: auctionData.sellerPayoutAmount
       }
     });
     
-    // 4. Send notifications
-    await notifyBuyer(auctionId, trackingNumber, carrier);
+    // 2. Notify buyer - Item shipped with tracking
+    await sendBuyerNotification({
+      auctionId,
+      buyerId: auctionData.buyerId,
+      type: 'ITEM_SHIPPED',
+      trackingNumber,
+      carrier,
+      estimatedDelivery: releaseAt
+    });
+    
+    // 3. Notify seller - Payout pending 24-hour review
+    await sendSellerNotification({
+      auctionId,
+      sellerId: currentUser.uid,
+      type: 'PAYOUT_PENDING_RELEASE',
+      releaseTime: releaseAt,
+      holdDuration: holdHours
+    });
+    
+    console.log(`✓ Auction ${auctionId} marked as shipped`);
+    console.log(`✓ Payout will auto-release in ${holdHours} hours`);
+    console.log(`✓ Release scheduled for: ${releaseAt.toISOString()}`);
     
   } catch (error) {
-    console.error('Error shipping auction:', error);
+    console.error('Error marking auction as shipped:', error);
+    throw error;
+  }
+};
+
+// Helper: Calculate estimated delivery based on carrier
+function calculateEstimatedDelivery(carrier: string): string {
+  const today = new Date();
+  const daysToAdd = {
+    'canada_post': 5,
+    'ups': 3,
+    'fedex': 3,
+    'dhl': 4,
+    'other': 7
+  };
+  
+  const days = daysToAdd[carrier] || 7;
+  const deliveryDate = new Date(today.getTime() + days * 24 * 60 * 60 * 1000);
+  
+  return deliveryDate.toLocaleDateString('en-CA', {
+    month: 'short',
+    day: 'numeric'
+  });
+}
+```
+
+### Buyer Opens Dispute Within 24 Hours
+
+```typescript
+// In buyer dashboard, disputes section:
+
+const openDispute = async (auctionId: string, reason: string) => {
+  try {
+    const auctionRef = doc(db, 'auctions', auctionId);
+    
+    // 1. Flag the dispute on the auction
+    await updateDoc(auctionRef, {
+      'releaseHold.disputeOpened': true,
+      'releaseHold.disputeOpenedAt': serverTimestamp(),
+      disputeReason: reason
+    });
+    
+    // 2. Keep status as 'shipped_pending_release' (but now disputed)
+    // Payout will NOT auto-release even after 24 hours
+    
+    // 3. Alert admin about dispute
+    await sendAdminAlert({
+      type: 'DISPUTE_OPENED',
+      auctionId,
+      buyerId: auctionData.buyerId,
+      reason,
+      trackingNumber: auctionData.shippingInfo.trackingNumber
+    });
+    
+    // 4. Notify seller dispute was opened
+    await sendSellerNotification({
+      auctionId,
+      type: 'DISPUTE_OPENED',
+      message: 'Buyer has opened a dispute. Status: Under review.'
+    });
+    
+    console.log(`✓ Dispute opened for auction ${auctionId}`);
+    console.log(`✓ Payout release paused - manual review required`);
+    
+  } catch (error) {
+    console.error('Error opening dispute:', error);
     throw error;
   }
 };
 ```
 
-### Cloud Function: Release Payout
+### Auto-Release After 24 Hours (Scheduled Function)
+
+This is handled by the scheduled functions above. The key logic:
 
 ```typescript
-// functions/src/index.ts
+// Pseudo-code for clarity
 
-import * as functions from 'firebase-functions';
-import * as admin from 'firebase-admin';
-import Stripe from 'stripe';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-const db = admin.firestore();
-
-export const releasePayoutOnShipment = functions.firestore
-  .document('auctions/{auctionId}')
-  .onUpdate(async (change, context) => {
-    const before = change.before.data();
-    const after = change.after.data();
-    
-    // Check if status changed to 'shipped'
-    if (before.status !== 'shipped' && after.status === 'shipped') {
-      const { auctionId } = context.params;
-      const {
-        sellerId,
-        sellerPayoutAmount,
-        stripeChargeId
-      } = after;
-      
-      try {
-        // Get seller's Stripe Connect account
-        const sellerDoc = await db.collection('users').doc(sellerId).get();
-        const sellerStripeId = sellerDoc.data()?.stripeConnectId;
-        
-        if (!sellerStripeId) {
-          console.error('Seller has no Stripe Connect account');
-          return;
-        }
-        
-        // Create transfer from your account to seller's Stripe account
-        const transfer = await stripe.transfers.create({
-          amount: Math.round(sellerPayoutAmount * 100), // Convert to cents
-          currency: 'cad',
-          destination: sellerStripeId,
-          metadata: {
-            auctionId,
-            sellerId,
-            originalChargeId: stripeChargeId
-          },
-          description: `Payout for auction ${auctionId}`
-        });
-        
-        // Update auction with transfer info
-        await db.collection('auctions').doc(auctionId).update({
-          'payoutInfo.stripeTransferId': transfer.id,
-          'payoutInfo.released': true,
-          'payoutInfo.releasedAt': admin.firestore.FieldValue.serverTimestamp()
-        });
-        
-        console.log(`Payout released: ${transfer.id}`);
-        
-      } catch (error) {
-        console.error('Error releasing payout:', error);
-        
-        // Send alert to admin
-        await db.collection('alerts').add({
-          type: 'payout_failed',
-          auctionId,
-          error: error.toString(),
-          createdAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-      }
-    }
+if (auction.status === 'shipped_pending_release'
+    && auction.releaseHold.disputeOpened === false
+    && now >= auction.releaseHold.releaseAt) {
+  
+  // AUTO-TRIGGER PAYOUT TRANSFER
+  await stripe.transfers.create({
+    amount: auction.sellerPayoutAmount,
+    currency: 'cad',
+    destination: auction.sellerStripeAccountId
   });
+  
+  // Mark as released
+  auction.status = 'completed';
+  auction.payoutInfo.payoutReleased = true;
+  auction.payoutInfo.releasedAt = now;
+}
+```
+
+### If Dispute is Resolved Manually
+
+```typescript
+// In admin dashboard, disputes section:
+
+const resolveDispute = async (
+  auctionId: string,
+  resolution: 'RELEASE_PAYOUT' | 'FULL_REFUND' | 'CANCEL'
+) => {
+  const auctionRef = doc(db, 'auctions', auctionId);
+  
+  if (resolution === 'RELEASE_PAYOUT') {
+    // 1. Release payout to seller
+    await stripe.transfers.create({
+      amount: auction.sellerPayoutAmount,
+      currency: 'cad',
+      destination: auction.sellerStripeAccountId
+    });
+    
+    // 2. Update auction
+    await updateDoc(auctionRef, {
+      status: 'completed',
+      'payoutInfo.payoutReleased': true,
+      'payoutInfo.releasedAt': serverTimestamp(),
+      'releaseHold.releasedEarlyManually': true,
+      disputeResolution: 'PAYOUT_RELEASED'
+    });
+    
+    // 3. Notify both parties
+    await sendSellerNotification({ auctionId, type: 'DISPUTE_RESOLVED_PAYOUT' });
+    await sendBuyerNotification({ auctionId, type: 'DISPUTE_RESOLVED' });
+  
+  } else if (resolution === 'FULL_REFUND') {
+    // 1. Refund buyer via Stripe
+    await stripe.refunds.create({
+      charge: auction.stripeChargeId,
+      amount: auction.salePrice * 100
+    });
+    
+    // 2. Update auction
+    await updateDoc(auctionRef, {
+      status: 'disputed',
+      paymentStatus: 'refunded',
+      disputeResolution: 'FULL_REFUND'
+    });
+    
+    // 3. Notify seller - no payout
+    await sendSellerNotification({ 
+      auctionId, 
+      type: 'DISPUTE_RESOLVED_REFUND',
+      message: 'Dispute resolved. Full refund issued to buyer.'
+    });
+  
+  } else if (resolution === 'CANCEL') {
+    // Similar to FULL_REFUND but more detailed
+  }
+};
 ```
 
 ## Protection Rules
+
 
 ### Shipping Deadline
 

@@ -37,10 +37,40 @@ export const SUBSCRIPTION_FEE_RATES: Record<SubscriptionTier, number> = {
 };
 
 /**
+ * Payout release hold times (24-hour hold with Pro upgrade benefit)
+ */
+export const PAYOUT_HOLD_HOURS: Record<SubscriptionTier, number> = {
+  free: 24,        // Standard 24-hour review window
+  starter: 24,     // Standard 24-hour review window
+  pro: 12,         // Pro sellers get 12-hour release
+  lifetime: 12,    // Lifetime gets pro benefits
+};
+
+/**
  * Get the platform fee percentage for a subscription tier
  */
 export function getFeePercentage(subscriptionTier: SubscriptionTier = 'free'): number {
   return SUBSCRIPTION_FEE_RATES[subscriptionTier] || SUBSCRIPTION_FEE_RATES['free'];
+}
+
+/**
+ * Calculate payout release time based on subscription tier
+ * Free/Starter: 24 hours
+ * Pro/Lifetime: 12 hours
+ */
+export function calculatePayoutReleaseTime(
+  shippedAt: Date,
+  subscriptionTier: SubscriptionTier = 'free'
+): Date {
+  const holdHours = PAYOUT_HOLD_HOURS[subscriptionTier] || PAYOUT_HOLD_HOURS['free'];
+  return new Date(shippedAt.getTime() + holdHours * 60 * 60 * 1000);
+}
+
+/**
+ * Get the hold duration in hours for a subscription tier
+ */
+export function getPayoutHoldDuration(subscriptionTier: SubscriptionTier = 'free'): number {
+  return PAYOUT_HOLD_HOURS[subscriptionTier] || PAYOUT_HOLD_HOURS['free'];
 }
 
 /**
