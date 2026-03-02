@@ -21,12 +21,12 @@ interface User {
   };
 }
 
-interface Card {
+interface AdminCard {
   id: string;
   userId: string;
   name: string;
   player?: string;
-  estimatedValue: number;
+  value: number;
   createdAt?: any;
 }
 
@@ -34,7 +34,7 @@ export default function AdminPanel() {
   const { user: currentUser } = useCurrentUser();
   const { currency } = useCurrency();
   const [users, setUsers] = useState<User[]>([]);
-  const [cards, setCards] = useState<Card[]>([]);
+  const [cards, setCards] = useState<AdminCard[]>([]);
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalCards: 0,
@@ -202,14 +202,14 @@ export default function AdminPanel() {
           userId: doc.data().userId || "",
           name: doc.data().name || "Unknown Card",
           player: doc.data().player || "",
-          estimatedValue: doc.data().estimatedValue || 0,
+          value: doc.data().estimatedValue || doc.data().value || 0,
           createdAt: doc.data().createdAt,
-        }));
+        } as AdminCard));
         setCards(cardsData);
 
         // Calculate stats
         const totalValue = cardsData.reduce(
-          (sum, card) => sum + (card.estimatedValue || 0),
+          (sum, card) => sum + (card.value || 0),
           0
         );
         setStats({
@@ -454,7 +454,7 @@ export default function AdminPanel() {
                     <tr key={card.id}>
                       <td>{card.name}</td>
                       <td>{card.player || "-"}</td>
-                      <td>{formatCurrency(card.estimatedValue, currency)}</td>
+                      <td>{formatCurrency(card.value, currency)}</td>
                       <td>{card.userId.substring(0, 8)}...</td>
                       <td>
                         <button className={styles.actionBtn}>View</button>
