@@ -4,8 +4,6 @@
  * Handles credit purchases, transactions, and audit trails
  */
 
-'use server';
-
 import {
   doc,
   updateDoc,

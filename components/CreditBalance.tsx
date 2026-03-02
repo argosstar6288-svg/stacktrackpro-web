@@ -7,7 +7,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { getUserCredits } from '@/lib/credits';
-import { useCurrentUser } from '@/lib/useCurrentUser';
+import { auth } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import styles from './credit-balance.module.css';
 
 interface CreditBalanceProps {
@@ -19,15 +20,24 @@ export const CreditBalance: React.FC<CreditBalanceProps> = ({
   showLabel = true,
   size = 'medium',
 }) => {
-  const { user } = useCurrentUser();
+  const [userId, setUserId] = useState<string | null>(null);
   const [credits, setCredits] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  // Get current user
   useEffect(() => {
-    if (!user?.uid) return;
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUserId(user?.uid || null);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!userId) return;
 
     const fetchCredits = async () => {
-      const result = await getUserCredits(user.uid);
+      const result = await getUserCredits(userId);
       setCredits(result.credits);
       setLoading(false);
     };
@@ -37,9 +47,9 @@ export const CreditBalance: React.FC<CreditBalanceProps> = ({
     // Refresh every 30 seconds
     const interval = setInterval(fetchCredits, 30000);
     return () => clearInterval(interval);
-  }, [user?.uid]);
+  }, [userId]);
 
-  if (!user) return null;
+  if (!userId || loading) return null;
 
   return (
     <div className={`${styles.container} ${styles[`size_${size}`]}`}>
