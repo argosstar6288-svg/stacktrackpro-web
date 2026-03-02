@@ -5,6 +5,8 @@ import { db, auth } from "../lib/firebase";
 import { collection, getDocs, query, where, doc, updateDoc, setDoc } from "firebase/firestore";
 import { updateProfile } from "firebase/auth";
 import { useCurrentUser } from "../lib/useCurrentUser";
+import { useCurrency } from "../hooks/useCurrency";
+import { formatCurrency } from "../lib/currency";
 import styles from "./AdminPanel.module.css";
 
 interface User {
@@ -30,6 +32,7 @@ interface Card {
 
 export default function AdminPanel() {
   const { user: currentUser } = useCurrentUser();
+  const { currency } = useCurrency();
   const [users, setUsers] = useState<User[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [stats, setStats] = useState({
@@ -340,7 +343,7 @@ export default function AdminPanel() {
             <div className={styles.statCard}>
               <h3>Total Card Value</h3>
               <p className={styles.statValue}>
-                ${stats.totalValue.toLocaleString()}
+                {formatCurrency(stats.totalValue, currency)}
               </p>
             </div>
           </div>
@@ -451,7 +454,7 @@ export default function AdminPanel() {
                     <tr key={card.id}>
                       <td>{card.name}</td>
                       <td>{card.player || "-"}</td>
-                      <td>${card.estimatedValue.toLocaleString()}</td>
+                      <td>{formatCurrency(card.estimatedValue, currency)}</td>
                       <td>{card.userId.substring(0, 8)}...</td>
                       <td>
                         <button className={styles.actionBtn}>View</button>
