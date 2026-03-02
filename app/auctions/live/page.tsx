@@ -2,15 +2,19 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { 
   collection, 
   query, 
   where, 
   orderBy, 
   onSnapshot,
-  Timestamp 
+  Timestamp,
+  doc,
+  getDoc 
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { useCurrentUser } from '@/lib/useCurrentUser'
 import styles from './live.module.css'
 
 interface LiveAuction {
@@ -33,9 +37,31 @@ interface AuctionDisplay {
 }
 
 export default function LiveAuctionsPage() {
+  const { user } = useCurrentUser()
+  const router = useRouter()
   const [auctions, setAuctions] = useState<AuctionDisplay[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  // 18+ verification check
+  useEffect(() => {
+    const checkVerification = async () => {
+      if (!user) return
+
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid))
+        const userData = userDoc.data()
+
+        if (!userData?.isAuctionVerified) {
+          router.push('/verify-age')
+        }
+      } catch (err) {
+        console.error('Error checking verification:', err)
+      }
+    }
+
+    checkVerification()
+  }, [user, router])
 
   // Real-time auctions listener
   useEffect(() => {
