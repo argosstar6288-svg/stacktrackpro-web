@@ -13,14 +13,6 @@ export default function Header() {
         <p className="header-eyebrow">Dashboard</p>
         <h1 className="header-title">Welcome back, {displayName}</h1>
       </div>
-      <div className="header-actions">
-        <button className="header-button" type="button">
-          Generate Report
-        </button>
-        <button className="header-button header-button-secondary" type="button">
-          New Auction
-        </button>
-      </div>
     </header>
   );
 }

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { auth } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { useUserCards, deleteCard, calculatePortfolioStats, Card } from "../lib/cards";
+import { useUserCards, deleteCard, calculatePortfolioStats, Card, useUserFolders, addCardToFolder } from "../lib/cards";
 import { CardModal } from "./CardModal";
 import "./collection.css";
 
@@ -13,6 +13,7 @@ export function CollectionManager() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const { cards, loading: cardsLoading } = useUserCards();
+  const { folders } = useUserFolders();
   const [showModal, setShowModal] = useState(false);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [sortBy, setSortBy] = useState<"name" | "value" | "date">("name");
@@ -44,6 +45,22 @@ export function CollectionManager() {
   const handleEdit = (card: Card) => {
     setEditingCard(card);
     setShowModal(true);
+  };
+
+  const handleAddToFolder = async (card: Card, folderId: string) => {
+    if (!folderId) return;
+
+    if (card.folderIds?.includes(folderId)) {
+      alert("Card is already in this folder");
+      return;
+    }
+
+    try {
+      await addCardToFolder(card.id, folderId);
+      alert("Card added to folder");
+    } catch (err: any) {
+      alert("Failed to add card to folder: " + err.message);
+    }
   };
 
   const handleCloseModal = () => {
@@ -195,7 +212,31 @@ export function CollectionManager() {
                     <td>{card.condition}</td>
                     <td style={{ color: "#ff7a47", fontWeight: "bold" }}>${card.value.toLocaleString()}</td>
                     <td>
-                      <div style={{ display: "flex", gap: 8 }}>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <select
+                          defaultValue=""
+                          onChange={async (e) => {
+                            const selectedFolderId = e.target.value;
+                            await handleAddToFolder(card, selectedFolderId);
+                            e.target.value = "";
+                          }}
+                          style={{
+                            background: "rgba(255,255,255,0.05)",
+                            border: "1px solid rgba(255,255,255,0.12)",
+                            color: "white",
+                            borderRadius: 6,
+                            padding: "4px 6px",
+                            fontSize: "0.8rem",
+                            maxWidth: 130,
+                          }}
+                        >
+                          <option value="">+ Folder</option>
+                          {folders.map((folder) => (
+                            <option key={folder.id} value={folder.id}>
+                              {folder.name}
+                            </option>
+                          ))}
+                        </select>
                         <button
                           onClick={() => handleEdit(card)}
                           className="action-btn edit"

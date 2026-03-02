@@ -10,6 +10,8 @@ import {
   doc,
   serverTimestamp,
   QueryConstraint,
+  arrayUnion,
+  arrayRemove,
 } from "firebase/firestore";
 
 export interface Card {
@@ -27,6 +29,7 @@ export interface Card {
   photoUrl?: string;
   frontImageUrl?: string;
   thumbnailUrl?: string;
+  folderIds?: string[]; // Array of folder IDs this card belongs to
   addedAt?: any;
 }
 
@@ -35,6 +38,13 @@ export interface Portfolio {
   totalCards: number;
   totalValue: number;
   lastUpdated?: any;
+}
+
+export interface Folder {
+  id?: string;
+  name: string;
+  userId: string;
+  createdAt?: any;
 }
 
 // Fetch user's card collection
@@ -189,4 +199,147 @@ export function usePortfolioStats() {
   }, [router]);
 
   return { stats, loading, error };
+}
+
+// ==================== FOLDER FUNCTIONS ====================
+
+// Create a new folder
+export async function createFolder(userId: string, name: string): Promise<string> {
+  if (!db || !userId || !name.trim()) throw new Error("Missing required fields");
+  
+  try {
+    const docRef = await addDoc(collection(db, "folders"), {
+      name: name.trim(),
+      userId,
+      createdAt: serverTimestamp(),
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error("Error creating folder:", error);
+    throw error;
+  }
+}
+
+// Get all folders for a user
+export async function getUserFolders(userId: string): Promise<Folder[]> {
+  if (!db || !userId) return [];
+  
+  try {
+    const q = query(
+      collection(db, "folders"),
+      where("userId", "==", userId)
+    );
+    const querySnapshot = await getDocs(q);
+    const folders: Folder[] = [];
+    querySnapshot.forEach((doc) => {
+      folders.push({
+        id: doc.id,
+        ...doc.data(),
+      } as Folder);
+    });
+    return folders;
+  } catch (error) {
+    console.error("Error fetching folders:", error);
+    return [];
+  }
+}
+
+// Delete a folder (does NOT delete cards, just the folder)
+export async function deleteFolder(folderId: string): Promise<void> {
+  if (!db || !folderId) throw new Error("Folder ID missing");
+  
+  try {
+    await deleteDoc(doc(db, "folders", folderId));
+  } catch (error) {
+    console.error("Error deleting folder:", error);
+    throw error;
+  }
+}
+
+// Add a card to a folder
+export async function addCardToFolder(cardId: string, folderId: string): Promise<void> {
+  if (!db || !cardId || !folderId) throw new Error("Card ID or Folder ID missing");
+  
+  try {
+    const cardRef = doc(db, "cards", cardId);
+    await updateDoc(cardRef, {
+      folderIds: arrayUnion(folderId),
+    });
+  } catch (error) {
+    console.error("Error adding card to folder:", error);
+    throw error;
+  }
+}
+
+// Remove a card from a folder
+export async function removeCardFromFolder(cardId: string, folderId: string): Promise<void> {
+  if (!db || !cardId || !folderId) throw new Error("Card ID or Folder ID missing");
+  
+  try {
+    const cardRef = doc(db, "cards", cardId);
+    await updateDoc(cardRef, {
+      folderIds: arrayRemove(folderId),
+    });
+  } catch (error) {
+    console.error("Error removing card from folder:", error);
+    throw error;
+  }
+}
+
+// Get cards in a specific folder
+export async function getCardsInFolder(folderId: string, userId: string): Promise<Card[]> {
+  if (!db || !folderId || !userId) return [];
+  
+  try {
+    const q = query(
+      collection(db, "cards"),
+      where("userId", "==", userId),
+      where("folderIds", "array-contains", folderId)
+    );
+    const querySnapshot = await getDocs(q);
+    const cards: Card[] = [];
+    querySnapshot.forEach((doc) => {
+      cards.push({
+        id: doc.id,
+        ...doc.data(),
+      } as Card);
+    });
+    return cards;
+  } catch (error) {
+    console.error("Error fetching cards in folder:", error);
+    return [];
+  }
+}
+
+// Hook to fetch user folders
+export function useUserFolders() {
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const userFolders = await getUserFolders(user.uid);
+        setFolders(userFolders);
+        setError(null);
+      } catch (err) {
+        console.error("Error loading folders:", err);
+        setError(err instanceof Error ? err.message : "Failed to load folders");
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [router]);
+
+  return { folders, loading, error };
 }

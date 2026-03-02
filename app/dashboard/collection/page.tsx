@@ -5,23 +5,59 @@ import { useRouter } from "next/navigation";
 import { auth } from "../../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { CollectionManager } from "../../components/CollectionManager";
+import { useUserFolders, createFolder, deleteFolder, type Folder } from "@/lib/cards";
 import styles from "./collection.module.css";
 
 export default function CollectionPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
+  const { folders, loading: foldersLoading } = useUserFolders();
+  const [showNewFolderInput, setShowNewFolderInput] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
         router.replace("/login");
       } else {
+        setUserId(user.uid);
         setIsLoading(false);
       }
     });
 
     return () => unsubscribe();
   }, [router]);
+
+  const handleCreateFolder = async () => {
+    if (!userId || !newFolderName.trim()) return;
+
+    setCreating(true);
+    try {
+      await createFolder(userId, newFolderName);
+      setNewFolderName("");
+      setShowNewFolderInput(false);
+      // Folders will auto-refresh via the hook
+    } catch (error) {
+      console.error("Error creating folder:", error);
+      alert("Failed to create folder");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDeleteFolder = async (folderId: string, folderName: string) => {
+    if (!confirm(`Delete folder "${folderName}"? Cards will not be deleted.`)) return;
+
+    try {
+      await deleteFolder(folderId);
+      // Folders will auto-refresh via the hook
+    } catch (error) {
+      console.error("Error deleting folder:", error);
+      alert("Failed to delete folder");
+    }
+  };
 
   if (isLoading) {
     return <div className={styles.loading}>Loading...</div>;
@@ -47,9 +83,86 @@ export default function CollectionPage() {
         </div>
       </div>
 
-      <section className={`panel ${styles.panel}`}>
-        <CollectionManager />
-      </section>
+      <div className={styles.layout}>
+        {/* Sidebar with folders */}
+        <aside className={styles.sidebar}>
+          <div className={styles.sidebarHeader}>
+            <h3>📁 Folders</h3>
+            <button
+              className={styles.newFolderBtn}
+              onClick={() => setShowNewFolderInput(!showNewFolderInput)}
+            >
+              +
+            </button>
+          </div>
+
+          {showNewFolderInput && (
+            <div className={styles.newFolderInput}>
+              <input
+                type="text"
+                placeholder="Folder name..."
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCreateFolder();
+                  if (e.key === "Escape") {
+                    setShowNewFolderInput(false);
+                    setNewFolderName("");
+                  }
+                }}
+                autoFocus
+              />
+              <button onClick={handleCreateFolder} disabled={creating || !newFolderName.trim()}>
+                {creating ? "..." : "✓"}
+              </button>
+              <button onClick={() => {
+                setShowNewFolderInput(false);
+                setNewFolderName("");
+              }}>
+                ✕
+              </button>
+            </div>
+          )}
+
+          <div className={styles.folderList}>
+            <button
+              className={`${styles.folderItem} ${styles.active}`}
+              onClick={() => router.push('/dashboard/collection')}
+            >
+              <span>📋</span> All Cards
+            </button>
+
+            {foldersLoading ? (
+              <div className={styles.folderLoading}>Loading folders...</div>
+            ) : folders.length === 0 ? (
+              <div className={styles.noFolders}>No folders yet</div>
+            ) : (
+              folders.map((folder) => (
+                <div key={folder.id} className={styles.folderItem}>
+                  <button
+                    className={styles.folderBtn}
+                    onClick={() => router.push(`/dashboard/collection/folder/${folder.id}`)}
+                  >
+                    <span>📁</span> {folder.name}
+                  </button>
+                  <button
+                    className={styles.deleteFolderBtn}
+                    onClick={() => handleDeleteFolder(folder.id!, folder.name)}
+                    title="Delete folder"
+                  >
+                    🗑
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </aside>
+
+        {/* Main content */}
+        <section className={`panel ${styles.panel}`}>
+          <CollectionManager />
+        </section>
+      </div>
     </div>
   );
 }

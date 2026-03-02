@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, getDocs, arrayUnion, arrayRemove } from "firebase/firestore";
 import { db } from "./firebase";
 import { useCurrentUser } from "./useCurrentUser";
 
@@ -22,8 +22,16 @@ export interface Card {
   thumbnailUrl?: string;
   notes?: string;
   folderId?: string;
+  folderIds?: string[];
   createdAt: any;
   updatedAt: any;
+}
+
+export interface Folder {
+  id?: string;
+  name: string;
+  userId: string;
+  createdAt?: any;
 }
 
 export function useUserCards() {
@@ -109,4 +117,97 @@ export function calculatePortfolioStats(cards: Card[]) {
     sportBreakdown,
     rarityBreakdown,
   };
+}
+
+export async function createFolder(userId: string, name: string): Promise<string> {
+  const trimmedName = name.trim();
+  if (!userId || !trimmedName) throw new Error("Missing required fields");
+
+  const folderRef = await addDoc(collection(db, "folders"), {
+    name: trimmedName,
+    userId,
+    createdAt: serverTimestamp(),
+  });
+
+  return folderRef.id;
+}
+
+export async function getUserFolders(userId: string): Promise<Folder[]> {
+  if (!userId) return [];
+
+  const foldersQuery = query(collection(db, "folders"), where("userId", "==", userId));
+  const snapshot = await getDocs(foldersQuery);
+
+  return snapshot.docs.map((folderDoc) => ({
+    id: folderDoc.id,
+    ...folderDoc.data(),
+  } as Folder));
+}
+
+export async function deleteFolder(folderId: string): Promise<void> {
+  if (!folderId) throw new Error("Folder ID missing");
+
+  await deleteDoc(doc(db, "folders", folderId));
+}
+
+export async function addCardToFolder(cardId: string, folderId: string): Promise<void> {
+  if (!cardId || !folderId) throw new Error("Card ID or Folder ID missing");
+
+  await updateDoc(doc(db, "cards", cardId), {
+    folderIds: arrayUnion(folderId),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function removeCardFromFolder(cardId: string, folderId: string): Promise<void> {
+  if (!cardId || !folderId) throw new Error("Card ID or Folder ID missing");
+
+  await updateDoc(doc(db, "cards", cardId), {
+    folderIds: arrayRemove(folderId),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function getCardsInFolder(folderId: string, userId: string): Promise<Card[]> {
+  if (!folderId || !userId) return [];
+
+  const cardsQuery = query(
+    collection(db, "cards"),
+    where("userId", "==", userId),
+    where("folderIds", "array-contains", folderId)
+  );
+  const snapshot = await getDocs(cardsQuery);
+
+  return snapshot.docs.map((cardDoc) => ({
+    id: cardDoc.id,
+    ...cardDoc.data(),
+  } as Card));
+}
+
+export function useUserFolders() {
+  const { user } = useCurrentUser();
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) {
+      setFolders([]);
+      setLoading(false);
+      return;
+    }
+
+    const foldersQuery = query(collection(db, "folders"), where("userId", "==", user.uid));
+    const unsubscribe = onSnapshot(foldersQuery, (snapshot) => {
+      const nextFolders = snapshot.docs.map((folderDoc) => ({
+        id: folderDoc.id,
+        ...folderDoc.data(),
+      } as Folder));
+      setFolders(nextFolders);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  return { folders, loading };
 }
