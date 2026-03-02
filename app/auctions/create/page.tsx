@@ -7,6 +7,7 @@ import { collection, doc, getDoc, serverTimestamp, setDoc, Timestamp } from "fir
 import { getDownloadURL, ref, uploadString } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
 import { useCurrentUser } from "@/lib/useCurrentUser";
+import dashboardStyles from "../../dashboard/dashboard.module.css";
 import styles from "./create.module.css";
 
 type DurationKey = "1h" | "6h" | "24h" | "3d";
@@ -159,17 +160,23 @@ export default function CreateAuctionPage() {
   };
 
   if (userLoading) {
-    return <div className={styles.loading}>Loading...</div>;
+    return (
+      <div className={dashboardStyles.content}>
+        <div style={{ textAlign: 'center', padding: '3rem', color: 'rgba(255,255,255,0.6)' }}>
+          Loading...
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <Link href="/auctions/live" className={styles.backButton}>
-          ← Back to Live Auctions
-        </Link>
-        <h1>Create New Auction</h1>
-        <p>List your card for live bidding.</p>
+    <div className={dashboardStyles.content}>
+      {/* Page Header */}
+      <div style={{ marginBottom: '2rem' }}>
+        <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>Create New Auction</h1>
+        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.95rem' }}>
+          List your card for live bidding
+        </p>
       </div>
 
       <form onSubmit={createAuction} className={styles.form}>
