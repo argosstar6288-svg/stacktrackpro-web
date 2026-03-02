@@ -1,5 +1,54 @@
 # StackTrackPro Payout Hold & Shipping Release System
 
+## Prerequisites: Stripe Connect Required
+
+🔴 **SELLERS MUST SET UP STRIPE CONNECT BEFORE CREATING AUCTIONS**
+
+### Why Stripe Connect?
+
+Sellers need Stripe Express Connected Accounts to:
+- ✔ Verify identity (anti-fraud)
+- ✔ Link bank account for payouts
+- ✔ Handle tax compliance automatically
+- ✔ Give sellers full payout control
+- ✔ Enable platform fee collection
+
+### Seller Onboarding Flow
+
+```
+1. Seller clicks "Create Auction"
+   ↓
+2. Check: if (!user.stripeAccountId) → redirect to setup
+   ↓
+3. Create Stripe Express account:
+   POST /api/stripe/create-connect-account
+   {
+     type: "express",
+     country: "CA",
+     email: seller@example.com
+   }
+   ↓
+4. Generate onboarding link:
+   POST /api/stripe/onboarding-link
+   → Redirect to Stripe's secure setup
+   ↓
+5. Seller completes:
+   - Identity verification
+   - Bank account linking
+   - Tax information
+   ↓
+6. Stripe confirms: chargesEnabled + payoutsEnabled = true
+   ↓
+7. Seller ready to sell!
+```
+
+### Implementation Status
+
+- ✅ `lib/stripe-connect.ts` - Stripe Connect utilities (createAccount, generateOnthboarding, getStatus)
+- ✅ `hooks/useStripeConnect.ts` - React hook for client-side onboarding flow
+- ⏳ API routes for onboarding (deferred - Firebase Admin initialization issues during build)
+- ⏳ Guard in Create Auction page (deferred)
+
 ## Overview
 
 StackTrackPro holds seller funds after buyer payment and releases them only when the seller confirms shipment. This protects both buyers and the platform while maintaining seller trust.
