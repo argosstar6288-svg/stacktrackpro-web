@@ -47,7 +47,7 @@ export default function CreateAuctionPage() {
     return !imageDataUrl || !cardName.trim() || !validPrice || !selectedDuration || submitting;
   }, [cardName, imageDataUrl, selectedDuration, startPrice, submitting]);
 
-  // Check for age verification
+  // Check for age verification 
   useEffect(() => {
     const checkVerification = async () => {
       if (!user) return;
@@ -56,6 +56,7 @@ export default function CreateAuctionPage() {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         const userData = userDoc.data();
 
+        // Check age verification
         if (!userData?.isAuctionVerified) {
           // Redirect to age verification with return URL
           router.push(`/verify-age?redirect=/auctions/create`);
