@@ -53,10 +53,12 @@
 
 .topGrid {
   display: grid;
-  grid-template-columns: 1fr 1.2fr;
+  grid-template-columns: 1fr 0.9fr 1fr;
   gap: 1.25rem;
 }
 
+.collectionPanel,
+.uploadPanel,
 .leftPanel,
 .rightPanel,
 .pricingSection {
@@ -66,7 +68,104 @@
   padding: 1rem;
 }
 
-.leftPanel h2 {
+.collectionPanel h2,
+.uploadPanel h2,
+.leftPanel h2,
+.rightPanel h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+/* Collection Card List */
+.cardList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.cardOption {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: 0.6rem;
+  padding: 0.6rem;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.6rem;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.02);
+  transition: all 0.2s ease;
+}
+
+.cardOption:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.cardOption.selected {
+  border-color: #1e90ff;
+  background: rgba(30, 144, 255, 0.15);
+  box-shadow: 0 0 12px rgba(30, 144, 255, 0.3);
+}
+
+.cardThumbnail {
+  width: 60px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 0.4rem;
+}
+
+.cardPlaceholder {
+  width: 60px;
+  height: 80px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.4rem;
+  font-size: 0.65rem;
+  color: #99afff;
+  text-align: center;
+  padding: 0.25rem;
+}
+
+.cardInfo {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.2rem;
+}
+
+.cardName {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #f8f5ff;
+  word-break: break-word;
+}
+
+.cardMeta {
+  font-size: 0.75rem;
+  color: #99afff;
+}
+
+/* Upload Panel */
+.uploadPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.uploadPanel h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+/* Right Panel */
+.rightPanel {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.rightPanel h2 {
   margin: 0 0 0.75rem;
   font-size: 1rem;
 }
@@ -181,5 +280,9 @@
 
   .submitButton {
     width: 100%;
+  }
+
+  .cardList {
+    max-height: 300px;
   }
 }

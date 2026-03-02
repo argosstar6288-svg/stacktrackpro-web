@@ -7,6 +7,8 @@ import { collection, doc, getDoc, serverTimestamp, setDoc, Timestamp } from "fir
 import { getDownloadURL, ref, uploadString } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
 import { useCurrentUser } from "@/lib/useCurrentUser";
+import { useUserCards } from "@/lib/cards";
+import type { Card } from "@/lib/cards";
 import dashboardStyles from "../../dashboard/dashboard.module.css";
 import styles from "./create.module.css";
 
@@ -26,7 +28,12 @@ const conditionOptions: Condition[] = ["Mint", "NM", "LP", "MP", "HP"];
 export default function CreateAuctionPage() {
   const router = useRouter();
   const { user, loading: userLoading } = useCurrentUser();
+  const { cards, loading: cardsLoading } = useUserCards();
 
+  // Collection selection
+  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
+
+  // Form fields
   const [cardName, setCardName] = useState("");
   const [cardSet, setCardSet] = useState("");
   const [year, setYear] = useState(new Date().getFullYear().toString());
@@ -42,10 +49,25 @@ export default function CreateAuctionPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  // When a collection card is selected, auto-fill the form
+  const handleSelectFromCollection = (card: Card) => {
+    setSelectedCard(card);
+    setCardName(card.name || "");
+    setCardSet(card.brand || "");
+    setYear((card.year || new Date().getFullYear()).toString());
+    setCondition((card.condition as Condition) || "Mint");
+    if (card.imageUrl || card.photoUrl || card.frontImageUrl) {
+      setImagePreview(card.imageUrl || card.photoUrl || card.frontImageUrl || "");
+      setImageDataUrl(""); // Use existing image URL, don't re-encode
+    }
+  };
+
   const createDisabled = useMemo(() => {
     const validPrice = Number(startPrice) > 0;
-    return !imageDataUrl || !cardName.trim() || !validPrice || !selectedDuration || submitting;
-  }, [cardName, imageDataUrl, selectedDuration, startPrice, submitting]);
+    // Allow either a new image OR a selected card with existing image
+    const hasImage = imageDataUrl || (selectedCard && (selectedCard.imageUrl || selectedCard.photoUrl || selectedCard.frontImageUrl));
+    return !hasImage || !cardName.trim() || !validPrice || !selectedDuration || submitting;
+  }, [cardName, imageDataUrl, selectedCard, selectedDuration, startPrice, submitting]);
 
   // Check for age verification 
   useEffect(() => {
@@ -108,7 +130,20 @@ export default function CreateAuctionPage() {
     const parsedYear = Number(year);
     const parsedPrice = Number(startPrice);
 
-    if (!imageDataUrl || !cardName.trim() || !selectedDuration || parsedPrice <= 0) {
+    // Determine image URL
+    let imageUrl: string;
+    if (imageDataUrl) {
+      // New image upload
+      imageUrl = ""; // Will be set after upload
+    } else if (selectedCard && (selectedCard.imageUrl || selectedCard.photoUrl || selectedCard.frontImageUrl)) {
+      // Use existing image from collection
+      imageUrl = selectedCard.imageUrl || selectedCard.photoUrl || selectedCard.frontImageUrl || "";
+    } else {
+      setError("Please upload an image or select a card from your collection.");
+      return;
+    }
+
+    if (!cardName.trim() || !selectedDuration || parsedPrice <= 0) {
       setError("Please complete all required fields.");
       return;
     }
@@ -122,10 +157,13 @@ export default function CreateAuctionPage() {
     setError("");
 
     try {
-      const safeName = cardName.trim().replace(/[^a-zA-Z0-9-_]/g, "-").slice(0, 60);
-      const imageRef = ref(storage, `auction-images/${user.uid}/${Date.now()}-${safeName}.jpg`);
-      await uploadString(imageRef, imageDataUrl, "data_url");
-      const imageUrl = await getDownloadURL(imageRef);
+      // Upload new image if provided
+      if (imageDataUrl) {
+        const safeName = cardName.trim().replace(/[^a-zA-Z0-9-_]/g, "-").slice(0, 60);
+        const imageRef = ref(storage, `auction-images/${user.uid}/${Date.now()}-${safeName}.jpg`);
+        await uploadString(imageRef, imageDataUrl, "data_url");
+        imageUrl = await getDownloadURL(imageRef);
+      }
 
       const auctionRef = doc(collection(db, "auctions"));
 
@@ -137,6 +175,7 @@ export default function CreateAuctionPage() {
         gradingCompany: gradingCompany.trim() || null,
         description: description.trim(),
         imageUrl,
+        linkedCardId: selectedCard?.id || null, // Link to collection card if selected
         sellerId: user.uid,
         sellerName: user.displayName || user.email?.split("@")[0] || "Seller",
         startingPrice: parsedPrice,
@@ -182,8 +221,49 @@ export default function CreateAuctionPage() {
 
       <form onSubmit={createAuction} className={styles.form}>
         <div className={styles.topGrid}>
-          <section className={styles.leftPanel}>
-            <h2>Card Image</h2>
+          {/* Left Panel: Select from Collection */}
+          <section className={styles.collectionPanel}>
+            <h2>📚 Your Collection</h2>
+            {cardsLoading ? (
+              <div style={{ color: "rgba(255,255,255,0.6)", padding: "1rem" }}>Loading cards...</div>
+            ) : cards.length === 0 ? (
+              <div style={{ color: "rgba(255,255,255,0.6)", padding: "1rem" }}>
+                No cards in your collection.{" "}
+                <Link href="/dashboard/collection/add" style={{ color: "#8b5cf6" }}>
+                  Add a card →
+                </Link>
+              </div>
+            ) : (
+              <div className={styles.cardList}>
+                {cards.map((card) => (
+                  <div
+                    key={card.id}
+                    className={`${styles.cardOption} ${selectedCard?.id === card.id ? styles.selected : ""}`}
+                    onClick={() => handleSelectFromCollection(card)}
+                  >
+                    {card.imageUrl || card.photoUrl || card.frontImageUrl ? (
+                      <img
+                        src={card.imageUrl || card.photoUrl || card.frontImageUrl}
+                        alt={card.name}
+                        className={styles.cardThumbnail}
+                      />
+                    ) : (
+                      <div className={styles.cardPlaceholder}>No Image</div>
+                    )}
+                    <div className={styles.cardInfo}>
+                      <div className={styles.cardName}>{card.name}</div>
+                      {card.year && <div className={styles.cardMeta}>{card.year}</div>}
+                      {card.condition && <div className={styles.cardMeta}>{card.condition}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Middle Panel: Manual Entry */}
+          <section className={styles.uploadPanel}>
+            <h2>📤 Or Upload Image</h2>
             <label htmlFor="cardImage" className={styles.uploadButton}>
               Upload Card Image
             </label>
@@ -203,7 +283,9 @@ export default function CreateAuctionPage() {
             </div>
           </section>
 
+          {/* Right Panel: Card Details */}
           <section className={styles.rightPanel}>
+            <h2>📝 Card Details</h2>
             <label className={styles.field}>
               <span>Card Name *</span>
               <input
@@ -216,7 +298,7 @@ export default function CreateAuctionPage() {
             </label>
 
             <label className={styles.field}>
-              <span>Set *</span>
+              <span>Set / Brand *</span>
               <input
                 type="text"
                 value={cardSet}
