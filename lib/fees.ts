@@ -1,66 +1,65 @@
 /**
- * StackTrackPro Platform Fee Calculations
+ * StackTrackPro Platform Fee Calculations (Hybrid Model)
  * 
- * All fees are calculated and documented in PLATFORM_FEES.md
+ * Fee structure varies by subscription tier:
+ * - Free users: 5% Final Value Fee
+ * - Pro subscribers: 2% Final Value Fee
+ * 
+ * All fees documented in PLATFORM_FEES.md
  */
 
 /**
- * Platform success fee on completed auctions
- * Applied to the final winning bid amount
+ * Platform fees vary by subscription tier
  */
-export const SUCCESS_FEE_PERCENTAGE = 0.15; // 15%
+export const PLATFORM_FEES = {
+  free: 0.05,      // 5% for free users
+  starter: 0.03,   // 3% for starter tier (future)
+  pro: 0.02,       // 2% for pro subscribers
+};
 
 /**
- * Stripe payment processing fee
+ * Stripe payment processing fee (Canada)
  * Applied per transaction
  */
 export const STRIPE_PROCESSING_PERCENTAGE = 0.029; // 2.9%
-export const STRIPE_PROCESSING_FIXED = 0.30; // $0.30
+export const STRIPE_PROCESSING_FIXED = 0.30; // $0.30 CAD
 
 /**
- * Listing fees
- * First 10 auctions per seller per month are free
- * Additional listings cost $1 each
+ * Subscription tiers and their fee rates
  */
-export const FREE_LISTINGS_PER_MONTH = 10;
-export const ADDITIONAL_LISTING_FEE = 1.00;
+export type SubscriptionTier = 'free' | 'starter' | 'pro' | 'lifetime';
+
+export const SUBSCRIPTION_FEE_RATES: Record<SubscriptionTier, number> = {
+  free: 0.05,      // 5%
+  starter: 0.03,   // 3% (future tier)
+  pro: 0.02,       // 2%
+  lifetime: 0.02,  // 2% (pro equivalent)
+};
 
 /**
- * Featured listing optional fee
- * Increases visibility on platform
+ * Get the platform fee percentage for a subscription tier
  */
-export const FEATURED_LISTING_FEE = 5.00;
-
-/**
- * Calculate 15% platform success fee on final bid amount
- */
-export function calculateSuccessFee(finalBidAmount: number): number {
-  return Number((finalBidAmount * SUCCESS_FEE_PERCENTAGE).toFixed(2));
+export function getFeePercentage(subscriptionTier: SubscriptionTier = 'free'): number {
+  return SUBSCRIPTION_FEE_RATES[subscriptionTier] || SUBSCRIPTION_FEE_RATES['free'];
 }
 
 /**
- * Calculate Stripe payment processing fee (2.9% + $0.30)
+ * Calculate platform fee based on subscription tier
+ * 5% for free users, 2% for pro subscribers
+ */
+export function calculatePlatformFee(
+  finalBidAmount: number,
+  subscriptionTier: SubscriptionTier = 'free'
+): number {
+  const feePercentage = getFeePercentage(subscriptionTier);
+  return Number((finalBidAmount * feePercentage).toFixed(2));
+}
+
+/**
+ * Calculate Stripe payment processing fee (2.9% + $0.30 CAD)
  */
 export function calculateProcessingFee(amount: number): number {
   return Number(((amount * STRIPE_PROCESSING_PERCENTAGE) + STRIPE_PROCESSING_FIXED).toFixed(2));
-}
-
-/**
- * Calculate listing fee based on auction count for month
- * First 10 free, then $1 each
- */
-export function calculateListingFee(auctionCountThisMonth: number): number {
-  if (auctionCountThisMonth <= FREE_LISTINGS_PER_MONTH) {
-    return 0;
-  }
-  return (auctionCountThisMonth - FREE_LISTINGS_PER_MONTH) * ADDITIONAL_LISTING_FEE;
-}
-
-/**
- * Calculate featured listing fee
- */
-export function calculateFeaturedFee(isFeatured: boolean): number {
-  return isFeatured ? FEATURED_LISTING_FEE : 0;
 }
 
 /**
@@ -68,82 +67,100 @@ export function calculateFeaturedFee(isFeatured: boolean): number {
  * Returns breakdown of all fees and net amount
  */
 export interface PayoutBreakdown {
-  gross: number; // Final winning bid amount
-  successFee: number; // 15% of gross
-  processingFee: number; // 2.9% + $0.30
-  listingFee: number; // $0-$1 based on count
-  featuredFee: number; // $0 or $5
+  salePrice: number; // Final winning bid amount
+  platformFeePercentage: number; // 5% or 2% depending on tier
+  platformFee: number; // Currency amount of platform fee
+  processingFee: number; // Stripe processing fee
   totalFees: number; // Sum of all fees
-  net: number; // Gross - all fees
-  estimatedNet: number; // For display before fees calculated
+  sellerPayout: number; // Sale price - all fees
+  subscriptionTier: SubscriptionTier;
 }
 
 export function calculatePayoutBreakdown(
   finalBidAmount: number,
-  options: {
-    isFeatured?: boolean;
-    auctionCountThisMonth?: number;
-  } = {}
+  subscriptionTier: SubscriptionTier = 'free'
 ): PayoutBreakdown {
-  const {
-    isFeatured = false,
-    auctionCountThisMonth = 1
-  } = options;
-
-  const gross = finalBidAmount;
-  const successFee = calculateSuccessFee(gross);
-  const processingFee = calculateProcessingFee(gross);
-  const listingFee = calculateListingFee(auctionCountThisMonth);
-  const featuredFee = calculateFeaturedFee(isFeatured);
-  
-  const totalFees = successFee + processingFee + listingFee + featuredFee;
-  const net = Number((gross - totalFees).toFixed(2));
+  const platformFee = calculatePlatformFee(finalBidAmount, subscriptionTier);
+  const processingFee = calculateProcessingFee(finalBidAmount);
+  const totalFees = platformFee + processingFee;
+  const sellerPayout = Number((finalBidAmount - totalFees).toFixed(2));
+  const feePercentage = getFeePercentage(subscriptionTier);
 
   return {
-    gross: Number(gross.toFixed(2)),
-    successFee,
+    salePrice: Number(finalBidAmount.toFixed(2)),
+    platformFeePercentage: feePercentage * 100, // 5% or 2%
+    platformFee,
     processingFee,
-    listingFee,
-    featuredFee,
     totalFees: Number(totalFees.toFixed(2)),
-    net,
-    estimatedNet: net
+    sellerPayout,
+    subscriptionTier
   };
 }
 
 /**
- * Calculate estimated payout for display
+ * Get a friendly description of the fee breakdown for display
+ */
+export function getPayoutSummary(breakdown: PayoutBreakdown): string {
+  return `
+Sale Price: $${breakdown.salePrice.toFixed(2)}
+StackTrack Fee (${(breakdown.platformFeePercentage).toFixed(0)}%): -$${breakdown.platformFee.toFixed(2)}
+Processing Fee: -$${breakdown.processingFee.toFixed(2)}
+─────────────────────────────
+Seller Receives: $${breakdown.sellerPayout.toFixed(2)}
+  `.trim();
+}
+
+/**
+ * Calculate estimated payout for display before sale
  * Used on auction creation form
  */
 export function calculateEstimatedPayout(
   estimatedBidAmount: number,
-  isFeatured: boolean = false
+  subscriptionTier: SubscriptionTier = 'free'
 ): {
   estimate: number;
   message: string;
+  breakdown: PayoutBreakdown;
 } {
-  // Conservative estimate assuming success fee + processing fee
-  // Use average processing fee for estimation
-  const successFee = estimatedBidAmount * SUCCESS_FEE_PERCENTAGE;
-  const processingFee = (estimatedBidAmount * STRIPE_PROCESSING_PERCENTAGE) + STRIPE_PROCESSING_FIXED;
-  const featuredFee = isFeatured ? FEATURED_LISTING_FEE : 0;
-  
-  const estimate = Number((estimatedBidAmount - successFee - processingFee - featuredFee).toFixed(2));
+  const breakdown = calculatePayoutBreakdown(estimatedBidAmount, subscriptionTier);
   
   return {
-    estimate,
-    message: `If this item sells for $${estimatedBidAmount.toFixed(2)}, you'll receive approximately ${formatCurrency(estimate)} after fees.`
+    estimate: breakdown.sellerPayout,
+    message: `If this item sells for $${estimatedBidAmount.toFixed(2)}, you'll receive approximately $${breakdown.sellerPayout.toFixed(2)} after fees.`,
+    breakdown
   };
 }
 
 /**
  * Format currency for display
  */
-export function formatCurrency(amount: number, currency: string = 'USD'): string {
-  return new Intl.NumberFormat('en-US', {
+export function formatCurrency(amount: number, currency: string = 'CAD'): string {
+  return new Intl.NumberFormat('en-CA', {
     style: 'currency',
     currency: currency
   }).format(amount);
+}
+
+/**
+ * Get fee comparison between subscription tiers
+ */
+export function getFeeTierComparison(finalBidAmount: number): {
+  tier: SubscriptionTier;
+  feePercentage: number;
+  platformFee: number;
+  processingFee: number;
+  sellerPayout: number;
+}[] {
+  return (Object.keys(SUBSCRIPTION_FEE_RATES) as SubscriptionTier[]).map(tier => {
+    const breakdown = calculatePayoutBreakdown(finalBidAmount, tier);
+    return {
+      tier,
+      feePercentage: breakdown.platformFeePercentage,
+      platformFee: breakdown.platformFee,
+      processingFee: breakdown.processingFee,
+      sellerPayout: breakdown.sellerPayout
+    };
+  });
 }
 
 /**
@@ -151,85 +168,127 @@ export function formatCurrency(amount: number, currency: string = 'USD'): string
  */
 export function getFeeSummaryText(): string {
   return `
-Platform Fees:
-• Success Fee: ${(SUCCESS_FEE_PERCENTAGE * 100).toFixed(0)}% of final sale price
-• Payment Processing: ${(STRIPE_PROCESSING_PERCENTAGE * 100).toFixed(1)}% + $${STRIPE_PROCESSING_FIXED.toFixed(2)} per transaction
-• Listing Fee: Free for first ${FREE_LISTINGS_PER_MONTH} auctions/month, then $${ADDITIONAL_LISTING_FEE.toFixed(2)} each
-• Featured Listing: $${FEATURED_LISTING_FEE.toFixed(2)} (optional)
+StackTrack Hybrid Fee Model:
 
-All fees are deducted from your payout automatically.
+Free Users:
+  • Platform Fee: 5% of final sale price
+  • Best for: Casual sellers
+
+Pro Subscribers:
+  • Platform Fee: 2% of final sale price
+  • Best for: Regular sellers
+  • Additional benefits: Featured listings, priority support
+
+All Users:
+  • Processing Fee: ~2.9% + $0.30 CAD (Stripe)
+  • Fees deducted automatically at payout
+  • Funds held until seller confirms shipment
+  
+Pro subscribers save 3% per transaction!
+If you sell regularly, upgrading pays for itself quickly.
   `.trim();
+}
+
+/**
+ * Calculate monthly savings for upgrading to Pro
+ */
+export function calculateUpgradeSavings(
+  monthlyRevenue: number,
+  numberOfTransactions: number,
+  proSubscriptionCost: number = 9.99 // Typical Pro plan cost
+): {
+  freeUserFees: number;
+  proUserFees: number;
+  proSubscriptionCost: number;
+  netSavings: number;
+  paybackPeriod: number;
+} {
+  const freeUserFees = calculatePlatformFee(monthlyRevenue, 'free');
+  const proUserFees = calculatePlatformFee(monthlyRevenue, 'pro');
+  const feeSavings = freeUserFees - proUserFees;
+  const netSavings = feeSavings - proSubscriptionCost;
+  const paybackPeriod = proSubscriptionCost / (feeSavings / numberOfTransactions);
+
+  return {
+    freeUserFees: Number(freeUserFees.toFixed(2)),
+    proUserFees: Number(proUserFees.toFixed(2)),
+    proSubscriptionCost,
+    netSavings: Number(netSavings.toFixed(2)),
+    paybackPeriod: Number(paybackPeriod.toFixed(0))
+  };
 }
 
 /**
  * Calculate monthly fee statistics
  */
 export interface MonthlyFeeStats {
-  totalAuctions: number;
-  successfulAuctions: number;
+  totalTransactions: number;
   totalRevenue: number;
-  totalSuccessFees: number;
+  totalPlatformFees: number;
   totalProcessingFees: number;
-  totalListingFees: number;
-  totalFeaturedFees: number;
   totalFeesPaid: number;
-  totalPayouts: number;
+  totalSellerPayouts: number;
+  averageTransactionSize: number;
+  averageFeesPerTransaction: number;
 }
 
 export function calculateMonthlyFeeStats(
   auctions: Array<{
     finalBidAmount?: number;
     status: string;
-    isFeatured: boolean;
+    subscriptionTier: SubscriptionTier;
   }>
 ): MonthlyFeeStats {
   const successfulAuctions = auctions.filter(a => a.status === 'sold' && a.finalBidAmount);
   
   let totalRevenue = 0;
-  let totalSuccessFees = 0;
+  let totalPlatformFees = 0;
   let totalProcessingFees = 0;
-  let totalFeaturedFees = 0;
 
-  successfulAuctions.forEach((auction, index) => {
+  successfulAuctions.forEach((auction) => {
     if (auction.finalBidAmount) {
       totalRevenue += auction.finalBidAmount;
-      totalSuccessFees += calculateSuccessFee(auction.finalBidAmount);
+      totalPlatformFees += calculatePlatformFee(auction.finalBidAmount, auction.subscriptionTier);
       totalProcessingFees += calculateProcessingFee(auction.finalBidAmount);
     }
-    totalFeaturedFees += auction.isFeatured ? FEATURED_LISTING_FEE : 0;
   });
 
-  const totalListingFees = calculateListingFee(auctions.length);
-  const totalFeesPaid = totalSuccessFees + totalProcessingFees + totalListingFees + totalFeaturedFees;
-  const totalPayouts = totalRevenue - totalFeesPaid;
+  const totalFeesPaid = totalPlatformFees + totalProcessingFees;
+  const totalSellerPayouts = totalRevenue - totalFeesPaid;
+  const averageTransactionSize = successfulAuctions.length > 0 
+    ? totalRevenue / successfulAuctions.length 
+    : 0;
+  const averageFeesPerTransaction = successfulAuctions.length > 0
+    ? totalFeesPaid / successfulAuctions.length
+    : 0;
 
   return {
-    totalAuctions: auctions.length,
-    successfulAuctions: successfulAuctions.length,
+    totalTransactions: successfulAuctions.length,
     totalRevenue: Number(totalRevenue.toFixed(2)),
-    totalSuccessFees: Number(totalSuccessFees.toFixed(2)),
+    totalPlatformFees: Number(totalPlatformFees.toFixed(2)),
     totalProcessingFees: Number(totalProcessingFees.toFixed(2)),
-    totalListingFees: Number(totalListingFees.toFixed(2)),
-    totalFeaturedFees: Number(totalFeaturedFees.toFixed(2)),
     totalFeesPaid: Number(totalFeesPaid.toFixed(2)),
-    totalPayouts: Number(totalPayouts.toFixed(2))
+    totalSellerPayouts: Number(totalSellerPayouts.toFixed(2)),
+    averageTransactionSize: Number(averageTransactionSize.toFixed(2)),
+    averageFeesPerTransaction: Number(averageFeesPerTransaction.toFixed(2))
   };
 }
 
 export default {
-  SUCCESS_FEE_PERCENTAGE,
+  PLATFORM_FEES,
   STRIPE_PROCESSING_PERCENTAGE,
   STRIPE_PROCESSING_FIXED,
-  FREE_LISTINGS_PER_MONTH,
-  ADDITIONAL_LISTING_FEE,
-  FEATURED_LISTING_FEE,
-  calculateSuccessFee,
+  SUBSCRIPTION_FEE_RATES,
+  getFeePercentage,
+  calculatePlatformFee,
   calculateProcessingFee,
-  calculateListingFee,
-  calculateFeaturedFee,
   calculatePayoutBreakdown,
+  getPayoutSummary,
   calculateEstimatedPayout,
   formatCurrency,
+  getFeeTierComparison,
   getFeeSummaryText,
+  calculateUpgradeSavings,
   calculateMonthlyFeeStats
 };
+
