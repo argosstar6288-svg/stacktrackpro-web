@@ -15,7 +15,10 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useCurrentUser } from '@/lib/useCurrentUser'
-import styles from './live.module.css'
+import { useCurrency } from '@/hooks/useCurrency'
+import { formatCurrency } from '@/lib/currency'
+import styles from '../../dashboard/dashboard.module.css'
+import auctionStyles from './live.module.css'
 
 interface LiveAuction {
   id: string
@@ -38,6 +41,7 @@ interface AuctionDisplay {
 
 export default function LiveAuctionsPage() {
   const { user } = useCurrentUser()
+  const { currency } = useCurrency()
   const router = useRouter()
   const [auctions, setAuctions] = useState<AuctionDisplay[]>([])
   const [loading, setLoading] = useState(true)
@@ -134,87 +138,90 @@ export default function LiveAuctionsPage() {
 
   if (loading) {
     return (
-      <div className={styles.container}>
-        <div className={styles.header}>
-          <Link href="/dashboard" className={styles.backButton}>
-            ← Dashboard
-          </Link>
-          <div className={styles.titleSection}>
-            <h1>🔴 Live Auctions</h1>
-            <p>Actively bidding right now</p>
-          </div>
-        </div>
-        
-        <div className={styles.loadingMessage}>
-          <div className={styles.spinner}></div>
-          Loading auctions...
+      <div className={styles.content}>
+        <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔴 Live Auctions</h1>
+        <div style={{ textAlign: 'center', padding: '3rem', color: 'rgba(255,255,255,0.6)' }}>
+          <div style={{ fontSize: '1.2rem' }}>Loading auctions...</div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className={styles.container}>
-      {/* Header */}
-      <div className={styles.header}>
-        <Link href="/dashboard" className={styles.backButton}>
-          ← Dashboard
-        </Link>
-        <div className={styles.titleSection}>
-          <h1>🔴 Live Auctions</h1>
-          <p>Actively bidding right now</p>
-        </div>
+    <div className={styles.content}>
+      {/* Page Header */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔴 Live Auctions</h1>
+        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.95rem' }}>
+          Actively bidding right now
+        </p>
       </div>
 
       {/* Error Message */}
-      {error && <div style={{ color: '#ff6b6b', padding: '1rem', margin: '1rem' }}>{error}</div>}
+      {error && (
+        <div style={{ 
+          color: '#ff6b6b', 
+          padding: '1rem', 
+          background: 'rgba(255,107,107,0.1)', 
+          borderRadius: '8px',
+          marginBottom: '1rem'
+        }}>
+          {error}
+        </div>
+      )}
 
       {/* Auctions Grid */}
       {auctions.length === 0 ? (
-        <div className={styles.noAuctionsMessage}>
-          <p>No auctions currently live</p>
-          <p>Check back soon!</p>
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '4rem 2rem',
+          background: 'rgba(255,255,255,0.05)',
+          borderRadius: '12px',
+          backdropFilter: 'blur(10px)'
+        }}>
+          <p style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>No auctions currently live</p>
+          <p style={{ color: 'rgba(255,255,255,0.6)' }}>Check back soon!</p>
         </div>
       ) : (
-        <div className={styles.auctionsGrid}>
+        <div className={auctionStyles.auctionsGrid}>
           {auctions.map(auction => (
             <Link key={auction.id} href={`/auctions/${auction.id}`}>
-              <div className={styles.auctionCard}>
+              <div className={auctionStyles.auctionCard}>
                 {/* Card Image */}
-                <div className={styles.cardImageWrapper}>
+                <div className={auctionStyles.cardImageWrapper}>
                   <img 
                     src={auction.imageUrl || '/placeholder-card.png'} 
                     alt={auction.cardName}
-                    className={styles.cardImage}
+                    className={auctionStyles.cardImage}
                   />
-                  <div className={styles.liveBadge}>🔴 LIVE</div>
+                  <div className={auctionStyles.liveBadge}>🔴 LIVE</div>
                 </div>
 
                 {/* Card Info */}
-                <div className={styles.cardInfo}>
+                <div className={auctionStyles.cardInfo}>
                   <h3>{auction.cardName}</h3>
                   
                   {/* Bid Details Row 1 */}
-                  <div className={styles.bidRow}>
-                    <div className={styles.bidItem}>
-                      <span className={styles.label}>Current Bid</span>
-                      <span className={styles.value}>${auction.currentBid.toFixed(2)}</span>
+                  <div className={auctionStyles.bidRow}>
+                    <div className={auctionStyles.bidItem}>
+                      <span className={auctionStyles.label}>Current Bid</span>
+                      <span className={auctionStyles.value}>{formatCurrency(auction.currentBid, currency)}</span>
                     </div>
                     
-                    <div className={styles.bidItem}>
-                      <span className={styles.label}>Bids</span>
-                      <span className={styles.value}>{auction.bidCount}</span>
+                    <div className={auctionStyles.bidItem}>
+                      <span className={auctionStyles.label}>Bids</span>
+                      <span className={auctionStyles.value}>{auction.bidCount}</span>
                     </div>
                   </div>
 
                   {/* Time Left */}
-                  <div className={styles.timeLeft}>
-                    <span className={styles.timeLabel}>⏳ Time Left:</span>
-                    <span className={styles.timeValue}>{auction.timeLeft}</span>
+                  <div className={auctionStyles.timeLeft}>
+                    <span className={auctionStyles.timeLabel}>⏳ Time Left:</span>
+                    <span className={auctionStyles.timeValue}>{auction.timeLeft}</span>
                   </div>
 
                   {/* Action Button */}
-                  <button className={styles.viewButton}>
+                  <button className={auctionStyles.viewButton}>
                     View Auction →
                   </button>
                 </div>
