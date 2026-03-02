@@ -1,0 +1,311 @@
+.lockedSection {
+  position: relative;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.blurredContent {
+  filter: blur(8px);
+  user-select: none;
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+.placeholder {
+  padding: 3rem 2rem;
+  text-align: center;
+  color: #999;
+}
+
+.placeholder p {
+  margin: 0.5rem 0;
+  font-size: 1rem;
+}
+
+.unlockOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.95) 0%, rgba(118, 75, 162, 0.95) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.unlockContent {
+  text-align: center;
+  color: white;
+  max-width: 400px;
+  animation: slideIn 0.4s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.lockIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  display: inline-block;
+  animation: bounce 0.6s ease;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.unlockContent h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.5rem;
+}
+
+.description {
+  margin: 0 0 1.5rem 0;
+  font-size: 0.95rem;
+  opacity: 0.95;
+  line-height: 1.6;
+}
+
+.costBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  backdrop-filter: blur(10px);
+}
+
+.creditIcon {
+  font-size: 1.3rem;
+}
+
+.price {
+  opacity: 0.8;
+  font-size: 0.9rem;
+}
+
+.error {
+  background: rgba(255, 107, 107, 0.2);
+  color: #ffe0e0;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  border: 1px solid rgba(255, 107, 107, 0.4);
+}
+
+.unlockBtn {
+  width: 100%;
+  padding: 1rem 1.5rem;
+  background: white;
+  color: #667eea;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  margin-bottom: 1rem;
+}
+
+.unlockBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.unlockBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.spinner {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+  margin-right: 0.5rem;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.warning {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.buyLink {
+  background: none;
+  border: none;
+  color: white;
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0;
+  font-size: inherit;
+}
+
+.buyLink:hover {
+  opacity: 0.8;
+}
+
+.note {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.85;
+  line-height: 1.5;
+}
+
+/* Unlocked Content */
+.unlockedSection {
+  padding: 2rem;
+  background: linear-gradient(135deg, #f5f7ff 0%, #faf9ff 100%);
+  border-radius: 12px;
+}
+
+.unlockedSection.animated {
+  animation: revealContent 0.5s ease;
+}
+
+@keyframes revealContent {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dataGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.dataCard {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e8e8f0;
+}
+
+.cardLabel {
+  color: #999;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.cardValue {
+  color: #1a1a1a;
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.small {
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.cardDetail {
+  color: #999;
+  font-size: 0.85rem;
+}
+
+.salesCard {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e8e8f0;
+  margin-bottom: 1.5rem;
+}
+
+.salesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.saleItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: #f9f9f9;
+  border-radius: 6px;
+}
+
+.saleItem span {
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.saleItem strong {
+  color: #4caf50;
+  font-size: 1.1rem;
+}
+
+.guidanceCard {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e8e8f0;
+}
+
+.guidance {
+  margin: 1rem 0 0 0;
+  color: #555;
+  line-height: 1.7;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 768px) {
+  .unlockedSection {
+    padding: 1.5rem;
+  }
+
+  .dataGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .unlockContent {
+    padding: 1.5rem;
+  }
+}

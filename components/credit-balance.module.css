@@ -1,0 +1,63 @@
+.container {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 8px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s ease;
+}
+
+.container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.icon {
+  font-size: 1.2rem;
+}
+
+.amount {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.label {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+/* Size Variants */
+.size_small {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.size_small .icon {
+  font-size: 1rem;
+}
+
+.size_small .amount {
+  font-size: 0.95rem;
+}
+
+.size_medium {
+  padding: 0.5rem 1rem;
+  font-size: 0.95rem;
+}
+
+.size_large {
+  padding: 0.75rem 1.5rem;
+  font-size: 1.1rem;
+}
+
+.size_large .icon {
+  font-size: 1.5rem;
+}
+
+.size_large .amount {
+  font-size: 1.3rem;
+}
