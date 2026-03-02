@@ -8,9 +8,6 @@ import styles from "./dashboard.module.css";
 export default function DashboardPage() {
   return (
     <div className={styles.content}>
-      <h1 style={{ fontSize: '3rem', color: 'red', textAlign: 'center', padding: '2rem', background: 'yellow' }}>
-        🔥 THIS IS NEW VERSION - DEPLOYMENT TEST 🔥
-      </h1>
       <StatsCards />
       <div className={styles.grid}>
         <CollectionChart />
