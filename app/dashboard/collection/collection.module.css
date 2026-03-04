@@ -245,6 +245,16 @@
   color: rgba(255, 255, 255, 0.5);
 }
 
+.sectionLabel {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 0.5rem 0.75rem;
+  margin-top: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
 /* Card Grid (for folder view) */
 .cardGrid {
   display: grid;

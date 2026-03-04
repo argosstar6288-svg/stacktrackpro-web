@@ -9,7 +9,11 @@ import { useUserCards, deleteCard, calculatePortfolioStats, Card, useUserFolders
 import { CardModal } from "./CardModal";
 import "./collection.css";
 
-export function CollectionManager() {
+interface CollectionManagerProps {
+  sportFilter?: string | null;
+}
+
+export function CollectionManager({ sportFilter }: CollectionManagerProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const { cards, loading: cardsLoading } = useUserCards();
@@ -85,7 +89,10 @@ export function CollectionManager() {
 
   // Filter and sort cards
   const filteredCards = cards.filter((card) => {
-    const matchesSport = filterSport === "All" || card.sport === filterSport;
+    // Apply sport filter from sidebar OR dropdown
+    const matchesSport = sportFilter 
+      ? card.sport === sportFilter
+      : (filterSport === "All" || card.sport === filterSport);
     const matchesSearch =
       card.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       card.player.toLowerCase().includes(searchTerm.toLowerCase());

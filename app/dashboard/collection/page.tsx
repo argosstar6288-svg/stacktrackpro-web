@@ -8,6 +8,15 @@ import { CollectionManager } from "../../components/CollectionManager";
 import { useUserFolders, createFolder, deleteFolder, addCardToFolder, type Folder } from "@/lib/cards";
 import styles from "./collection.module.css";
 
+const sportCategories = [
+  { id: "baseball", name: "⚾ Baseball", sport: "Baseball" },
+  { id: "basketball", name: "🏀 Basketball", sport: "Basketball" },
+  { id: "football", name: "🏈 Football", sport: "Football" },
+  { id: "hockey", name: "🏒 Hockey", sport: "Hockey" },
+  { id: "soccer", name: "⚽ Soccer", sport: "Soccer" },
+  { id: "pokemon", name: "🎴 Pokemon/Other", sport: "Other" },
+];
+
 export default function CollectionPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
@@ -16,6 +25,7 @@ export default function CollectionPage() {
   const [showNewFolderInput, setShowNewFolderInput] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [selectedSport, setSelectedSport] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -126,11 +136,34 @@ export default function CollectionPage() {
 
           <div className={styles.folderList}>
             <button
-              className={`${styles.folderItem} ${styles.active}`}
-              onClick={() => router.push('/dashboard/collection')}
+              className={`${styles.folderItem} ${!selectedSport ? styles.active : ""}`}
+              onClick={() => setSelectedSport(null)}
             >
               <span>📋</span> All Cards
             </button>
+
+            {/* Sport Category Folders */}
+            <div style={{ marginTop: "0.5rem", marginBottom: "0.5rem" }}>
+              <div className={styles.sectionLabel}>
+                By Sport
+              </div>
+              {sportCategories.map((category) => (
+                <button
+                  key={category.id}
+                  className={`${styles.folderItem} ${selectedSport === category.sport ? styles.active : ""}`}
+                  onClick={() => setSelectedSport(category.sport)}
+                >
+                  <span>{category.name}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Custom Folders */}
+            {folders.length > 0 && (
+              <div className={styles.sectionLabel}>
+                My Folders
+              </div>
+            )}
 
             {foldersLoading ? (
               <div className={styles.folderLoading}>Loading folders...</div>
@@ -184,7 +217,7 @@ export default function CollectionPage() {
 
         {/* Main content */}
         <section className={`panel ${styles.panel}`}>
-          <CollectionManager />
+          <CollectionManager sportFilter={selectedSport} />
         </section>
       </div>
     </div>
