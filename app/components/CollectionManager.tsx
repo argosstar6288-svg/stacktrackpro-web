@@ -189,7 +189,26 @@ export function CollectionManager() {
               </thead>
               <tbody>
                 {sortedCards.map((card) => (
-                  <tr key={card.id}>
+                  <tr
+                    key={card.id}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer!.effectAllowed = "move";
+                      e.dataTransfer!.setData("cardId", card.id);
+                      e.dataTransfer!.setData("cardName", card.name);
+                    }}
+                    style={{
+                      cursor: "grab",
+                      opacity: 1,
+                      transition: "opacity 0.2s",
+                    }}
+                    onDragOver={(e) => {
+                      e.currentTarget.style.opacity = "0.6";
+                    }}
+                    onDragLeave={(e) => {
+                      e.currentTarget.style.opacity = "1";
+                    }}
+                  >
                     <td>
                       <img
                         src={resolveCardImageUrl(card)}

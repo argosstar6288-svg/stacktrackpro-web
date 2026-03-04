@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { auth } from "../../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { CollectionManager } from "../../components/CollectionManager";
-import { useUserFolders, createFolder, deleteFolder, type Folder } from "@/lib/cards";
+import { useUserFolders, createFolder, deleteFolder, addCardToFolder, type Folder } from "@/lib/cards";
 import styles from "./collection.module.css";
 
 export default function CollectionPage() {
@@ -138,7 +138,31 @@ export default function CollectionPage() {
               <div className={styles.noFolders}>No folders yet</div>
             ) : (
               folders.map((folder) => (
-                <div key={folder.id} className={styles.folderItem}>
+                <div
+                  key={folder.id}
+                  className={styles.folderItem}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.style.backgroundColor = "rgba(30, 144, 255, 0.3)";
+                  }}
+                  onDragLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "transparent";
+                  }}
+                  onDrop={async (e) => {
+                    e.preventDefault();
+                    e.currentTarget.style.backgroundColor = "transparent";
+                    const cardId = e.dataTransfer?.getData("cardId");
+                    const cardName = e.dataTransfer?.getData("cardName");
+                    if (cardId && folder.id) {
+                      try {
+                        await addCardToFolder(cardId, folder.id);
+                        alert(`✓ Added "${cardName}" to ${folder.name}`);
+                      } catch (err: any) {
+                        alert(`Failed to add card: ${err.message}`);
+                      }
+                    }
+                  }}
+                >
                   <button
                     className={styles.folderBtn}
                     onClick={() => router.push(`/dashboard/collection/folder/${folder.id}`)}
