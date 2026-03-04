@@ -155,8 +155,13 @@
 }
 
 .chartCanvas {
-  min-width: calc(100% + 192px);
+  min-width: calc(100% + 384px);
   height: 100%;
+}
+
+.chartCanvas :global(svg) {
+  border-width: 0.5px !important;
+  border-radius: 4px !important;
 }
 
 .aiRefreshBtn {
