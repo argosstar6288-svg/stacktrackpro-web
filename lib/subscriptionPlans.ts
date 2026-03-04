@@ -10,6 +10,7 @@ export interface SubscriptionPlan {
   color: string;
   badge: string;
   price: number;
+  period?: string;
   isPopular?: boolean;
   features: SubscriptionFeature[];
   cta: string;
@@ -73,6 +74,29 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     ],
     cta: "Coming Soon",
     ctaAction: "coming-soon",
+  },
+  {
+    id: "lifetime",
+    name: "Lifetime",
+    description: "Pay once, use forever",
+    color: "gold",
+    badge: "⭐",
+    price: 299,
+    period: "one-time",
+    features: [
+      { name: "Everything in Pro+", included: true },
+      { name: "Unlimited collections", included: true },
+      { name: "Unlimited scans forever", included: true },
+      { name: "Priority support forever", included: true },
+      { name: "All future features", included: true },
+      { name: "Credit packs included", included: true },
+      { name: "Bulk scanning forever", included: true },
+      { name: "Advanced analytics", included: true },
+      { name: "Lifetime updates", included: true },
+      { name: "One-time payment", included: true },
+    ],
+    cta: "Get Lifetime Access",
+    ctaAction: "upgrade",
   },
 ];
 

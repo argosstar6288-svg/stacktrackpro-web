@@ -71,6 +71,18 @@
   box-shadow: 0 16px 32px rgba(16, 179, 240, 0.4);
 }
 
+.card.lifetime {
+  border-color: #FFD700;
+  box-shadow: 0 0 24px rgba(255, 215, 0, 0.4);
+  background: linear-gradient(135deg, #1f1a0d 0%, #0d0d0d 100%);
+}
+
+.card.lifetime:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 36px rgba(255, 215, 0, 0.5);
+  border-color: #FFED4E;
+}
+
 .popularBadge {
   position: absolute;
   top: -8px;

@@ -20,9 +20,16 @@ export default function SubscriptionPlanCard({
 
   return (
     <div
-      className={`${styles.card} ${plan.isPopular ? styles.popular : ""}`}
+      className={`${styles.card} ${plan.isPopular ? styles.popular : ""} ${
+        plan.id === "lifetime" ? styles.lifetime : ""
+      }`}
       style={{
-        borderColor: plan.color === "green" ? "#10b3f0" : "#10b3f0",
+        borderColor: 
+          plan.id === "lifetime" 
+            ? "#FFD700" 
+            : plan.isPopular 
+            ? "#10b3f0" 
+            : "#2a2a2a",
       }}
     >
       {plan.isPopular && <div className={styles.popularBadge}>POPULAR</div>}
@@ -44,7 +51,9 @@ export default function SubscriptionPlanCard({
           <>
             <span className={styles.currency}>$</span>
             <span className={styles.amount}>{plan.price.toFixed(2)}</span>
-            <span className={styles.period}>/month</span>
+            <span className={styles.period}>
+              {plan.period === "one-time" ? " one-time" : "/month"}
+            </span>
           </>
         )}
       </div>
