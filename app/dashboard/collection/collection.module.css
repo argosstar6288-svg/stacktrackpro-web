@@ -80,8 +80,8 @@
 }
 
 .panel:nth-child(even) {
-  background: #1E90FF;
-  border-color: #1E90FF;
+  background: #FF8C00;
+  border-color: #FF8C00;
 }
 
 /* Layout with sidebar */
