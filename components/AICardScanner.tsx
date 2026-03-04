@@ -16,6 +16,8 @@ interface CardScanResult {
   grade?: string;
   estimatedValue: number;
   confidence: number;
+  imageUrl?: string;
+  photoUrl?: string;
 }
 
 interface AICardScannerProps {
@@ -251,6 +253,10 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
           }
 
           const result: CardScanResult = await response.json();
+          
+          // Attach the scanned image to the result
+          result.imageUrl = selectedImages[i];
+          result.photoUrl = selectedImages[i];
           
           // Very lenient validation - accept almost anything
           // Build name from any available info
