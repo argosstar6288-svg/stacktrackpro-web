@@ -150,6 +150,13 @@
 
 .chartWrap {
   height: 320px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.chartCanvas {
+  min-width: calc(100% + 192px);
+  height: 100%;
 }
 
 .cardsGrid {

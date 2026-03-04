@@ -80,12 +80,14 @@ export default function MarketPage() {
               <span className={styles.panelBadge}>Updated today</span>
             </div>
             <div className={styles.chartWrap}>
-              <CustomLineChart
-                data={marketData}
-                dataKey="avgPrice"
-                height={300}
-                color="#ff7a47"
-              />
+              <div className={styles.chartCanvas}>
+                <CustomLineChart
+                  data={marketData}
+                  dataKey="avgPrice"
+                  height={300}
+                  color="#ff7a47"
+                />
+              </div>
             </div>
           </section>
 
