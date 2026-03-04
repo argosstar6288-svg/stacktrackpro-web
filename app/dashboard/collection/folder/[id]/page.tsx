@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { useRouter, useParams } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -126,14 +127,13 @@ export default function FolderViewPage() {
             {cards.map((card) => (
               <div key={card.id} className={styles.cardItem}>
                 <div className={styles.cardImageWrapper}>
-                  <img
+                  <Image
                     src={card.imageUrl || card.photoUrl || card.frontImageUrl || card.thumbnailUrl || "/placeholder-card.png"}
                     alt={card.name}
+                    width={300}
+                    height={420}
                     className={styles.cardImage}
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = "/placeholder-card.png";
-                    }}
+                    unoptimized
                   />
                 </div>
                 <div className={styles.cardDetails}>

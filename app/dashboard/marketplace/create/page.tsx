@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { auth, db } from "../../../../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
@@ -199,10 +200,13 @@ export default function CreateListingPage() {
 
             {formData.selectedCardImageUrl ? (
               <div className={styles.selectedCardPreview}>
-                <img
+                <Image
                   src={formData.selectedCardImageUrl}
                   alt={formData.cardName || "Selected card"}
+                  width={300}
+                  height={420}
                   className={styles.selectedCardPreviewImage}
+                  unoptimized
                 />
                 <p className={styles.selectedCardPreviewText}>Photo pulled from your Collection</p>
               </div>

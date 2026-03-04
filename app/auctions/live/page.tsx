@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { 
@@ -194,10 +195,13 @@ export default function LiveAuctionsPage() {
               <div className={auctionStyles.auctionCard}>
                 {/* Card Image */}
                 <div className={auctionStyles.cardImageWrapper}>
-                  <img 
-                    src={auction.imageUrl || '/placeholder-card.png'} 
+                  <Image
+                    src={auction.imageUrl || '/placeholder-card.png'}
                     alt={auction.cardName}
+                    width={300}
+                    height={420}
                     className={auctionStyles.cardImage}
+                    unoptimized
                   />
                   <div className={auctionStyles.liveBadge}>🔴 LIVE</div>
                 </div>

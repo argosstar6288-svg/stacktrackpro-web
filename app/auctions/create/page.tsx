@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { collection, doc, getDoc, serverTimestamp, setDoc, Timestamp } from "firebase/firestore";
@@ -242,14 +243,13 @@ export default function CreateAuctionPage() {
                     className={`${styles.cardOption} ${selectedCard?.id === card.id ? styles.selected : ""}`}
                     onClick={() => handleSelectFromCollection(card)}
                   >
-                    <img
+                    <Image
                       src={card.imageUrl || card.photoUrl || card.frontImageUrl || card.thumbnailUrl || "/placeholder-card.png"}
                       alt={card.name}
+                      width={60}
+                      height={80}
                       className={styles.cardThumbnail}
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = "/placeholder-card.png";
-                      }}
+                      unoptimized
                     />
                     <div className={styles.cardInfo}>
                       <div className={styles.cardName}>{card.name}</div>
@@ -277,7 +277,14 @@ export default function CreateAuctionPage() {
             />
             <div className={styles.previewWrap}>
               {imagePreview ? (
-                <img src={imagePreview} alt="Card preview" className={styles.previewImage} />
+                <Image
+                  src={imagePreview}
+                  alt="Card preview"
+                  width={300}
+                  height={420}
+                  className={styles.previewImage}
+                  unoptimized
+                />
               ) : (
                 <div className={styles.previewPlaceholder}>Image preview appears here</div>
               )}

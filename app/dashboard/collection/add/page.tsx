@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { addCard, type Card } from "../../../../lib/cards";
 import { storage } from "../../../../lib/firebase";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
@@ -219,10 +220,13 @@ export default function CollectionAddPage() {
           </label>
 
           {cardImagePreview ? (
-            <img
+            <Image
               src={cardImagePreview}
               alt="Card preview"
+              width={300}
+              height={420}
               className={styles.imagePreview}
+              unoptimized
             />
           ) : (
             <div className={styles.imagePlaceholder}>No photo selected</div>

@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
-import { db } from "@/lib/firebase"; 
+import { db } from "@/lib/firebase";
 import { useCurrentUser } from "../../../../lib/useCurrentUser";
 import Link from "next/link";
+import Image from "next/image";
 import styles from "./listing.module.css";
 
 interface Listing {
@@ -115,7 +116,7 @@ export default function ListingDetailPage() {
         <div className={styles.imageSection}>
           <div className={styles.imageContainer}>
             {listing.imageUrl ? (
-              <img src={listing.imageUrl} alt={listing.cardName} className={styles.cardImage} />
+              <Image src={listing.imageUrl} alt={listing.cardName} width={300} height={420} className={styles.cardImage} unoptimized />
             ) : (
               <div className={styles.placeholderImage}>
                 <span>📷</span>

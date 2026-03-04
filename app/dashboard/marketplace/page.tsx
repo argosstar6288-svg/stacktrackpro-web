@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { auth, db } from "../../../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { 
@@ -226,7 +227,7 @@ export default function MarketplacePage() {
             >
               <div className={styles.listingImage}>
                 {listing.imageUrl ? (
-                  <img src={listing.imageUrl} alt={listing.cardName} />
+                  <Image src={listing.imageUrl} alt={listing.cardName} width={300} height={420} unoptimized />
                 ) : (
                   <div className={styles.noImage}>📷</div>
                 )}
