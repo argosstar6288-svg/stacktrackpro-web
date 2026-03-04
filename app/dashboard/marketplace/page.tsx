@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
+import CardItem from "@/components/CardItem";
 import { auth, db } from "../../../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { 
@@ -225,46 +225,33 @@ export default function MarketplacePage() {
               href={`/dashboard/marketplace/${listing.id}`}
               className={`panel ${styles.listingCard}`}
             >
-              <div className={styles.listingImage}>
-                {listing.imageUrl ? (
-                  <Image src={listing.imageUrl} alt={listing.cardName} width={300} height={420} sizes="(max-width: 768px) 100vw, 400px" unoptimized />
-                ) : (
-                  <div className={styles.noImage}>📷</div>
-                )}
-              </div>
+              <CardItem
+                card={{
+                  cardName: listing.cardName,
+                  imageUrl: listing.imageUrl,
+                  player: listing.player,
+                  year: listing.year,
+                  sport: listing.sport,
+                  condition: listing.condition,
+                  price: listing.price
+                }}
+                badge={
+                  listing.listingType === "sell" ? "For Sale" :
+                  listing.listingType === "trade" ? "For Trade" :
+                  "Sale/Trade"
+                }
+              />
 
-              <div className={styles.listingBadge}>
-                {listing.listingType === "sell" && "For Sale"}
-                {listing.listingType === "trade" && "For Trade"}
-                {listing.listingType === "both" && "Sale/Trade"}
-              </div>
-
-              <div className={styles.listingContent}>
-                <h3 className={styles.listingTitle}>{listing.cardName}</h3>
-                <div className={styles.listingMeta}>
-                  <span>{listing.player}</span>
-                  <span>•</span>
-                  <span>{listing.year}</span>
-                  <span>•</span>
-                  <span>{listing.sport}</span>
+              {listing.tradeFor && (
+                <div className={styles.listingTrade}>
+                  <span className={styles.tradeLabel}>Trade for:</span>
+                  <span className={styles.tradeText}>{listing.tradeFor}</span>
                 </div>
-                <div className={styles.listingCondition}>{listing.condition}</div>
+              )}
 
-                {listing.price && (
-                  <div className={styles.listingPrice}>${listing.price.toLocaleString()}</div>
-                )}
-
-                {listing.tradeFor && (
-                  <div className={styles.listingTrade}>
-                    <span className={styles.tradeLabel}>Trade for:</span>
-                    <span className={styles.tradeText}>{listing.tradeFor}</span>
-                  </div>
-                )}
-
-                <div className={styles.listingFooter}>
-                  <span className={styles.listingSeller}>by {listing.userName}</span>
-                  <span className={styles.listingViews}>👁 {listing.views}</span>
-                </div>
+              <div className={styles.listingFooter}>
+                <span className={styles.listingSeller}>by {listing.userName}</span>
+                <span className={styles.listingViews}>👁 {listing.views}</span>
               </div>
             </Link>
           ))

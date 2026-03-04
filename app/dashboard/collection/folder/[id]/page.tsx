@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import { useRouter, useParams } from "next/navigation";
+import CardItem from "@/components/CardItem";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
@@ -125,32 +125,14 @@ export default function FolderViewPage() {
         ) : (
           <div className={styles.cardGrid}>
             {cards.map((card) => (
-              <div key={card.id} className={styles.cardItem}>
-                <div className={styles.cardImageWrapper}>
-                  <Image
-                    src={card.imageUrl || card.photoUrl || card.frontImageUrl || card.thumbnailUrl || "/placeholder-card.png"}
-                    alt={card.name}
-                    width={300}
-                    height={420}
-                    sizes="(max-width: 768px) 100vw, 400px"
-                    className={styles.cardImage}
-                    unoptimized
-                  />
-                </div>
-                <div className={styles.cardDetails}>
-                  <h3 className={styles.cardName}>{card.name}</h3>
-                  {card.year && <p className={styles.cardMeta}>Year: {card.year}</p>}
-                  {card.condition && <p className={styles.cardMeta}>Condition: {card.condition}</p>}
-                  {card.value && (
-                    <p className={styles.cardValue}>${card.value.toLocaleString()}</p>
-                  )}
-                  <button
-                    onClick={() => handleRemoveCard(card.id!)}
-                    className={styles.removeBtn}
-                  >
-                    Remove from Folder
-                  </button>
-                </div>
+              <div key={card.id}>
+                <CardItem card={card} />
+                <button
+                  onClick={() => handleRemoveCard(card.id!)}
+                  className={styles.removeBtn}
+                >
+                  Remove from Folder
+                </button>
               </div>
             ))}
           </div>

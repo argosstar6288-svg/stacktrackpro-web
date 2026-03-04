@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
+import CardItem from '@/components/CardItem'
 import { useRouter } from 'next/navigation'
 import { 
   collection, 
@@ -193,19 +193,13 @@ export default function LiveAuctionsPage() {
           {auctions.map(auction => (
             <Link key={auction.id} href={`/auctions/${auction.id}`}>
               <div className={auctionStyles.auctionCard}>
-                {/* Card Image */}
-                <div className={auctionStyles.cardImageWrapper}>
-                  <Image
-                    src={auction.imageUrl || '/placeholder-card.png'}
-                    alt={auction.cardName}
-                    width={300}
-                    height={420}
-                    sizes="(max-width: 768px) 100vw, 400px"
-                    className={auctionStyles.cardImage}
-                    unoptimized
-                  />
-                  <div className={auctionStyles.liveBadge}>🔴 LIVE</div>
-                </div>
+                <CardItem 
+                  card={{
+                    cardName: auction.cardName,
+                    imageUrl: auction.imageUrl
+                  }}
+                  badge="🔴 LIVE"
+                />
 
                 {/* Card Info */}
                 <div className={auctionStyles.cardInfo}>
