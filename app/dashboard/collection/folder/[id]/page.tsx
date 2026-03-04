@@ -126,15 +126,15 @@ export default function FolderViewPage() {
             {cards.map((card) => (
               <div key={card.id} className={styles.cardItem}>
                 <div className={styles.cardImageWrapper}>
-                  {card.imageUrl || card.photoUrl || card.frontImageUrl ? (
-                    <img
-                      src={card.imageUrl || card.photoUrl || card.frontImageUrl}
-                      alt={card.name}
-                      className={styles.cardImage}
-                    />
-                  ) : (
-                    <div className={styles.cardPlaceholder}>No Image</div>
-                  )}
+                  <img
+                    src={card.imageUrl || card.photoUrl || card.frontImageUrl || card.thumbnailUrl || "/placeholder-card.png"}
+                    alt={card.name}
+                    className={styles.cardImage}
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = "/placeholder-card.png";
+                    }}
+                  />
                 </div>
                 <div className={styles.cardDetails}>
                   <h3 className={styles.cardName}>{card.name}</h3>

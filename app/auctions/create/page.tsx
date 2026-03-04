@@ -69,30 +69,6 @@ export default function CreateAuctionPage() {
     return !hasImage || !cardName.trim() || !validPrice || !selectedDuration || submitting;
   }, [cardName, imageDataUrl, selectedCard, selectedDuration, startPrice, submitting]);
 
-  // Check for age verification 
-  useEffect(() => {
-    const checkVerification = async () => {
-      if (!user) return;
-
-      try {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        const userData = userDoc.data();
-
-        // Check age verification
-        if (!userData?.isAuctionVerified) {
-          // Redirect to age verification with return URL
-          router.push(`/verify-age?redirect=/auctions/create`);
-        }
-      } catch (error) {
-        console.error("Error checking verification:", error);
-      }
-    };
-
-    if (user && !userLoading) {
-      checkVerification();
-    }
-  }, [user, userLoading, router]);
-
   const onImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -241,15 +217,15 @@ export default function CreateAuctionPage() {
                     className={`${styles.cardOption} ${selectedCard?.id === card.id ? styles.selected : ""}`}
                     onClick={() => handleSelectFromCollection(card)}
                   >
-                    {card.imageUrl || card.photoUrl || card.frontImageUrl ? (
-                      <img
-                        src={card.imageUrl || card.photoUrl || card.frontImageUrl}
-                        alt={card.name}
-                        className={styles.cardThumbnail}
-                      />
-                    ) : (
-                      <div className={styles.cardPlaceholder}>No Image</div>
-                    )}
+                    <img
+                      src={card.imageUrl || card.photoUrl || card.frontImageUrl || card.thumbnailUrl || "/placeholder-card.png"}
+                      alt={card.name}
+                      className={styles.cardThumbnail}
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = "/placeholder-card.png";
+                      }}
+                    />
                     <div className={styles.cardInfo}>
                       <div className={styles.cardName}>{card.name}</div>
                       {card.year && <div className={styles.cardMeta}>{card.year}</div>}
