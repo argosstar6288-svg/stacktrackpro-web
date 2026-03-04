@@ -44,6 +44,13 @@ export default function PricingPage() {
         </p>
       </div>
 
+      <div className={styles.disclosure}>
+        <p className={styles.disclosureText}>
+          ⭐ <strong>Limited Time Offer:</strong> The Lifetime plan is available to only the first 50 customers. 
+          Lock in permanent access at <strong>$299 one-time</strong> before spots run out.
+        </p>
+      </div>
+
       <div className={styles.container}>
         <SubscriptionPlanGrid onPlanAction={handlePlanAction} layout="grid" />
       </div>
