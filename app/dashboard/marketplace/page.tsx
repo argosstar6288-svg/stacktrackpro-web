@@ -227,7 +227,7 @@ export default function MarketplacePage() {
             >
               <div className={styles.listingImage}>
                 {listing.imageUrl ? (
-                  <Image src={listing.imageUrl} alt={listing.cardName} width={300} height={420} unoptimized />
+                  <Image src={listing.imageUrl} alt={listing.cardName} width={300} height={420} sizes="(max-width: 768px) 100vw, 400px" unoptimized />
                 ) : (
                   <div className={styles.noImage}>📷</div>
                 )}

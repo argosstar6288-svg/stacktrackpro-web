@@ -248,6 +248,7 @@ export default function CreateAuctionPage() {
                       alt={card.name}
                       width={60}
                       height={80}
+                      sizes="60px"
                       className={styles.cardThumbnail}
                       unoptimized
                     />
@@ -282,6 +283,7 @@ export default function CreateAuctionPage() {
                   alt="Card preview"
                   width={300}
                   height={420}
+                  sizes="(max-width: 768px) 100vw, 400px"
                   className={styles.previewImage}
                   unoptimized
                 />

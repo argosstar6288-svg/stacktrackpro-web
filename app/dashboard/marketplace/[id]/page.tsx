@@ -116,7 +116,7 @@ export default function ListingDetailPage() {
         <div className={styles.imageSection}>
           <div className={styles.imageContainer}>
             {listing.imageUrl ? (
-              <Image src={listing.imageUrl} alt={listing.cardName} width={300} height={420} className={styles.cardImage} unoptimized />
+              <Image src={listing.imageUrl} alt={listing.cardName} width={300} height={420} sizes="(max-width: 768px) 100vw, 400px" className={styles.cardImage} unoptimized />
             ) : (
               <div className={styles.placeholderImage}>
                 <span>📷</span>

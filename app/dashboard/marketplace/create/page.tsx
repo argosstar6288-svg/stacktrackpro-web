@@ -205,6 +205,7 @@ export default function CreateListingPage() {
                   alt={formData.cardName || "Selected card"}
                   width={300}
                   height={420}
+                  sizes="(max-width: 768px) 100vw, 400px"
                   className={styles.selectedCardPreviewImage}
                   unoptimized
                 />

@@ -132,6 +132,7 @@ export default function FolderViewPage() {
                     alt={card.name}
                     width={300}
                     height={420}
+                    sizes="(max-width: 768px) 100vw, 400px"
                     className={styles.cardImage}
                     unoptimized
                   />

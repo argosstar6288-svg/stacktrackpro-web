@@ -200,6 +200,7 @@ export default function LiveAuctionsPage() {
                     alt={auction.cardName}
                     width={300}
                     height={420}
+                    sizes="(max-width: 768px) 100vw, 400px"
                     className={auctionStyles.cardImage}
                     unoptimized
                   />
