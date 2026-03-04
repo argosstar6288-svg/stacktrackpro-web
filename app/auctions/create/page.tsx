@@ -216,6 +216,10 @@ export default function CreateAuctionPage() {
         </p>
       </div>
 
+      <div className={styles.verificationNotice}>
+        Auctions require age verification (18+). If your account is not verified, you are redirected to <Link href="/verify-age">Verify Age</Link> before creating an auction.
+      </div>
+
       <form onSubmit={createAuction} className={styles.form}>
         <div className={styles.topGrid}>
           {/* Left Panel: Select from Collection */}

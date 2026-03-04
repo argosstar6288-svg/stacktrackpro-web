@@ -51,6 +51,23 @@
   gap: 1.25rem;
 }
 
+.verificationNotice {
+  max-width: 1200px;
+  margin: 0 auto 1.25rem;
+  border: 1px solid rgba(30, 144, 255, 0.4);
+  background: rgba(30, 144, 255, 0.14);
+  color: #d9d5ff;
+  padding: 0.8rem 1rem;
+  border-radius: 0.6rem;
+  font-size: 0.9rem;
+}
+
+.verificationNotice a {
+  color: #f8f5ff;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
 .topGrid {
   display: grid;
   grid-template-columns: 1fr 0.9fr 1fr;
