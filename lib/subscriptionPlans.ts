@@ -12,6 +12,8 @@ export interface SubscriptionPlan {
   price: number;
   period?: string;
   isPopular?: boolean;
+  isLimited?: boolean;
+  maxSpots?: number;
   features: SubscriptionFeature[];
   cta: string;
   ctaAction?: string;
@@ -83,6 +85,8 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     badge: "⭐",
     price: 299,
     period: "one-time",
+    isLimited: true,
+    maxSpots: 50,
     features: [
       { name: "Everything in Pro+", included: true },
       { name: "Unlimited collections", included: true },

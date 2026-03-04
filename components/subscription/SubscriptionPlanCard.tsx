@@ -1,7 +1,10 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { SubscriptionPlan } from "@/lib/subscriptionPlans";
 import styles from "./SubscriptionPlans.module.css";
+import { db } from "@/lib/firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
 
 interface SubscriptionPlanCardProps {
   plan: SubscriptionPlan;
@@ -12,6 +15,35 @@ export default function SubscriptionPlanCard({
   plan,
   onAction,
 }: SubscriptionPlanCardProps) {
+  const [spotsRemaining, setSpotsRemaining] = useState<number | null>(null);
+  const [isSoldOut, setIsSoldOut] = useState(false);
+
+  // Check lifetime plan purchases if this is a limited plan
+  useEffect(() => {
+    const checkSpots = async () => {
+      if (!plan.isLimited || !plan.maxSpots) return;
+
+      try {
+        // Query subscriptions collection for lifetime plan purchases
+        const q = query(
+          collection(db, "subscriptions"),
+          where("planId", "==", "lifetime")
+        );
+        const querySnapshot = await getDocs(q);
+        const purchaseCount = querySnapshot.size;
+        const remaining = plan.maxSpots - purchaseCount;
+
+        setSpotsRemaining(Math.max(0, remaining));
+        setIsSoldOut(remaining <= 0);
+      } catch (error) {
+        console.error("Error checking lifetime plan spots:", error);
+        // If we can't check, assume spots are available
+        setSpotsRemaining(plan.maxSpots);
+      }
+    };
+
+    checkSpots();
+  }, [plan.isLimited, plan.maxSpots]);
   const handleClick = () => {
     if (onAction && plan.ctaAction) {
       onAction(plan.id, plan.ctaAction);
@@ -42,6 +74,13 @@ export default function SubscriptionPlanCard({
         {plan.description && (
           <p className={styles.description}>{plan.description}</p>
         )}
+        {plan.isLimited && spotsRemaining !== null && (
+          <p className={`${styles.limitedInfo} ${isSoldOut ? styles.soldOut : ""}`}>
+            {isSoldOut 
+              ? "⚠️ Sold Out - All 50 spots claimed!" 
+              : `${spotsRemaining} ${spotsRemaining === 1 ? "spot" : "spots"} left`}
+          </p>
+        )}
       </div>
 
       <div className={styles.pricing}>
@@ -59,11 +98,11 @@ export default function SubscriptionPlanCard({
       </div>
 
       <button
-        className={`${styles.cta} ${styles[plan.ctaAction || "default"]}`}
+        className={`${styles.cta} ${styles[plan.ctaAction || "default"]} ${isSoldOut ? styles.soldOut : ""}`}
         onClick={handleClick}
-        disabled={plan.ctaAction === "current" || plan.ctaAction === "coming-soon"}
+        disabled={plan.ctaAction === "current" || plan.ctaAction === "coming-soon" || isSoldOut}
       >
-        {plan.cta}
+        {isSoldOut ? "Sold Out" : plan.cta}
       </button>
 
       <div className={styles.features}>
