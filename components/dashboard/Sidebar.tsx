@@ -11,7 +11,6 @@ const navItems = [
   { label: "Overview", href: "/dashboard" },
   { label: "AI Hub", href: "/dashboard/ai" },
   { label: "Live Auctions", href: "/auctions/live" },
-  { label: "Create Auction", href: "/auctions/create" },
   { label: "Collection", href: "/dashboard/collection" },
   { label: "Market", href: "/dashboard/market" },
   { label: "Marketplace", href: "/dashboard/marketplace" },

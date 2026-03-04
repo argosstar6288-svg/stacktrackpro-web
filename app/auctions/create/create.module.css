@@ -62,10 +62,22 @@
 .leftPanel,
 .rightPanel,
 .pricingSection {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 0.85rem;
   padding: 1rem;
+}
+
+/* Alternating blue and orange pattern for topGrid items */
+.topGrid > :nth-child(1),
+.topGrid > :nth-child(3),
+.form > section:nth-child(odd) {
+  background: #1E90FF;
+  border: 2px solid #1E90FF;
+}
+
+.topGrid > :nth-child(2),
+.form > section:nth-child(even) {
+  background: #FF8C00;
+  border: 2px solid #FF8C00;
 }
 
 .collectionPanel h2,

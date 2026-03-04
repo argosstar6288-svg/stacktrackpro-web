@@ -150,11 +150,16 @@ export default function LiveAuctionsPage() {
   return (
     <div className={styles.content}>
       {/* Page Header */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔴 Live Auctions</h1>
-        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.95rem' }}>
-          Actively bidding right now
-        </p>
+      <div className={auctionStyles.pageHeader}>
+        <div>
+          <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔴 Live Auctions</h1>
+          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.95rem' }}>
+            Actively bidding right now
+          </p>
+        </div>
+        <Link href="/auctions/create" className={auctionStyles.createAuctionButton}>
+          + Create Auction
+        </Link>
       </div>
 
       {/* Error Message */}

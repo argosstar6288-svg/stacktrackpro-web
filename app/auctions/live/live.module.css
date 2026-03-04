@@ -67,6 +67,34 @@
   font-size: 0.875rem;
 }
 
+.pageHeader {
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.createAuctionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.7rem 1rem;
+  border-radius: 0.55rem;
+  background: #1E90FF;
+  border: 1px solid #1E90FF;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.createAuctionButton:hover {
+  background: #1a7acc;
+  border-color: #1a7acc;
+}
+
 /* Auctions Grid */
 .auctionsGrid {
   display: grid;
@@ -219,6 +247,11 @@
   .auctionsGrid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 1rem;
+  }
+
+  .pageHeader {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .titleSection h1 {
