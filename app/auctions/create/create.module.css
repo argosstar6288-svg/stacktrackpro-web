@@ -140,7 +140,7 @@
 .cardThumbnail {
   width: 60px;
   height: 80px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 0.4rem;
 }
 
@@ -226,7 +226,7 @@
 .previewImage {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .previewPlaceholder {

@@ -80,7 +80,7 @@
 .imagePreview {
   width: 200px;
   aspect-ratio: 2.5 / 3.5;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(255, 255, 255, 0.08);
