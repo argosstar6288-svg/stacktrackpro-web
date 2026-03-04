@@ -69,6 +69,27 @@ export default function CreateAuctionPage() {
     return !hasImage || !cardName.trim() || !validPrice || !selectedDuration || submitting;
   }, [cardName, imageDataUrl, selectedCard, selectedDuration, startPrice, submitting]);
 
+  useEffect(() => {
+    const checkVerification = async () => {
+      if (!user) return;
+
+      try {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        const userData = userDoc.data();
+
+        if (!userData?.isAuctionVerified) {
+          router.push(`/verify-age?redirect=/auctions/create`);
+        }
+      } catch (verificationError) {
+        console.error("Error checking verification:", verificationError);
+      }
+    };
+
+    if (user && !userLoading) {
+      checkVerification();
+    }
+  }, [router, user, userLoading]);
+
   const onImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
