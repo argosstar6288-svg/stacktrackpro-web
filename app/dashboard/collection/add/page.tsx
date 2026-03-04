@@ -11,7 +11,7 @@ import { useCurrentUser } from "../../../../lib/useCurrentUser";
 import AICardScanner from "../../../../components/AICardScanner";
 import styles from "./collection-add.module.css";
 
-const PLACEHOLDER_IMAGE_URL = "/placeholder-card.png";
+const PLACEHOLDER_IMAGE_URL = "/placeholder-card.svg";
 
 export default function CollectionAddPage() {
   const router = useRouter();

@@ -244,7 +244,7 @@ export default function CreateAuctionPage() {
                     onClick={() => handleSelectFromCollection(card)}
                   >
                     <Image
-                      src={card.imageUrl || card.photoUrl || card.frontImageUrl || card.thumbnailUrl || "/placeholder-card.png"}
+                      src={card.imageUrl || card.photoUrl || card.frontImageUrl || card.thumbnailUrl || "/placeholder-card.svg"}
                       alt={card.name}
                       width={60}
                       height={80}

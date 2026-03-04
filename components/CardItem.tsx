@@ -25,7 +25,12 @@ interface CardItemProps {
 
 export default function CardItem({ card, badge, onClick, className }: CardItemProps) {
   const cardName = card.name || card.cardName || "Untitled Card";
-  const imageUrl = card.imageUrl || card.photoUrl || card.frontImageUrl || card.thumbnailUrl || "/placeholder-card.png";
+  const imageUrl = card.imageUrl || card.photoUrl || card.frontImageUrl || card.thumbnailUrl || "/placeholder-card.svg";
+
+  // Debug: Log image URL to verify it's being passed correctly
+  if (typeof window !== 'undefined') {
+    console.log(`[CardItem] Card: ${cardName}, ImageURL:`, imageUrl);
+  }
 
   return (
     <div 
