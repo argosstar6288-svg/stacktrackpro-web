@@ -21,6 +21,7 @@ export default function CollectionAddPage() {
   const [showScanner, setShowScanner] = useState(false);
   const [cardImageFile, setCardImageFile] = useState<File | null>(null);
   const [cardImagePreview, setCardImagePreview] = useState("");
+  const [addMethod, setAddMethod] = useState<"scan" | "manual" | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     value: "",
@@ -126,6 +127,7 @@ export default function CollectionAddPage() {
       setCardImagePreview(scannedImage);
       setCardImageFile(null);
       setError("");
+      setAddMethod("scan");
     } else {
       // Multiple cards - upload images to storage and save
       try {
@@ -239,18 +241,32 @@ export default function CollectionAddPage() {
         </Link>
       </div>
 
-      <div className={styles.scannerPrompt}>
-        <button
-          className={styles.scanButton}
-          onClick={() => setShowScanner(true)}
-          type="button"
-        >
-          📷 Scan Card with AI
-        </button>
-        <span className={styles.orDivider}>or enter manually</span>
-      </div>
+      {!addMethod && !showScanner && (
+        <div className={styles.methodsGrid}>
+          <button
+            type="button"
+            className={styles.methodBox}
+            onClick={() => setShowScanner(true)}
+          >
+            <div className={styles.methodIcon}>📷</div>
+            <div className={styles.methodTitle}>Scan with AI</div>
+            <div className={styles.methodDesc}>Take a photo and let AI detect card details</div>
+          </button>
 
-      <form className={`panel ${styles.panel}`} onSubmit={handleSubmit}>
+          <button
+            type="button"
+            className={styles.methodBox}
+            onClick={() => setAddMethod("manual")}
+          >
+            <div className={styles.methodIcon}>✏️</div>
+            <div className={styles.methodTitle}>Enter Manually</div>
+            <div className={styles.methodDesc}>Type in your card details</div>
+          </button>
+        </div>
+      )}
+
+      {(addMethod === "manual" || addMethod === "scan") && (
+        <form className={`panel ${styles.panel}`} onSubmit={handleSubmit}>
         <div className={styles.imageSection}>
           <label className={styles.field}>
             <span>Card Photo (optional)</span>
@@ -374,14 +390,19 @@ export default function CollectionAddPage() {
         {error && <div className={styles.error}>{error}</div>}
 
         <div className={styles.actions}>
-          <Link className={styles.ghostButton} href="/dashboard/collection">
-            Cancel
-          </Link>
+          <button
+            type="button"
+            className={styles.ghostButton}
+            onClick={() => setAddMethod(null)}
+          >
+            Back to Methods
+          </button>
           <button className={styles.primaryButton} type="submit" disabled={saving}>
             {saving ? "Saving..." : "Save Card"}
           </button>
         </div>
       </form>
+      )}
 
       {showScanner && (
         <div className={styles.modalOverlay}>

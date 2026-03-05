@@ -3,6 +3,7 @@ import CollectionChart from "../../components/dashboard/CollectionChart";
 import FriendsFeed from "../../components/dashboard/FriendsFeed";
 import RecentActivity from "../../components/dashboard/RecentActivity";
 import StatsCards from "../../components/dashboard/StatsCards";
+import CommunityChatFeed from "../../components/dashboard/CommunityChatFeed";
 import styles from "./dashboard.module.css";
 
 export default function DashboardPage() {
@@ -16,6 +17,9 @@ export default function DashboardPage() {
       <div className={styles.grid}>
         <AuctionsPanel />
         <FriendsFeed />
+      </div>
+      <div className={styles.grid}>
+        <CommunityChatFeed />
       </div>
     </div>
   );
