@@ -6,18 +6,52 @@ import { auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { useUserCards, updateCard, Card } from "@/lib/cards";
 import { searchPokemonByName, validatePokemonMatch } from "@/lib/pokemon-stats";
+import { searchCardsByName, searchCardsPartial } from "@/lib/firestore-cards";
 import styles from "../../admin.module.css";
 
 async function searchPokemonTCG(cleanName: string, cardNumber?: string): Promise<string | null> {
   try {
-    console.log(`    📍 Pokemon TCG (Official API): searching for "${cleanName}"`);
+    console.log(`    📍 Pokemon TCG (Firestore + API): searching for "${cleanName}"`);
     
-    // Build search patterns: card number + name is most specific
+    // Step 1: Try exact match in Firestore (fastest)
+    console.log(`       🔎 Firestore: Exact match...`);
+    const exactMatches = await searchCardsByName(cleanName, 5);
+    if (exactMatches.length > 0) {
+      for (const card of exactMatches) {
+        if (card.images?.large || card.images?.small) {
+          const imageUrl = card.images.large || card.images.small;
+          console.log(`      ✅ Firestore EXACT match! "${card.name}" from ${card.setName}`);
+          return imageUrl;
+        }
+      }
+    }
+    
+    // Step 2: Try partial match in Firestore (still fast)
+    console.log(`       🔎 Firestore: Partial match...`);
+    const partialMatches = await searchCardsPartial(cleanName, undefined, 10);
+    if (partialMatches.length > 0) {
+      for (const card of partialMatches) {
+        if (card.images?.large || card.images?.small) {
+          const cardNameLower = (card.name || "").toLowerCase();
+          const searchTerms = cleanName.split(" ").filter(t => t.length > 2);
+          const relevanceScore = searchTerms.filter(term => cardNameLower.includes(term.toLowerCase())).length;
+          
+          if (relevanceScore > 0 || cardNumber) {
+            const imageUrl = card.images.large || card.images.small;
+            console.log(`      ✅ Firestore PARTIAL match! "${card.name}" from ${card.setName}`);
+            return imageUrl;
+          }
+        }
+      }
+    }
+    
+    // Step 3: Fall back to Pokemon TCG API if Firestore empty
+    console.log(`       🔎 Firestore empty, trying Pokemon TCG API...`);
     const searchPatterns = cardNumber 
       ? [
-          `${cleanName}`,  // Try full name with card number context
-          `${cardNumber}`,  // Try just the card number
-          cleanName.split(" ")[0],  // First word (Pokemon name)
+          `${cleanName}`,
+          `${cardNumber}`,
+          cleanName.split(" ")[0],
         ]
       : [
           cleanName,
@@ -30,9 +64,8 @@ async function searchPokemonTCG(cleanName: string, cardNumber?: string): Promise
       if (!pattern || pattern.length < 2) continue;
       
       try {
-        console.log(`       🔎 Attempt ${i + 1}/${searchPatterns.length}: "${pattern}"`);
+        console.log(`       🔎 API Attempt ${i + 1}/${searchPatterns.length}: "${pattern}"`);
         
-        // Use q parameter for name search
         const url = `https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(pattern)}"&pageSize=10`;
         const response = await fetch(url);
         
@@ -44,24 +77,21 @@ async function searchPokemonTCG(cleanName: string, cardNumber?: string): Promise
         const data = await response.json();
         
         if (data.data?.length > 0) {
-          // Try to find best match based on name relevance
           for (const card of data.data) {
             if (card.images?.small || card.images?.large) {
-              const cardName = (card.name || "").toLowerCase();
+              const cardNameLower = (card.name || "").toLowerCase();
               const searchTerms = cleanName.split(" ").filter(t => t.length > 2);
-              const relevanceScore = searchTerms.filter(term => cardName.includes(term.toLowerCase())).length;
+              const relevanceScore = searchTerms.filter(term => cardNameLower.includes(term.toLowerCase())).length;
               
-              // Accept if name is relevant or if we have exact card number
               if (relevanceScore > 0 || cardNumber) {
                 const imageUrl = card.images.large || card.images.small;
-                console.log(`      ✅ Match found! "${card.name}" from ${card.set.series} (relevance: ${relevanceScore}/${searchTerms.length})`);
+                console.log(`      ✅ API match found! "${card.name}" from ${card.set.series}`);
                 return imageUrl;
               }
             }
           }
         }
         
-        // Try partial/wildcard match if exact didn't work
         const urlPartial = `https://api.pokemontcg.io/v2/cards?q=name:*${encodeURIComponent(pattern)}*&pageSize=10`;
         const responsePartial = await fetch(urlPartial);
         
@@ -72,23 +102,23 @@ async function searchPokemonTCG(cleanName: string, cardNumber?: string): Promise
             for (const card of dataPartial.data) {
               if (card.images?.small || card.images?.large) {
                 const imageUrl = card.images.large || card.images.small;
-                console.log(`      ✅ Match found (partial)! "${card.name}" from ${card.set.series}`);
+                console.log(`      ✅ API partial match! "${card.name}"`);
                 return imageUrl;
               }
             }
           }
         }
         
-        console.log(`       ℹ️  No matches found for "${pattern}"`);
+        console.log(`       ℹ️  No API matches for "${pattern}"`);
       } catch (err) {
-        console.log(`       ⚠️  Request failed, trying next pattern...`);
+        console.log(`       ⚠️  API request failed`);
         continue;
       }
     }
     
-    console.log(`    ⏭️  Pokemon TCG: all attempts exhausted, moving to next source`);
+    console.log(`    ⏭️  Pokemon TCG: exhausted Firestore and API`);
   } catch (error) {
-    console.log(`    ⏭️  Pokemon TCG: skipped (unexpected error)`);
+    console.log(`    ⏭️  Pokemon TCG: error`);
   }
   return null;
 }
