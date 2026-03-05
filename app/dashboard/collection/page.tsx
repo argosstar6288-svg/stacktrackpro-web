@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { auth } from "../../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { CollectionManager } from "../../components/CollectionManager";
@@ -116,6 +117,13 @@ export default function CollectionPage() {
           <div className={styles.search}>
             <input type="text" placeholder="Quick search..." />
           </div>
+          <button 
+            className={styles.addButton}
+            onClick={() => router.push('/dashboard/admin/bulk-image-update')}
+            style={{ background: "rgba(100, 200, 255, 0.7)" }}
+          >
+            🔄 Update Images
+          </button>
           <button 
             className={styles.addButton}
             onClick={() => router.push('/dashboard/collection/add')}
