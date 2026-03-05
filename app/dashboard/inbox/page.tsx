@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
 import { useCurrentUser } from "../../../lib/useCurrentUser";
+import GroupChats from "../../../components/dashboard/GroupChats";
 import styles from "./inbox.module.css";
 
 type ThreadSummary = {
@@ -62,6 +63,7 @@ const normalizeRecipientId = (value: string) => value.trim().replace(/^@/, "");
 
 export default function InboxPage() {
   const { user, loading } = useCurrentUser();
+  const [activeTab, setActiveTab] = useState<"direct" | "groups">("direct");
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [activeRecipientId, setActiveRecipientId] = useState<string | null>(null);
@@ -338,26 +340,45 @@ export default function InboxPage() {
             New Message
           </button>
         </div>
-        <div className={styles.searchRow}>
-          <input
-            className={styles.searchInput}
-            type="search"
-            placeholder="Search conversations"
-            aria-label="Search conversations"
-          />
-          <button className={styles.filterButton} type="button">
-            Filters
+
+        {/* Tabs */}
+        <div className={styles.tabs}>
+          <button
+            className={`${styles.tab} ${activeTab === "direct" ? styles.tabActive : ""}`}
+            onClick={() => setActiveTab("direct")}
+          >
+            💬 Direct Messages
+          </button>
+          <button
+            className={`${styles.tab} ${activeTab === "groups" ? styles.tabActive : ""}`}
+            onClick={() => setActiveTab("groups")}
+          >
+            👥 Group Chats
           </button>
         </div>
-        <div className={styles.threadList}>
-          {!user && !loading ? (
-            <div className={styles.emptyState}>Please sign in to view messages.</div>
-          ) : loading || loadingThreads ? (
-            <div className={styles.emptyState}>Loading messages...</div>
-          ) : threads.length === 0 ? (
-            <div className={styles.emptyState}>No conversations yet.</div>
-          ) : (
-            threads.map((thread) => {
+
+        {activeTab === "direct" ? (
+          <>
+            <div className={styles.searchRow}>
+              <input
+                className={styles.searchInput}
+                type="search"
+                placeholder="Search conversations"
+                aria-label="Search conversations"
+              />
+              <button className={styles.filterButton} type="button">
+                Filters
+              </button>
+            </div>
+            <div className={styles.threadList}>
+              {!user && !loading ? (
+                <div className={styles.emptyState}>Please sign in to view messages.</div>
+              ) : loading || loadingThreads ? (
+                <div className={styles.emptyState}>Loading messages...</div>
+              ) : threads.length === 0 ? (
+                <div className={styles.emptyState}>No conversations yet.</div>
+              ) : (
+                threads.map((thread) => {
             const isActive = thread.id === activeThreadId;
             return (
             <button
@@ -393,8 +414,13 @@ export default function InboxPage() {
           })
           )}
         </div>
+          </>
+        ) : (
+          <GroupChats />
+        )}
       </div>
 
+      {activeTab === "direct" && (
       <div className={`panel ${styles.chatPanel}`}>
         <div className={styles.chatHeader}>
           <div className={styles.chatIdentity}>
@@ -457,6 +483,7 @@ export default function InboxPage() {
           </button>
         </div>
       </div>
+      )}
 
       {composeOpen && (
         <div className={styles.modalOverlay}>
