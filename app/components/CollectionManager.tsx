@@ -6,6 +6,7 @@ import Link from "next/link";
 import { auth } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { useUserCards, deleteCard, calculatePortfolioStats, updateCard, Card, useUserFolders, addCardToFolder } from "../lib/cards";
+import { validatePokemonMatch } from "../lib/pokemon-stats";
 import { CardModal } from "./CardModal";
 import "./collection.css";
 
@@ -242,6 +243,14 @@ async function searchMultipleSources(cardName: string, cardNumber?: string): Pro
     if (cardNumber) {
       console.log(`  📌 Card ID: ${cardNumber}`);
     }
+    
+    // Check if this is a Pokemon card and validate against database
+    const pokemonMatch = validatePokemonMatch(cleanName);
+    if (pokemonMatch) {
+      console.log(`  🎮 Pokémon detected: ${pokemonMatch.name} (Type: ${pokemonMatch.type.join("/")})`);
+      console.log(`  📊 Stats Total: ${pokemonMatch.total} | HP: ${pokemonMatch.hp}`);
+    }
+    
     console.log(`  📝 Searching for: "${cleanName}"`);
     console.log(`  🌐 Querying 3 primary sources in order...\n`);
 
