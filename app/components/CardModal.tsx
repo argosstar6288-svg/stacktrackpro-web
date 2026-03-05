@@ -12,6 +12,25 @@ interface CardModalProps {
   isEditing?: boolean;
 }
 
+async function searchPokemonTCG(cardName: string): Promise<string | null> {
+  try {
+    const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(cardName)}"`);
+    const data = await response.json();
+    
+    if (data.data && data.data.length > 0) {
+      const card = data.data[0];
+      // PokéTCG API provides image URLs
+      if (card.images?.small) {
+        return card.images.small;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error("Error searching PokéTCG:", error);
+    return null;
+  }
+}
+
 export function CardModal({ isOpen, onClose, onSuccess, initialCard, isEditing }: CardModalProps) {
   const { user } = useCurrentUser();
   const [name, setName] = useState(initialCard?.name || "");
@@ -23,8 +42,10 @@ export function CardModal({ isOpen, onClose, onSuccess, initialCard, isEditing }
   const [condition, setCondition] = useState<Card["condition"]>(initialCard?.condition || "Good");
   const [value, setValue] = useState(initialCard?.value?.toString() || "");
   const [notes, setNotes] = useState(initialCard?.notes || "");
+  const [imageUrl, setImageUrl] = useState(initialCard?.imageUrl || "");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [searchingImage, setSearchingImage] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +87,7 @@ export function CardModal({ isOpen, onClose, onSuccess, initialCard, isEditing }
         condition,
         value: cardValue,
         notes: notes || undefined,
+        imageUrl: imageUrl || undefined,
       };
 
       if (isEditing && initialCard) {
@@ -73,7 +95,6 @@ export function CardModal({ isOpen, onClose, onSuccess, initialCard, isEditing }
       } else {
         await createCard(user.uid, {
           ...cardData,
-          imageUrl: undefined,
           folderId: undefined,
         });
       }
@@ -88,6 +109,29 @@ export function CardModal({ isOpen, onClose, onSuccess, initialCard, isEditing }
     }
   };
 
+  const handleSearchImage = async () => {
+    if (!name.trim()) {
+      setError("Enter a card name first");
+      return;
+    }
+
+    setSearchingImage(true);
+    setError("");
+
+    try {
+      const foundImageUrl = await searchPokemonTCG(name);
+      if (foundImageUrl) {
+        setImageUrl(foundImageUrl);
+      } else {
+        setError("No image found on PokéTCG. You can paste a URL manually.");
+      }
+    } catch (err) {
+      setError("Error searching for image");
+    } finally {
+      setSearchingImage(false);
+    }
+  };
+
   const resetForm = () => {
     setName("");
     setPlayer("");
@@ -98,6 +142,7 @@ export function CardModal({ isOpen, onClose, onSuccess, initialCard, isEditing }
     setCondition("Good");
     setValue("");
     setNotes("");
+    setImageUrl("");
   };
 
   if (!isOpen) return null;
@@ -222,6 +267,32 @@ export function CardModal({ isOpen, onClose, onSuccess, initialCard, isEditing }
               rows={3}
               style={{ width: "100%", padding: 10, borderRadius: 6, border: "1px solid #555", backgroundColor: "#222", color: "#fff", boxSizing: "border-box", fontFamily: "inherit" }}
             />
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: "block", marginBottom: 6, fontSize: 14 }}>Card Image</label>
+            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+              <input
+                type="text"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="Paste image URL or search below..."
+                style={{ flex: 1, padding: 10, borderRadius: 6, border: "1px solid #555", backgroundColor: "#222", color: "#fff", boxSizing: "border-box" }}
+              />
+              <button
+                type="button"
+                onClick={handleSearchImage}
+                disabled={searchingImage || !name.trim()}
+                style={{ padding: "10px 16px", borderRadius: 6, background: "#10b3f0", color: "#000", border: "none", fontWeight: "bold", cursor: "pointer", fontSize: 14, whiteSpace: "nowrap" }}
+              >
+                {searchingImage ? "Searching..." : "Search PokéTCG"}
+              </button>
+            </div>
+            {imageUrl && (
+              <div style={{ marginTop: 8 }}>
+                <img src={imageUrl} alt="Preview" style={{ maxWidth: "100%", maxHeight: 200, borderRadius: 6 }} onError={() => setError("Image URL is invalid")} />
+              </div>
+            )}
           </div>
 
           <div style={{ display: "flex", gap: 12 }}>
