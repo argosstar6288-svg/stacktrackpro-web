@@ -21,6 +21,9 @@ export interface Card {
   photoUrl?: string;
   frontImageUrl?: string;
   thumbnailUrl?: string;
+  cardImage?: string;
+  image?: string;
+  imagePath?: string;
   notes?: string;
   folderId?: string;
   folderIds?: string[];
@@ -42,17 +45,84 @@ function isRenderableImageUrl(value?: string): boolean {
   return (
     trimmed.startsWith("https://") ||
     trimmed.startsWith("http://") ||
+    trimmed.startsWith("//") ||
+    trimmed.startsWith("firebasestorage.googleapis.com/") ||
+    trimmed.startsWith("storage.googleapis.com/") ||
     trimmed.startsWith("data:image/") ||
     trimmed.startsWith("blob:") ||
     trimmed.startsWith("/")
   );
 }
 
+function normalizeRenderableImageUrl(value: string): string {
+  const trimmed = value.trim();
+
+  if (trimmed.startsWith("//")) {
+    return `https:${trimmed}`;
+  }
+
+  if (
+    trimmed.startsWith("firebasestorage.googleapis.com/") ||
+    trimmed.startsWith("storage.googleapis.com/")
+  ) {
+    return `https://${trimmed}`;
+  }
+
+  return trimmed;
+}
+
 function isStorageReference(value?: string): boolean {
   if (!value || typeof value !== "string") return false;
   const trimmed = value.trim();
 
-  return trimmed.startsWith("gs://") || (!trimmed.startsWith("http") && trimmed.includes("/"));
+  return (
+    trimmed.startsWith("gs://") ||
+    trimmed.startsWith("cards/") ||
+    trimmed.startsWith("uploads/") ||
+    trimmed.includes("%2F") ||
+    (!trimmed.startsWith("http") && trimmed.includes("/"))
+  );
+}
+
+function extractStoragePath(value: string): string | null {
+  const trimmed = value.trim();
+
+  if (trimmed.startsWith("gs://")) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith("cards/") || trimmed.startsWith("uploads/")) {
+    return trimmed;
+  }
+
+  const decoded = decodeURIComponent(trimmed);
+  if (decoded.startsWith("cards/") || decoded.startsWith("uploads/")) {
+    return decoded;
+  }
+
+  const candidateUrl =
+    trimmed.startsWith("http://") || trimmed.startsWith("https://")
+      ? trimmed
+      : trimmed.startsWith("firebasestorage.googleapis.com/") || trimmed.startsWith("storage.googleapis.com/")
+      ? `https://${trimmed}`
+      : null;
+
+  if (!candidateUrl) {
+    return null;
+  }
+
+  try {
+    const url = new URL(candidateUrl);
+    const decodedPath = decodeURIComponent(url.pathname);
+    const objectMatch = decodedPath.match(/\/o\/([^/].*)$/);
+    if (!objectMatch?.[1]) {
+      return null;
+    }
+
+    return objectMatch[1];
+  } catch {
+    return null;
+  }
 }
 
 async function resolveStorageImageUrl(value?: string): Promise<string | null> {
@@ -61,11 +131,14 @@ async function resolveStorageImageUrl(value?: string): Promise<string | null> {
   const trimmed = value.trim();
   if (!trimmed) return null;
 
-  if (isRenderableImageUrl(trimmed)) return trimmed;
+  if (isRenderableImageUrl(trimmed)) return normalizeRenderableImageUrl(trimmed);
   if (!isStorageReference(trimmed)) return null;
 
+  const storagePath = extractStoragePath(trimmed);
+  if (!storagePath) return null;
+
   try {
-    const storageRef = ref(storage, trimmed);
+    const storageRef = ref(storage, storagePath);
     return await getDownloadURL(storageRef);
   } catch {
     return null;
@@ -73,7 +146,15 @@ async function resolveStorageImageUrl(value?: string): Promise<string | null> {
 }
 
 async function normalizeCardImage(card: Card): Promise<Card> {
-  const imageCandidates = [card.imageUrl, card.photoUrl, card.frontImageUrl, card.thumbnailUrl];
+  const imageCandidates = [
+    card.imageUrl,
+    card.photoUrl,
+    card.frontImageUrl,
+    card.thumbnailUrl,
+    card.cardImage,
+    card.image,
+    card.imagePath,
+  ];
 
   for (const candidate of imageCandidates) {
     const resolved = await resolveStorageImageUrl(candidate);

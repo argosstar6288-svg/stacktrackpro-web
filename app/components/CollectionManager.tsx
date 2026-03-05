@@ -91,6 +91,9 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
       card.photoUrl,
       card.frontImageUrl,
       card.thumbnailUrl,
+      (card as any).cardImage,
+      (card as any).image,
+      (card as any).imagePath,
     ];
 
     const selected = imageCandidates.find((candidate) => isRenderableImageUrl(candidate));

@@ -10,6 +10,9 @@ interface CardItemProps {
     photoUrl?: string;
     frontImageUrl?: string;
     thumbnailUrl?: string;
+    cardImage?: string;
+    image?: string;
+    imagePath?: string;
     year?: number | string;
     condition?: string;
     value?: number;
@@ -43,10 +46,13 @@ export default function CardItem({ card, badge, onClick, className }: CardItemPr
       card.photoUrl,
       card.frontImageUrl,
       card.thumbnailUrl,
+      card.cardImage,
+      card.image,
+      card.imagePath,
     ];
 
     return candidates.find((candidate) => isRenderableImageUrl(candidate)) || "/placeholder-card.svg";
-  }, [card.frontImageUrl, card.imageUrl, card.photoUrl, card.thumbnailUrl]);
+  }, [card.cardImage, card.frontImageUrl, card.image, card.imagePath, card.imageUrl, card.photoUrl, card.thumbnailUrl]);
 
   const [currentImageUrl, setCurrentImageUrl] = useState(imageUrl);
 
