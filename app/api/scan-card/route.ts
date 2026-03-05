@@ -52,6 +52,11 @@ export async function POST(request: NextRequest) {
   try {
     const { image, userId } = await request.json();
 
+    console.log("[AI Scan] Request received - Processing card scan");
+    console.log("[AI Scan] OpenAI API Key Status:", process.env.OPENAI_API_KEY ? "FOUND" : "NOT FOUND");
+    console.log("[AI Scan] Key length:", process.env.OPENAI_API_KEY?.length || 0);
+    console.log("[AI Scan] Key starts with:", process.env.OPENAI_API_KEY?.substring(0, 25) + "..." || "KEY NOT SET");
+
     if (!image) {
       return NextResponse.json(
         { error: "No image provided" },
