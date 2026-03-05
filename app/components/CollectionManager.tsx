@@ -5,13 +5,99 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { auth } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { useUserCards, deleteCard, calculatePortfolioStats, Card, useUserFolders, addCardToFolder } from "../lib/cards";
+import { useUserCards, deleteCard, calculatePortfolioStats, updateCard, Card, useUserFolders, addCardToFolder } from "../lib/cards";
 import { CardModal } from "./CardModal";
 import "./collection.css";
 
 interface CollectionManagerProps {
   sportFilter?: string | null;
   folderId?: string;
+}
+
+// Multi-source image search function
+async function searchMultipleSources(cardName: string): Promise<string | null> {
+  try {
+    console.log(`\n🔍 Searching for: "${cardName}"`);
+
+    // Clean name
+    let cleanName = cardName
+      .replace(/\bPokémon\s+Card\b/gi, "")
+      .replace(/\bPokemon\s+Card\b/gi, "")
+      .replace(/\bPokemon\s+GO\s+Card\b/gi, "")
+      .replace(/\s+V\s*$/gi, "")
+      .replace(/\s+EX\s*$/gi, "")
+      .replace(/\s+VMAX\s*$/gi, "")
+      .replace(/\s+VSTAR\s*$/gi, "")
+      .replace(/\s+-\s+.+$/gi, "")
+      .replace(/\s+Single\s+Strike\s*$/gi, "")
+      .replace(/\s+Rapid\s+Strike\s*$/gi, "")
+      .trim();
+
+    console.log(`  Cleaned: "${cleanName}"`);
+
+    const searches = [cleanName, cleanName.split(" ").slice(0, 2).join(" "), cleanName.split(" ")[0]];
+
+    // Try PokéTCG API
+    for (const searchName of searches) {
+      if (!searchName) continue;
+
+      try {
+        let url = `https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(searchName)}"`;
+        let response = await fetch(url);
+        let data = await response.json();
+
+        if (data.data?.length > 0 && data.data[0].images?.small) {
+          console.log(`  ✓ Found in PokéTCG`);
+          return data.data[0].images.small;
+        }
+
+        url = `https://api.pokemontcg.io/v2/cards?q=name:*${encodeURIComponent(searchName)}*`;
+        response = await fetch(url);
+        data = await response.json();
+
+        if (data.data?.length > 0 && data.data[0].images?.small) {
+          console.log(`  ✓ Found in PokéTCG (fuzzy)`);
+          return data.data[0].images.small;
+        }
+      } catch (error) {
+        // Continue to next source
+      }
+    }
+
+    // Try Scryfall for Magic cards
+    try {
+      const url = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(`"${cleanName}"`)}`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.data?.length > 0 && data.data[0].image_uris?.normal) {
+        console.log(`  ✓ Found in Scryfall`);
+        return data.data[0].image_uris.normal;
+      }
+    } catch (error) {
+      // Continue
+    }
+
+    // Try YGOProDeck for Yu-Gi-Oh
+    try {
+      const url = `https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(cleanName)}`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.data?.length > 0 && data.data[0].card_images?.[0]?.image_url) {
+        console.log(`  ✓ Found in YGOProDeck`);
+        return data.data[0].card_images[0].image_url;
+      }
+    } catch (error) {
+      // Continue
+    }
+
+    console.log(`  ✗ Not found\n`);
+    return null;
+  } catch (error) {
+    console.error("Search error:", error);
+    return null;
+  }
 }
 
 export function CollectionManager({ sportFilter, folderId }: CollectionManagerProps) {
@@ -24,6 +110,7 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
   const [sortBy, setSortBy] = useState<"name" | "value" | "date">("name");
   const [filterSport, setFilterSport] = useState<string>("All");
   const [searchTerm, setSearchTerm] = useState("");
+  const [updatingImages, setUpdatingImages] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -65,6 +152,30 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
       alert("Card added to folder");
     } catch (err: any) {
       alert("Failed to add card to folder: " + err.message);
+    }
+  };
+
+  const handleUpdateImage = async (card: Card) => {
+    setUpdatingImages(prev => new Set(prev).add(card.id));
+    
+    try {
+      const imageUrl = await searchMultipleSources(card.name);
+      
+      if (imageUrl) {
+        await updateCard(card.id, { imageUrl });
+        alert(`✓ Image found and updated for "${card.name}"`);
+      } else {
+        alert(`✗ No image found for "${card.name}". Try the CSV upload or add manually.`);
+      }
+    } catch (error) {
+      console.error("Error updating image:", error);
+      alert("Failed to update image");
+    } finally {
+      setUpdatingImages(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(card.id);
+        return newSet;
+      });
     }
   };
 
@@ -262,7 +373,27 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
                     <td>{card.condition}</td>
                     <td style={{ color: "#ff7a47", fontWeight: "bold" }}>${card.value.toLocaleString()}</td>
                     <td>
-                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                        {resolveCardImageUrl(card) === "/placeholder-card.svg" && (
+                          <button
+                            onClick={() => handleUpdateImage(card)}
+                            disabled={updatingImages.has(card.id)}
+                            className="action-btn"
+                            title="Search for image online"
+                            style={{
+                              background: updatingImages.has(card.id) 
+                                ? "rgba(100,100,100,0.3)" 
+                                : "rgba(100, 200, 255, 0.2)",
+                              border: "1px solid rgba(100, 200, 255, 0.4)",
+                              color: updatingImages.has(card.id) ? "#999" : "#10b3f0",
+                              cursor: updatingImages.has(card.id) ? "not-allowed" : "pointer",
+                              padding: "4px 8px",
+                              fontSize: "0.75rem",
+                            }}
+                          >
+                            {updatingImages.has(card.id) ? "🔄" : "🖼️ Find Image"}
+                          </button>
+                        )}
                         <select
                           defaultValue=""
                           onChange={async (e) => {
