@@ -9,6 +9,8 @@ import styles from "../../admin.module.css";
 
 async function searchPokemonTCG(cardName: string): Promise<string | null> {
   try {
+    console.log(`\n🔍 Searching for: "${cardName}"`);
+
     // Clean the card name by removing common suffixes and keywords
     let cleanName = cardName
       .replace(/\bPokémon\s+Card\b/gi, "")
@@ -23,8 +25,7 @@ async function searchPokemonTCG(cardName: string): Promise<string | null> {
       .replace(/\s+Rapid\s+Strike\s*$/gi, "")
       .trim();
 
-    // If we have a special form prefix (Hisuian, Alolan, Galarian, etc.), keep it
-    const formPrefixes = ["Hisuian", "Alolan", "Galarian", "Gigantamax", "Dynamax"];
+    console.log(`  Cleaned to: "${cleanName}"`);
     
     // Try searches in order of specificity
     const searches = [
@@ -36,36 +37,48 @@ async function searchPokemonTCG(cardName: string): Promise<string | null> {
     for (const searchName of searches) {
       if (!searchName) continue;
 
+      console.log(`  Trying: "${searchName}"`);
+
       // Try exact match first
-      let response = await fetch(
-        `https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(searchName)}"`
-      );
+      let url = `https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(searchName)}"`;
+      console.log(`    Exact query: ${url}`);
+      let response = await fetch(url);
       let data = await response.json();
+
+      console.log(`    Got ${data.data?.length || 0} results`);
 
       if (data.data && data.data.length > 0) {
         const card = data.data[0];
+        console.log(`      Found: "${card.name}"`);
         if (card.images?.small) {
-          console.log(`✓ Exact match for "${searchName}"`);
+          console.log(`      ✓ HAS IMAGE`);
           return card.images.small;
+        } else {
+          console.log(`      No image in card data`);
         }
       }
 
       // Try contains match
-      response = await fetch(
-        `https://api.pokemontcg.io/v2/cards?q=name:*${encodeURIComponent(searchName)}*`
-      );
+      url = `https://api.pokemontcg.io/v2/cards?q=name:*${encodeURIComponent(searchName)}*`;
+      console.log(`    Fuzzy query: ${url}`);
+      response = await fetch(url);
       data = await response.json();
+
+      console.log(`    Got ${data.data?.length || 0} results`);
 
       if (data.data && data.data.length > 0) {
         const card = data.data[0];
+        console.log(`      Found: "${card.name}"`);
         if (card.images?.small) {
-          console.log(`✓ Fuzzy match for "${searchName}"`);
+          console.log(`      ✓ HAS IMAGE`);
           return card.images.small;
+        } else {
+          console.log(`      No image in card data`);
         }
       }
     }
 
-    console.log(`✗ No match found for "${cardName}" (cleaned: "${cleanName}")`);
+    console.log(`  ✗ NO MATCHES for any variation\n`);
     return null;
   } catch (error) {
     console.error("Error searching PokéTCG:", error);

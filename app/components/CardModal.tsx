@@ -14,6 +14,8 @@ interface CardModalProps {
 
 async function searchPokemonTCG(cardName: string): Promise<string | null> {
   try {
+    console.log(`\n🔍 Searching PokéTCG for: "${cardName}"`);
+
     // Clean the card name by removing common suffixes and keywords
     let cleanName = cardName
       .replace(/\bPokémon\s+Card\b/gi, "")
@@ -28,6 +30,8 @@ async function searchPokemonTCG(cardName: string): Promise<string | null> {
       .replace(/\s+Rapid\s+Strike\s*$/gi, "")
       .trim();
 
+    console.log(`  Cleaned to: "${cleanName}"`);
+
     // Try searches in order of specificity
     const searches = [
       cleanName, // Full cleaned name
@@ -38,33 +42,42 @@ async function searchPokemonTCG(cardName: string): Promise<string | null> {
     for (const searchName of searches) {
       if (!searchName) continue;
 
+      console.log(`  Trying: "${searchName}"`);
+
       // Try exact match first
-      let response = await fetch(
-        `https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(searchName)}"`
-      );
+      let url = `https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(searchName)}"`;
+      let response = await fetch(url);
       let data = await response.json();
+
+      console.log(`    Exact: ${data.data?.length || 0} results`);
 
       if (data.data && data.data.length > 0) {
         const card = data.data[0];
+        console.log(`      Found: "${card.name}"`);
         if (card.images?.small) {
+          console.log(`      ✓ Image found!`);
           return card.images.small;
         }
       }
 
       // Try contains match
-      response = await fetch(
-        `https://api.pokemontcg.io/v2/cards?q=name:*${encodeURIComponent(searchName)}*`
-      );
+      url = `https://api.pokemontcg.io/v2/cards?q=name:*${encodeURIComponent(searchName)}*`;
+      response = await fetch(url);
       data = await response.json();
+
+      console.log(`    Fuzzy: ${data.data?.length || 0} results`);
 
       if (data.data && data.data.length > 0) {
         const card = data.data[0];
+        console.log(`      Found: "${card.name}"`);
         if (card.images?.small) {
+          console.log(`      ✓ Image found!`);
           return card.images.small;
         }
       }
     }
 
+    console.log(`  ✗ No match for any variation\n`);
     return null;
   } catch (error) {
     console.error("Error searching PokéTCG:", error);
