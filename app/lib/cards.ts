@@ -146,27 +146,40 @@ async function resolveStorageImageUrl(value?: string): Promise<string | null> {
 }
 
 async function normalizeCardImage(card: Card): Promise<Card> {
-  const imageCandidates = [
-    card.imageUrl,
-    card.photoUrl,
-    card.frontImageUrl,
-    card.thumbnailUrl,
-    card.cardImage,
-    card.image,
-    card.imagePath,
-  ];
+  try {
+    const imageCandidates = [
+      card.imageUrl,
+      card.photoUrl,
+      card.frontImageUrl,
+      card.thumbnailUrl,
+      card.cardImage,
+      card.image,
+      card.imagePath,
+    ];
 
-  for (const candidate of imageCandidates) {
-    const resolved = await resolveStorageImageUrl(candidate);
-    if (resolved) {
-      return {
-        ...card,
-        imageUrl: resolved,
-      };
+    for (const candidate of imageCandidates) {
+      try {
+        const resolved = await Promise.race([
+          resolveStorageImageUrl(candidate),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)) // 5 sec timeout
+        ]);
+        if (resolved) {
+          return {
+            ...card,
+            imageUrl: resolved,
+          };
+        }
+      } catch (err) {
+        // Continue to next candidate
+        continue;
+      }
     }
-  }
 
-  return card;
+    return card;
+  } catch (err) {
+    console.error("[normalizeCardImage] Error normalizing card:", card.id, err);
+    return card;
+  }
 }
 
 export function useUserCards() {
@@ -184,15 +197,34 @@ export function useUserCards() {
     const q = query(collection(db, "cards"), where("userId", "==", user.uid));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       void (async () => {
-        const rawCards = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        } as Card));
+        try {
+          const rawCards = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          } as Card));
 
-        const normalizedCards = await Promise.all(rawCards.map((card) => normalizeCardImage(card)));
-        setCards(normalizedCards);
-        setLoading(false);
+          console.log("[useUserCards] Loaded", rawCards.length, "cards from Firestore");
+          
+          const normalizedCards = await Promise.allSettled(
+            rawCards.map((card) => normalizeCardImage(card))
+          );
+          
+          const successfulCards = normalizedCards
+            .filter((result) => result.status === "fulfilled")
+            .map((result) => (result as PromiseFulfilledResult<Card>).value);
+          
+          console.log("[useUserCards] Normalized", successfulCards.length, "cards (failed:", normalizedCards.length - successfulCards.length, ")");
+          setCards(successfulCards);
+          setLoading(false);
+        } catch (error) {
+          console.error("[useUserCards] Error loading cards:", error);
+          setCards([]);
+          setLoading(false);
+        }
       })();
+    }, (error) => {
+      console.error("[useUserCards] Snapshot error:", error);
+      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -310,19 +342,32 @@ export async function removeCardFromFolder(cardId: string, folderId: string): Pr
 export async function getCardsInFolder(folderId: string, userId: string): Promise<Card[]> {
   if (!folderId || !userId) return [];
 
-  const cardsQuery = query(
-    collection(db, "cards"),
-    where("userId", "==", userId),
-    where("folderIds", "array-contains", folderId)
-  );
-  const snapshot = await getDocs(cardsQuery);
+  try {
+    const cardsQuery = query(
+      collection(db, "cards"),
+      where("userId", "==", userId),
+      where("folderIds", "array-contains", folderId)
+    );
+    const snapshot = await getDocs(cardsQuery);
 
-  const cards = snapshot.docs.map((cardDoc) => ({
-    id: cardDoc.id,
-    ...cardDoc.data(),
-  } as Card));
+    const cards = snapshot.docs.map((cardDoc) => ({
+      id: cardDoc.id,
+      ...cardDoc.data(),
+    } as Card));
 
-  return Promise.all(cards.map((card) => normalizeCardImage(card)));
+    console.log("[getCardsInFolder] Loaded", cards.length, "cards for folder", folderId);
+
+    const normalizedCards = await Promise.allSettled(
+      cards.map((card) => normalizeCardImage(card))
+    );
+
+    return normalizedCards
+      .filter((result) => result.status === "fulfilled")
+      .map((result) => (result as PromiseFulfilledResult<Card>).value);
+  } catch (error) {
+    console.error("[getCardsInFolder] Error loading cards:", error);
+    return [];
+  }
 }
 
 export function useUserFolders() {
