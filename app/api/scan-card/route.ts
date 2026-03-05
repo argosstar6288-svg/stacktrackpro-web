@@ -117,11 +117,20 @@ export async function POST(request: NextRequest) {
     // Check for OpenAI API key
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
+      console.error("[AI Scan] OpenAI API key not found in environment variables");
+      console.error("[AI Scan] Available env keys:", Object.keys(process.env).filter(k => k.includes('OPENAI') || k.includes('API')));
       return NextResponse.json(
-        { error: "OpenAI API key not configured" },
+        { 
+          error: "OpenAI API key not configured",
+          message: "The server is not properly configured for AI scanning. Please contact support.",
+          debug: "OPENAI_API_KEY is missing from environment variables" 
+        },
         { status: 500 }
       );
     }
+
+    // Log that we found the API key (but not the value itself for security)
+    console.log("[AI Scan] OpenAI API key found, length:", apiKey.length);
 
     const callVision = async (detail: "high" | "low") => {
       return fetch("https://api.openai.com/v1/chat/completions", {
@@ -238,25 +247,51 @@ CONFIDENCE GUIDE:
         const fallbackError = await response.json();
         console.error("OpenAI API error (low detail):", fallbackError);
 
+        // Provide detailed error feedback
+        let userMessage = "Card scanning failed. Please try again.";
+        let debugInfo = "";
+
         if (isProviderQuotaError(fallbackError)) {
+          userMessage = "Card scanning is temporarily unavailable due to API billing/quota limits. Please try again later or add cards manually.";
           return NextResponse.json(
             {
               error: "AI scanning is temporarily unavailable",
-              message:
-                "Card scanning is temporarily unavailable due to API billing/quota limits. Please try again later or add cards manually.",
+              message: userMessage,
               providerQuotaExceeded: true,
             },
             { status: 503 }
           );
         }
 
+        // Check for authentication errors
+        if (fallbackError?.error?.type === "invalid_request_error" && 
+            fallbackError?.error?.message?.includes("API key")) {
+          userMessage = "The OpenAI API key appears to be invalid or expired.";
+          debugInfo = "Invalid OpenAI API key";
+        } else if (fallbackError?.error?.type === "invalid_api_key") {
+          userMessage = "The OpenAI API key appears to be invalid.";
+          debugInfo = "Invalid API key";
+        } else if (fallbackError?.error?.type === "rate_limit_error") {
+          userMessage = "Too many requests. Please wait a moment and try again.";
+          debugInfo = "Rate limited by OpenAI";
+        } else if (fallbackError?.error?.message?.includes("billing")) {
+          userMessage = "OpenAI account has billing issues. Please check the OpenAI dashboard.";
+          debugInfo = "Billing issue with OpenAI account";
+        }
+
         const message =
+          userMessage ||
           fallbackError?.error?.message ||
           fallbackError?.error?.type ||
-          fallbackError?.error ||
           "Failed to analyze image";
+
+        console.error(`[AI Scan] Error: ${debugInfo || message}`);
+
         return NextResponse.json(
-          { error: message },
+          { 
+            error: message,
+            type: fallbackError?.error?.type 
+          },
           { status: 500 }
         );
       }
