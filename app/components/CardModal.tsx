@@ -14,16 +14,57 @@ interface CardModalProps {
 
 async function searchPokemonTCG(cardName: string): Promise<string | null> {
   try {
-    const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(cardName)}"`);
-    const data = await response.json();
-    
-    if (data.data && data.data.length > 0) {
-      const card = data.data[0];
-      // PokéTCG API provides image URLs
-      if (card.images?.small) {
-        return card.images.small;
+    // Clean the card name by removing common suffixes and keywords
+    let cleanName = cardName
+      .replace(/\bPokémon\s+Card\b/gi, "")
+      .replace(/\bPokemon\s+Card\b/gi, "")
+      .replace(/\bPokemon\s+GO\s+Card\b/gi, "")
+      .replace(/\s+V\s*$/gi, "") // " V" at end
+      .replace(/\s+EX\s*$/gi, "") // " EX" at end
+      .replace(/\s+VMAX\s*$/gi, "") // " VMAX" at end
+      .replace(/\s+VSTAR\s*$/gi, "") // " VSTAR" at end
+      .replace(/\s+-\s+.+$/gi, "") // Remove " - Something" patterns
+      .replace(/\s+Single\s+Strike\s*$/gi, "")
+      .replace(/\s+Rapid\s+Strike\s*$/gi, "")
+      .trim();
+
+    // Try searches in order of specificity
+    const searches = [
+      cleanName, // Full cleaned name
+      cleanName.split(" ").slice(0, 2).join(" "), // First two words
+      cleanName.split(" ")[0], // Just first word
+    ];
+
+    for (const searchName of searches) {
+      if (!searchName) continue;
+
+      // Try exact match first
+      let response = await fetch(
+        `https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(searchName)}"`
+      );
+      let data = await response.json();
+
+      if (data.data && data.data.length > 0) {
+        const card = data.data[0];
+        if (card.images?.small) {
+          return card.images.small;
+        }
+      }
+
+      // Try contains match
+      response = await fetch(
+        `https://api.pokemontcg.io/v2/cards?q=name:*${encodeURIComponent(searchName)}*`
+      );
+      data = await response.json();
+
+      if (data.data && data.data.length > 0) {
+        const card = data.data[0];
+        if (card.images?.small) {
+          return card.images.small;
+        }
       }
     }
+
     return null;
   } catch (error) {
     console.error("Error searching PokéTCG:", error);
