@@ -98,20 +98,17 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
 
     const selected = imageCandidates.find((candidate) => isRenderableImageUrl(candidate));
 
-    if (selected && selected !== "/placeholder-card.svg") {
-      console.log(`[CollectionManager] ${card.name}:`, {
-        selected,
-        allFields: {
-          imageUrl: card.imageUrl,
-          photoUrl: card.photoUrl,
-          frontImageUrl: card.frontImageUrl,
-          thumbnailUrl: card.thumbnailUrl,
-          cardImage: (card as any).cardImage,
-          image: (card as any).image,
-          imagePath: (card as any).imagePath,
-        }
-      });
-    }
+    // Always log so we can see what fields are populated
+    console.log(`[CollectionManager] ${card.name} - Image fields:`, {
+      imageUrl: card.imageUrl || "(empty)",
+      photoUrl: card.photoUrl || "(empty)",
+      frontImageUrl: card.frontImageUrl || "(empty)",
+      thumbnailUrl: card.thumbnailUrl || "(empty)",
+      cardImage: (card as any).cardImage || "(empty)",
+      image: (card as any).image || "(empty)",
+      imagePath: (card as any).imagePath || "(empty)",
+      selected: selected || "(all empty - using placeholder)"
+    });
 
     return selected || "/placeholder-card.svg";
   };

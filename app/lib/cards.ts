@@ -157,6 +157,16 @@ async function normalizeCardImage(card: Card): Promise<Card> {
       card.imagePath,
     ];
 
+    console.log(`[normalizeCardImage] ${card.name} - RAW fields BEFORE normalization:`, {
+      imageUrl: card.imageUrl || "(empty)",
+      photoUrl: card.photoUrl || "(empty)",
+      frontImageUrl: card.frontImageUrl || "(empty)",
+      thumbnailUrl: card.thumbnailUrl || "(empty)",
+      cardImage: card.cardImage || "(empty)",
+      image: card.image || "(empty)",
+      imagePath: card.imagePath || "(empty)",
+    });
+
     for (const candidate of imageCandidates) {
       try {
         const resolved = await Promise.race([
@@ -164,6 +174,7 @@ async function normalizeCardImage(card: Card): Promise<Card> {
           new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)) // 5 sec timeout
         ]);
         if (resolved) {
+          console.log(`[normalizeCardImage] ${card.name} - RESOLVED to:`, resolved);
           return {
             ...card,
             imageUrl: resolved,
@@ -175,6 +186,7 @@ async function normalizeCardImage(card: Card): Promise<Card> {
       }
     }
 
+    console.log(`[normalizeCardImage] ${card.name} - Could not resolve any image URL`);
     return card;
   } catch (err) {
     console.error("[normalizeCardImage] Error normalizing card:", card.id, err);
