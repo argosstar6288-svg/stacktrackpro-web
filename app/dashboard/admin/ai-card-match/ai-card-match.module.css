@@ -1,0 +1,383 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, sans-serif;
+}
+
+.header {
+  margin-bottom: 2rem;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 1.5rem;
+}
+
+.header h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+  color: #1a1a1a;
+}
+
+.header p {
+  margin: 0;
+  color: #666;
+}
+
+.loginPrompt {
+  background: #ffe3e3;
+  border: 1px solid #ffa8a8;
+  border-radius: 6px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.loginPrompt p {
+  margin: 0 0 1rem 0;
+  color: #c92a2a;
+  font-size: 1rem;
+}
+
+.loginPrompt button {
+  background: #0066cc;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.loginPrompt button:hover {
+  background: #0052a3;
+}
+
+.section {
+  background: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.section h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.3rem;
+  color: #1a1a1a;
+}
+
+.subtitle {
+  margin: 0 0 1rem 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.formGroup label {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.formGroup input {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+
+.formGroup input:focus {
+  outline: none;
+  border-color: #0066cc;
+  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+}
+
+.formGroup input:disabled {
+  background: #f0f0f0;
+  cursor: not-allowed;
+}
+
+.confidenceInput {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.confidenceInput input {
+  flex: 1;
+  height: 6px;
+}
+
+.confidenceInput span {
+  min-width: 40px;
+  text-align: right;
+  font-weight: 500;
+  color: #0066cc;
+}
+
+.buttonPrimary,
+.buttonSuccess {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.buttonPrimary {
+  background: #0066cc;
+  color: white;
+}
+
+.buttonPrimary:hover:not(:disabled) {
+  background: #0052a3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+}
+
+.buttonSuccess {
+  background: #28a745;
+  color: white;
+  margin-top: 1rem;
+}
+
+.buttonSuccess:hover:not(:disabled) {
+  background: #218838;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.buttonPrimary:disabled,
+.buttonSuccess:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.bestMatch {
+  background: white;
+  border: 2px solid #28a745;
+  border-radius: 6px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.matchHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 0.75rem;
+}
+
+.matchHeader h3 {
+  margin: 0;
+  color: #1a1a1a;
+}
+
+.score {
+  background: #d4edda;
+  color: #155724;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.matchDetails {
+  margin-bottom: 1rem;
+}
+
+.cardName {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+}
+
+.cardMeta {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.matchReason {
+  color: #666;
+  font-size: 0.85rem;
+  padding: 0.75rem;
+  background: #f0f7ff;
+  border-left: 3px solid #0066cc;
+  margin-bottom: 1rem;
+  border-radius: 2px;
+}
+
+.cardImage {
+  max-width: 200px;
+  max-height: 280px;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.candidates {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.candidates h3 {
+  margin: 0 0 1rem 0;
+  color: #1a1a1a;
+}
+
+.candidatesList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.candidateCard {
+  background: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.candidateCard:hover {
+  border-color: #0066cc;
+  box-shadow: 0 2px 8px rgba(0, 102, 204, 0.2);
+}
+
+.candidateName {
+  font-weight: 500;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+  word-break: break-word;
+}
+
+.candidateScore {
+  color: #0066cc;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.noMatch {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 4px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.noMatch p {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #856404;
+}
+
+.noMatch .subtitle {
+  color: #856404;
+  margin-top: 0.5rem;
+}
+
+.savedList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.savedItem {
+  background: #d4edda;
+  color: #155724;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  border-left: 3px solid #28a745;
+}
+
+.info {
+  background: #e3f2fd;
+  border: 1px solid #bbdefb;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+}
+
+.info h3 {
+  margin: 1rem 0 0.75rem 0;
+  color: #0052a3;
+}
+
+.info h3:first-child {
+  margin-top: 0;
+}
+
+.info ol,
+.info ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: #333;
+}
+
+.info li {
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+.info code {
+  background: rgba(0, 102, 204, 0.1);
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  font-family: monospace;
+  color: #0052a3;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .header h1 {
+    font-size: 1.5rem;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .matchHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .candidatesList {
+    grid-template-columns: 1fr;
+  }
+
+  .cardMeta {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+}

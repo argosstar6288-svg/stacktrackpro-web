@@ -131,6 +131,11 @@ export async function searchCardsByName(name: string, limit_count = 20) {
 }
 
 /**
+ * Export FirestoreCardDocument for use in other modules
+ */
+export type { FirestoreCardDocument };
+
+/**
  * Search for cards by partial name (text search)
  */
 export async function searchCardsPartial(

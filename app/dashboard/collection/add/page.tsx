@@ -119,6 +119,7 @@ export default function CollectionAddPage() {
         name: result.name || "",
         player: result.player || "",
         brand: result.brand || "",
+        cardNumber: result.cardNumber || "",
         year: result.year?.toString() || new Date().getFullYear().toString(),
         sport: result.sport || "Baseball",
         condition: result.condition || "Mint",

@@ -24,6 +24,7 @@ export interface Card {
   year?: number;
   player?: string;
   brand?: string;
+  cardNumber?: string;
   condition?: string;
   imageUrl?: string;
   photoUrl?: string;
