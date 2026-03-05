@@ -14,13 +14,7 @@ export default function DashboardPage() {
         <CollectionChart />
         <RecentActivity />
       </div>
-      <div className={styles.grid}>
-        <AuctionsPanel />
-        <FriendsFeed />
-      </div>
-      <div className={styles.grid}>
-        <CommunityChatFeed />
-      </div>
+      <CommunityChatFeed />
     </div>
   );
 }
