@@ -51,7 +51,24 @@ export default function CardItem({ card, badge, onClick, className }: CardItemPr
       card.imagePath,
     ];
 
-    return candidates.find((candidate) => isRenderableImageUrl(candidate)) || "/placeholder-card.svg";
+    const selectedUrl = candidates.find((candidate) => isRenderableImageUrl(candidate)) || "/placeholder-card.svg";
+    
+    // Debug logging
+    console.log(`[CardItem] ${cardName}:`, {
+      candidates: candidates.filter(c => c),
+      selected: selectedUrl,
+      allFields: {
+        imageUrl: card.imageUrl,
+        photoUrl: card.photoUrl,
+        frontImageUrl: card.frontImageUrl,
+        thumbnailUrl: card.thumbnailUrl,
+        cardImage: card.cardImage,
+        image: card.image,
+        imagePath: card.imagePath,
+      }
+    });
+
+    return selectedUrl;
   }, [card.cardImage, card.frontImageUrl, card.image, card.imagePath, card.imageUrl, card.photoUrl, card.thumbnailUrl]);
 
   const [currentImageUrl, setCurrentImageUrl] = useState(imageUrl);
@@ -61,9 +78,14 @@ export default function CardItem({ card, badge, onClick, className }: CardItemPr
   }, [imageUrl]);
 
   const handleImageError = () => {
+    console.log(`[CardItem] Image failed to load: ${currentImageUrl} (card: ${cardName})`);
     if (currentImageUrl !== "/placeholder-card.svg") {
       setCurrentImageUrl("/placeholder-card.svg");
     }
+  };
+
+  const handleImageLoad = () => {
+    console.log(`[CardItem] Image loaded successfully: ${currentImageUrl} (card: ${cardName})`);
   };
 
   return (
@@ -79,6 +101,7 @@ export default function CardItem({ card, badge, onClick, className }: CardItemPr
           alt={cardName}
           className={styles.cardImage}
           onError={handleImageError}
+          onLoad={handleImageLoad}
           loading="lazy"
           decoding="async"
         />
@@ -89,6 +112,7 @@ export default function CardItem({ card, badge, onClick, className }: CardItemPr
             alt={cardName}
             className={styles.previewImage}
             onError={handleImageError}
+            onLoad={handleImageLoad}
             loading="lazy"
             decoding="async"
           />
