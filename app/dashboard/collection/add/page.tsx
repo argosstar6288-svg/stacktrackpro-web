@@ -72,6 +72,36 @@ export default function CollectionAddPage() {
     }));
   };
 
+  const dataUrlToBlob = (dataUrl: string): Blob => {
+    const parts = dataUrl.split(",");
+    const mimeMatch = (parts[0] || "").match(/:(.*?);/);
+    const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
+    const bstr = atob(parts[1]);
+    const n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    for (let i = 0; i < n; i++) {
+      u8arr[i] = bstr.charCodeAt(i);
+    }
+    return new Blob([u8arr], { type: mime });
+  };
+
+  const uploadScannedImage = async (
+    userId: string,
+    cardName: string,
+    dataUrl: string
+  ): Promise<string> => {
+    try {
+      const blob = dataUrlToBlob(dataUrl);
+      const imagePath = `cards/${userId}/${Date.now()}-${sanitizeFilePart(cardName)}.jpg`;
+      const imageRef = ref(storage, imagePath);
+      await uploadBytes(imageRef, blob);
+      return getDownloadURL(imageRef);
+    } catch (err) {
+      console.error("Failed to upload scanned image:", err);
+      return PLACEHOLDER_IMAGE_URL;
+    }
+  };
+
   const handleScanComplete = async (results: any[]) => {
     setShowScanner(false);
     
@@ -97,12 +127,27 @@ export default function CollectionAddPage() {
       setCardImageFile(null);
       setError("");
     } else {
-      // Multiple cards - save them all directly
+      // Multiple cards - upload images to storage and save
       try {
         setSaving(true);
         setError(`Saving ${results.length} cards...`);
         
-        for (const result of results) {
+        for (let i = 0; i < results.length; i++) {
+          const result = results[i];
+          setError(`Saving card ${i + 1} of ${results.length}...`);
+          
+          let imageUrl = PLACEHOLDER_IMAGE_URL;
+          const scannedImage =
+            (typeof result?.imageUrl === "string" && result.imageUrl) ||
+            (typeof result?.photoUrl === "string" && result.photoUrl) ||
+            "";
+          
+          if (scannedImage && scannedImage.startsWith("data:")) {
+            imageUrl = await uploadScannedImage(user.uid, result.name, scannedImage);
+          } else if (scannedImage) {
+            imageUrl = scannedImage;
+          }
+          
           await addCard(user.uid, {
             name: result.name,
             value: result.estimatedValue,
@@ -112,10 +157,7 @@ export default function CollectionAddPage() {
             year: result.year || new Date().getFullYear(),
             sport: result.sport as Card["sport"],
             condition: result.condition as Card["condition"],
-            imageUrl:
-              (typeof result?.imageUrl === "string" && result.imageUrl) ||
-              (typeof result?.photoUrl === "string" && result.photoUrl) ||
-              PLACEHOLDER_IMAGE_URL,
+            imageUrl,
           });
         }
         
