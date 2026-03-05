@@ -25,12 +25,12 @@ interface CardItemProps {
 
 export default function CardItem({ card, badge, onClick, className }: CardItemProps) {
   const cardName = card.name || card.cardName || "Untitled Card";
-  const imageUrl = card.imageUrl || card.photoUrl || card.frontImageUrl || card.thumbnailUrl || "/placeholder-card.svg";
-
-  // Debug: Log image URL to verify it's being passed correctly
-  if (typeof window !== 'undefined') {
-    console.log(`[CardItem] Card: ${cardName}, ImageURL:`, imageUrl);
-  }
+  const imageUrl =
+    card.frontImageUrl ||
+    card.photoUrl ||
+    card.imageUrl ||
+    card.thumbnailUrl ||
+    "/placeholder-card.svg";
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     // Fallback to placeholder if image fails to load
@@ -49,9 +49,9 @@ export default function CardItem({ card, badge, onClick, className }: CardItemPr
         <Image
           src={imageUrl}
           alt={cardName}
-          width={300}
-          height={420}
-          sizes="(max-width: 768px) 100vw, 400px"
+          width={560}
+          height={784}
+          sizes="(max-width: 768px) 70vw, (max-width: 1200px) 36vw, 420px"
           className={styles.cardImage}
           onError={handleImageError}
           unoptimized

@@ -18,17 +18,18 @@
   width: 100%;
   aspect-ratio: 5/7;
   overflow: visible;
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .cardImage {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  transition: transform 0.3s ease;
+  image-rendering: auto;
 }
 
 .cardItem:hover .cardImage {
-  transform: scale(1.05);
+  transform: none;
 }
 
 /* Hover Preview - Large image popup on hover */
@@ -37,8 +38,8 @@
   left: 100%;
   top: 0;
   margin-left: 12px;
-  width: 340px;
-  height: 480px;
+  width: 420px;
+  height: 600px;
   background: rgba(20, 20, 20, 0.95);
   border: 1px solid rgba(255, 215, 0, 0.3);
   border-radius: 12px;
@@ -105,6 +106,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }

@@ -156,8 +156,8 @@
 }
 
 .collection-card-thumb {
-  width: 96px;
-  height: 136px;
+  width: 120px;
+  height: 168px;
   object-fit: contain;
   border-radius: 8px;
   border: 1px solid #3a3a3a;
@@ -238,8 +238,8 @@
   }
 
   .collection-card-thumb {
-    width: 72px;
-    height: 102px;
+    width: 90px;
+    height: 126px;
   }
 
   .add-card-btn {
