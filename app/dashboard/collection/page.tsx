@@ -119,6 +119,13 @@ export default function CollectionPage() {
           </div>
           <button 
             className={styles.addButton}
+            onClick={() => router.push('/dashboard/admin/csv-image-upload')}
+            style={{ background: "rgba(150, 200, 100, 0.7)" }}
+          >
+            📋 CSV Upload
+          </button>
+          <button 
+            className={styles.addButton}
             onClick={() => router.push('/dashboard/admin/bulk-image-update')}
             style={{ background: "rgba(100, 200, 255, 0.7)" }}
           >
