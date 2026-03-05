@@ -102,6 +102,90 @@ async function searchBulbapedia(cleanName: string): Promise<string | null> {
   return null;
 }
 
+async function searchPokellector(cleanName: string): Promise<string | null> {
+  try {
+    console.log(`    [Pokellector] Searching for: "${cleanName}"`);
+    // Pokellector is a Pokémon card collection tracker with extensive database
+    const url = `https://www.pokellector.com/api/search?q=${encodeURIComponent(cleanName)}`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.results?.length > 0) {
+      const card = data.results[0];
+      if (card.imageUrl || card.image_url || card.imageSmall) {
+        console.log(`      ✓ Found in Pokellector`);
+        return card.imageUrl || card.image_url || card.imageSmall;
+      }
+    }
+  } catch (error) {
+    console.log(`    [Pokellector] No results`);
+  }
+  return null;
+}
+
+async function searchYGOProDeck(cleanName: string): Promise<string | null> {
+  try {
+    console.log(`    [YGOProDeck] Searching for: "${cleanName}"`);
+    // YGOProDeck has Yu-Gi-Oh and other TCG cards
+    const url = `https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(cleanName)}`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.data?.length > 0) {
+      const card = data.data[0];
+      if (card.card_images?.[0]?.image_url) {
+        console.log(`      ✓ Found in YGOProDeck`);
+        return card.card_images[0].image_url;
+      }
+    }
+  } catch (error) {
+    console.log(`    [YGOProDeck] No results`);
+  }
+  return null;
+}
+
+async function searchDeckbox(cleanName: string): Promise<string | null> {
+  try {
+    console.log(`    [Deckbox] Searching for: "${cleanName}"`);
+    // Deckbox.org has trading card database
+    const url = `https://deckbox.org/api/v2/cards/search?q=${encodeURIComponent(cleanName)}&limit=1`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.length > 0) {
+      const card = data[0];
+      if (card.image_url) {
+        console.log(`      ✓ Found in Deckbox`);
+        return card.image_url;
+      }
+    }
+  } catch (error) {
+    console.log(`    [Deckbox] No results`);
+  }
+  return null;
+}
+
+async function searchMagicGatherer(cleanName: string): Promise<string | null> {
+  try {
+    console.log(`    [Magic Gatherer] Searching for: "${cleanName}"`);
+    // Fallback for official Magic Gatherer database
+    const url = `https://api.scryfall.com/cards/search?q=name:"${encodeURIComponent(cleanName)}"`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.data?.length > 0) {
+      const card = data.data[0];
+      if (card.image_uris?.large) {
+        console.log(`      ✓ Found in Magic Gatherer`);
+        return card.image_uris.large;
+      }
+    }
+  } catch (error) {
+    console.log(`    [Magic Gatherer] No results`);
+  }
+  return null;
+}
+
 async function searchMultipleSources(cardName: string): Promise<string | null> {
   try {
     console.log(`\n🔍 Searching for: "${cardName}"`);
@@ -125,8 +209,12 @@ async function searchMultipleSources(cardName: string): Promise<string | null> {
     // Try sources in order
     const sources = [
       searchPokemonTCG,
-      searchSCRYFall,
+      searchPokellector,
       searchBulbapedia,
+      searchSCRYFall,
+      searchMagicGatherer,
+      searchYGOProDeck,
+      searchDeckbox,
     ];
 
     for (const source of sources) {
@@ -223,7 +311,7 @@ export default function BulkImageUpdatePage() {
       <h1 style={{ marginBottom: "1rem", color: "#10b3f0" }}>Bulk Image Update</h1>
 
       <div style={{ backgroundColor: "#3a2a2a", padding: "1rem", borderRadius: "8px", marginBottom: "2rem", borderLeft: "4px solid #ff7a47" }}>
-        <strong>ℹ️ Note:</strong> This tool searches multiple APIs: <strong>Pokémon TCG</strong>, <strong>Scryfall</strong> (Magic cards), and <strong>Bulbapedia</strong> (Pokémon wiki). For other card types or if automated search fails, use the CSV upload tool.
+        <strong>ℹ️ Multiple Data Sources:</strong> Searches across <strong>Pokémon TCG</strong>, <strong>Pokellector</strong>, <strong>Bulbapedia</strong>, <strong>Scryfall</strong>, <strong>Magic Gatherer</strong>, <strong>YGOProDeck</strong>, and <strong>Deckbox</strong>. Supports Pokémon cards, Magic, Yu-Gi-Oh, and more. Use CSV upload for manual image URLs.
       </div>
 
       <div style={{ backgroundColor: "#222", padding: "1.5rem", borderRadius: "8px", marginBottom: "2rem" }}>
