@@ -46,8 +46,12 @@ export function RefreshCollectionButton() {
     setError(null);
 
     try {
+      const idToken = await user.getIdToken();
       const response = await fetch(`/api/refresh-collection-values?userId=${user.uid}`, {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+        },
       });
 
       if (!response.ok) {
