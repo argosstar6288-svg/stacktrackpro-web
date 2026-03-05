@@ -17,7 +17,7 @@ interface CollectionManagerProps {
 // Multi-source image search function
 async function searchMultipleSources(cardName: string): Promise<string | null> {
   try {
-    console.log(`\n🔍 Searching for: "${cardName}"`);
+    console.log(`\n🔍 Searching for image: "${cardName}"`);
 
     // Clean name
     let cleanName = cardName
@@ -33,11 +33,12 @@ async function searchMultipleSources(cardName: string): Promise<string | null> {
       .replace(/\s+Rapid\s+Strike\s*$/gi, "")
       .trim();
 
-    console.log(`  Cleaned: "${cleanName}"`);
+    console.log(`  📝 Cleaned name: "${cleanName}"`);
 
     const searches = [cleanName, cleanName.split(" ").slice(0, 2).join(" "), cleanName.split(" ")[0]];
 
     // Try PokéTCG API
+    console.log(`  📍 Trying PokéTCG...`);
     for (const searchName of searches) {
       if (!searchName) continue;
 
@@ -47,7 +48,7 @@ async function searchMultipleSources(cardName: string): Promise<string | null> {
         let data = await response.json();
 
         if (data.data?.length > 0 && data.data[0].images?.small) {
-          console.log(`  ✓ Found in PokéTCG`);
+          console.log(`  ✅ Found on PokéTCG!`);
           return data.data[0].images.small;
         }
 
@@ -56,7 +57,7 @@ async function searchMultipleSources(cardName: string): Promise<string | null> {
         data = await response.json();
 
         if (data.data?.length > 0 && data.data[0].images?.small) {
-          console.log(`  ✓ Found in PokéTCG (fuzzy)`);
+          console.log(`  ✅ Found on PokéTCG (partial match)!`);
           return data.data[0].images.small;
         }
       } catch (error) {
@@ -65,13 +66,14 @@ async function searchMultipleSources(cardName: string): Promise<string | null> {
     }
 
     // Try Scryfall for Magic cards
+    console.log(`  📍 Trying Scryfall...`);
     try {
       const url = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(`"${cleanName}"`)}`;
       const response = await fetch(url);
       const data = await response.json();
 
       if (data.data?.length > 0 && data.data[0].image_uris?.normal) {
-        console.log(`  ✓ Found in Scryfall`);
+        console.log(`  ✅ Found on Scryfall!`);
         return data.data[0].image_uris.normal;
       }
     } catch (error) {
@@ -79,6 +81,7 @@ async function searchMultipleSources(cardName: string): Promise<string | null> {
     }
 
     // Try PriceCharting for sports cards
+    console.log(`  📍 Trying PriceCharting...`);
     try {
       const searchPatterns = [
         cleanName,
@@ -97,14 +100,14 @@ async function searchMultipleSources(cardName: string): Promise<string | null> {
           const data = await response.json();
           
           if (data.image_url || data.image || data.photo_url || data.thumbnail) {
-            console.log(`  ✓ Found in PriceCharting`);
+            console.log(`  ✅ Found on PriceCharting!`);
             return data.image_url || data.image || data.photo_url || data.thumbnail;
           }
           
           if (data.products?.length > 0) {
             const product = data.products[0];
             if (product.image_url || product.image || product.photo) {
-              console.log(`  ✓ Found in PriceCharting (products)`);
+              console.log(`  ✅ Found on PriceCharting!`);
               return product.image_url || product.image || product.photo;
             }
           }
@@ -117,20 +120,21 @@ async function searchMultipleSources(cardName: string): Promise<string | null> {
     }
 
     // Try YGOProDeck for Yu-Gi-Oh
+    console.log(`  📍 Trying YGOProDeck...`);
     try {
       const url = `https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(cleanName)}`;
       const response = await fetch(url);
       const data = await response.json();
 
       if (data.data?.length > 0 && data.data[0].card_images?.[0]?.image_url) {
-        console.log(`  ✓ Found in YGOProDeck`);
+        console.log(`  ✅ Found on YGOProDeck!`);
         return data.data[0].card_images[0].image_url;
       }
     } catch (error) {
       // Continue
     }
 
-    console.log(`  ✗ Not found\n`);
+    console.log(`  ❌ No image found - try CSV upload or manual entry\n`);
     return null;
   } catch (error) {
     console.error("Search error:", error);

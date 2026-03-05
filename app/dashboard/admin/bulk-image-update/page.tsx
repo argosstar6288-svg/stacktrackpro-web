@@ -14,7 +14,7 @@ async function searchPokemonTCG(cleanName: string): Promise<string | null> {
     for (const searchName of searches) {
       if (!searchName) continue;
 
-      console.log(`    [PokéTCG] Exact: "${searchName}"`);
+      console.log(`    📍 PokéTCG: trying exact match "${searchName}"`);
       let url = `https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(searchName)}"`;
       let response = await fetch(url);
       let data = await response.json();
@@ -22,12 +22,12 @@ async function searchPokemonTCG(cleanName: string): Promise<string | null> {
       if (data.data?.length > 0) {
         const card = data.data[0];
         if (card.images?.small) {
-          console.log(`      ✓ Found in PokéTCG`);
+          console.log(`      ✅ Success! Found "${card.name}" on PokéTCG`);
           return card.images.small;
         }
       }
 
-      console.log(`    [PokéTCG] Fuzzy: "${searchName}"`);
+      console.log(`    📍 PokéTCG: trying partial match "${searchName}"`);
       url = `https://api.pokemontcg.io/v2/cards?q=name:*${encodeURIComponent(searchName)}*`;
       response = await fetch(url);
       data = await response.json();
@@ -35,11 +35,12 @@ async function searchPokemonTCG(cleanName: string): Promise<string | null> {
       if (data.data?.length > 0) {
         const card = data.data[0];
         if (card.images?.small) {
-          console.log(`      ✓ Found in PokéTCG (fuzzy)`);
+          console.log(`      ✅ Success! Found "${card.name}" on PokéTCG (partial match)`);
           return card.images.small;
         }
       }
     }
+    console.log(`    ⏭️  PokéTCG: no matches, trying next source...`);
   } catch (error) {
     console.error("PokéTCG error:", error);
   }
@@ -60,8 +61,7 @@ async function searchCardKingdom(cleanName: string): Promise<string | null> {
 
 async function searchSCRYFall(cleanName: string): Promise<string | null> {
   try {
-    console.log(`    [Scryfall] Searching magic cards for: "${cleanName}"`);
-    // Try Scryfall for Magic: The Gathering cards
+    console.log(`    📍 Scryfall: searching Magic cards for "${cleanName}"`);
     const url = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(`"${cleanName}"` + " is:booster")}`;
     const response = await fetch(url);
     const data = await response.json();
@@ -69,21 +69,20 @@ async function searchSCRYFall(cleanName: string): Promise<string | null> {
     if (data.data?.length > 0) {
       const card = data.data[0];
       if (card.image_uris?.normal) {
-        console.log(`      ✓ Found in Scryfall`);
+        console.log(`      ✅ Success! Found "${card.name}" on Scryfall`);
         return card.image_uris.normal;
       }
     }
+    console.log(`    ⏭️  Scryfall: no matches found`);
   } catch (error) {
-    console.log(`    [Scryfall] No results or error`);
+    console.log(`    ⏭️  Scryfall: skipping (error)`);
   }
   return null;
 }
 
 async function searchBulbapedia(cleanName: string): Promise<string | null> {
   try {
-    console.log(`    [Bulbapedia] Searching for: "${cleanName}"`);
-    // Bulbapedia doesn't have a good API, but we can check if the card exists there
-    // This is a fallback when PokéTCG fails
+    console.log(`    📍 Bulbapedia: searching wiki for "${cleanName}"`);
     const url = `https://bulbapedia.bulbagarden.net/w/api.php?action=query&titles=${encodeURIComponent(cleanName)}&format=json&prop=pageimages&piprop=original`;
     const response = await fetch(url);
     const data = await response.json();
@@ -92,20 +91,20 @@ async function searchBulbapedia(cleanName: string): Promise<string | null> {
     if (pages) {
       const page = Object.values(pages)[0] as any;
       if (page.original?.source) {
-        console.log(`      ✓ Found image on Bulbapedia`);
+        console.log(`      ✅ Success! Found image on Bulbapedia`);
         return page.original.source;
       }
     }
+    console.log(`    ⏭️  Bulbapedia: no results found`);
   } catch (error) {
-    console.log(`    [Bulbapedia] No results`);
+    console.log(`    ⏭️  Bulbapedia: skipping (error)`);
   }
   return null;
 }
 
 async function searchPokellector(cleanName: string): Promise<string | null> {
   try {
-    console.log(`    [Pokellector] Searching for: "${cleanName}"`);
-    // Pokellector is a Pokémon card collection tracker with extensive database
+    console.log(`    📍 Pokellector: searching card database for "${cleanName}"`);
     const url = `https://www.pokellector.com/api/search?q=${encodeURIComponent(cleanName)}`;
     const response = await fetch(url);
     const data = await response.json();
@@ -113,20 +112,20 @@ async function searchPokellector(cleanName: string): Promise<string | null> {
     if (data.results?.length > 0) {
       const card = data.results[0];
       if (card.imageUrl || card.image_url || card.imageSmall) {
-        console.log(`      ✓ Found in Pokellector`);
+        console.log(`      ✅ Success! Found on Pokellector collection tracker`);
         return card.imageUrl || card.image_url || card.imageSmall;
       }
     }
+    console.log(`    ⏭️  Pokellector: no matches found`);
   } catch (error) {
-    console.log(`    [Pokellector] No results`);
+    console.log(`    ⏭️  Pokellector: skipping (error)`);
   }
   return null;
 }
 
 async function searchYGOProDeck(cleanName: string): Promise<string | null> {
   try {
-    console.log(`    [YGOProDeck] Searching for: "${cleanName}"`);
-    // YGOProDeck has Yu-Gi-Oh and other TCG cards
+    console.log(`    📍 YGOProDeck: searching Yu-Gi-Oh database for "${cleanName}"`);
     const url = `https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(cleanName)}`;
     const response = await fetch(url);
     const data = await response.json();
@@ -134,20 +133,20 @@ async function searchYGOProDeck(cleanName: string): Promise<string | null> {
     if (data.data?.length > 0) {
       const card = data.data[0];
       if (card.card_images?.[0]?.image_url) {
-        console.log(`      ✓ Found in YGOProDeck`);
+        console.log(`      ✅ Success! Found "${card.card_images[0].name}" on YGOProDeck`);
         return card.card_images[0].image_url;
       }
     }
+    console.log(`    ⏭️  YGOProDeck: no matches found`);
   } catch (error) {
-    console.log(`    [YGOProDeck] No results`);
+    console.log(`    ⏭️  YGOProDeck: skipping (error)`);
   }
   return null;
 }
 
 async function searchDeckbox(cleanName: string): Promise<string | null> {
   try {
-    console.log(`    [Deckbox] Searching for: "${cleanName}"`);
-    // Deckbox.org has trading card database
+    console.log(`    📍 Deckbox: searching universal card database for "${cleanName}"`);
     const url = `https://deckbox.org/api/v2/cards/search?q=${encodeURIComponent(cleanName)}&limit=1`;
     const response = await fetch(url);
     const data = await response.json();
@@ -155,20 +154,20 @@ async function searchDeckbox(cleanName: string): Promise<string | null> {
     if (data.length > 0) {
       const card = data[0];
       if (card.image_url) {
-        console.log(`      ✓ Found in Deckbox`);
+        console.log(`      ✅ Success! Found on Deckbox`);
         return card.image_url;
       }
     }
+    console.log(`    ⏭️  Deckbox: no matches found`);
   } catch (error) {
-    console.log(`    [Deckbox] No results`);
+    console.log(`    ⏭️  Deckbox: skipping (error)`);
   }
   return null;
 }
 
 async function searchMagicGatherer(cleanName: string): Promise<string | null> {
   try {
-    console.log(`    [Magic Gatherer] Searching for: "${cleanName}"`);
-    // Fallback for official Magic Gatherer database
+    console.log(`    📍 Magic Gatherer: searching official database for "${cleanName}"`);
     const url = `https://api.scryfall.com/cards/search?q=name:"${encodeURIComponent(cleanName)}"`;
     const response = await fetch(url);
     const data = await response.json();
@@ -176,72 +175,65 @@ async function searchMagicGatherer(cleanName: string): Promise<string | null> {
     if (data.data?.length > 0) {
       const card = data.data[0];
       if (card.image_uris?.large) {
-        console.log(`      ✓ Found in Magic Gatherer`);
+        console.log(`      ✅ Success! Found "${card.name}" on Magic Gatherer`);
         return card.image_uris.large;
       }
     }
+    console.log(`    ⏭️  Magic Gatherer: no results found`);
   } catch (error) {
-    console.log(`    [Magic Gatherer] No results`);
+    console.log(`    ⏭️  Magic Gatherer: skipping (error)`);
   }
   return null;
 }
 
 async function searchPriceCharting(cleanName: string): Promise<string | null> {
   try {
-    console.log(`    [PriceCharting] Searching for: "${cleanName}"`);
+    console.log(`    📍 PriceCharting: searching sports card database for "${cleanName}"`);
     
-    // PriceCharting search - try multiple patterns for sports cards
     const searchPatterns = [
       cleanName,
-      cleanName.replace(/\s+\d{4}$/, ""), // Remove year from end
-      cleanName.split(" ").slice(0, 3).join(" "), // First 3 words
+      cleanName.replace(/\s+\d{4}$/, ""),
+      cleanName.split(" ").slice(0, 3).join(" "),
     ];
 
     for (const pattern of searchPatterns) {
       try {
-        // Try direct product search endpoint
         const url = `https://www.pricecharting.com/api/product?t=${encodeURIComponent(pattern)}`;
         const response = await fetch(url, {
-          headers: {
-            'Accept': 'application/json',
-          }
+          headers: { 'Accept': 'application/json' }
         });
         
         if (!response.ok) continue;
-        
         const data = await response.json();
         
-        // Check various possible image field names
         if (data.image_url || data.image || data.photo_url || data.thumbnail) {
           const imageUrl = data.image_url || data.image || data.photo_url || data.thumbnail;
-          console.log(`      ✓ Found in PriceCharting`);
+          console.log(`      ✅ Success! Found on PriceCharting sports card market`);
           return imageUrl;
         }
         
-        // Check if data has products array
         if (data.products?.length > 0) {
           const product = data.products[0];
           if (product.image_url || product.image || product.photo) {
-            console.log(`      ✓ Found in PriceCharting (products)`);
+            console.log(`      ✅ Success! Found on PriceCharting sports card market`);
             return product.image_url || product.image || product.photo;
           }
         }
       } catch (err) {
-        // Try next pattern
         continue;
       }
     }
     
-    console.log(`    [PriceCharting] No results`);
+    console.log(`    ⏭️  PriceCharting: no matches found`);
   } catch (error) {
-    console.log(`    [PriceCharting] Error:`, error);
+    console.log(`    ⏭️  PriceCharting: skipping (error)`);
   }
   return null;
 }
 
 async function searchMultipleSources(cardName: string): Promise<string | null> {
   try {
-    console.log(`\n🔍 Searching for: "${cardName}"`);
+    console.log(`\n🔍 Searching for image: "${cardName}"`);
 
     // Clean name
     let cleanName = cardName
@@ -257,7 +249,8 @@ async function searchMultipleSources(cardName: string): Promise<string | null> {
       .replace(/\s+Rapid\s+Strike\s*$/gi, "")
       .trim();
 
-    console.log(`  Cleaned: "${cleanName}"`);
+    console.log(`  📝 Cleaned name: "${cleanName}"`);
+    console.log(`  🌐 Searching across 8 databases...`);
 
     // Try sources in order
     const sources = [
@@ -276,7 +269,7 @@ async function searchMultipleSources(cardName: string): Promise<string | null> {
       if (result) return result;
     }
 
-    console.log(`  ✗ Not found in any source\n`);
+    console.log(`  ❌ No image found in any database\n`);
     return null;
   } catch (error) {
     console.error("Search error:", error);
