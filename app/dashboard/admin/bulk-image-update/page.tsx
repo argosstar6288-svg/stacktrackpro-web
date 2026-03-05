@@ -9,8 +9,9 @@ import styles from "../../admin.module.css";
 
 async function searchPokemonTCG(cardName: string): Promise<string | null> {
   try {
-    const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(cardName)}"`);
-    const data = await response.json();
+    // First try: exact name match
+    let response = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(cardName)}"`);
+    let data = await response.json();
     
     if (data.data && data.data.length > 0) {
       const card = data.data[0];
@@ -18,6 +19,33 @@ async function searchPokemonTCG(cardName: string): Promise<string | null> {
         return card.images.small;
       }
     }
+
+    // Second try: partial name match (first word only)
+    const firstWord = cardName.split(" ")[0];
+    response = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:*${encodeURIComponent(firstWord)}*`);
+    data = await response.json();
+    
+    if (data.data && data.data.length > 0) {
+      const card = data.data[0];
+      if (card.images?.small) {
+        return card.images.small;
+      }
+    }
+
+    // Third try: remove special characters and try again
+    const cleanName = cardName.replace(/[^a-zA-Z0-9\s]/g, "").trim();
+    if (cleanName && cleanName !== cardName) {
+      response = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:*${encodeURIComponent(cleanName)}*`);
+      data = await response.json();
+      
+      if (data.data && data.data.length > 0) {
+        const card = data.data[0];
+        if (card.images?.small) {
+          return card.images.small;
+        }
+      }
+    }
+
     return null;
   } catch (error) {
     console.error("Error searching PokéTCG:", error);
@@ -68,10 +96,12 @@ export default function BulkImageUpdatePage() {
       try {
         const imageUrl = await searchPokemonTCG(card.name);
         if (imageUrl) {
+          console.log(`✓ Found: ${card.name}`);
           await updateCard(card.id, { imageUrl });
           updateResults.push({ name: card.name, updated: true, imageUrl });
           updated++;
         } else {
+          console.log(`✗ Not found: ${card.name} (Sport: ${card.sport}, Brand: ${card.brand})`);
           updateResults.push({ name: card.name, updated: false });
         }
       } catch (error) {
@@ -102,6 +132,10 @@ export default function BulkImageUpdatePage() {
   return (
     <div style={{ padding: "2rem", maxWidth: "900px", margin: "0 auto", color: "#fff" }}>
       <h1 style={{ marginBottom: "1rem", color: "#10b3f0" }}>Bulk Image Update</h1>
+
+      <div style={{ backgroundColor: "#3a2a2a", padding: "1rem", borderRadius: "8px", marginBottom: "2rem", borderLeft: "4px solid #ff7a47" }}>
+        <strong>ℹ️ Note:</strong> This tool searches the <strong>Pokémon TCG API</strong>. It will only find Pokémon cards. For sports cards (Baseball, Basketball, etc.) or other trading card games, you'll need to manually add image URLs or use a different data source.
+      </div>
 
       <div style={{ backgroundColor: "#222", padding: "1.5rem", borderRadius: "8px", marginBottom: "2rem" }}>
         <h2 style={{ fontSize: "1.2em", marginBottom: "1rem" }}>Card Status</h2>
@@ -180,29 +214,35 @@ export default function BulkImageUpdatePage() {
         <div style={{ backgroundColor: "#222", padding: "1.5rem", borderRadius: "8px" }}>
           <h2 style={{ fontSize: "1.2em", marginBottom: "1rem" }}>Results</h2>
           <div style={{ maxHeight: "400px", overflowY: "auto" }}>
-            {results.map((result, idx) => (
-              <div
-                key={idx}
-                style={{
-                  padding: "0.75rem",
-                  marginBottom: "0.5rem",
-                  backgroundColor: result.updated ? "#1a3a2a" : "#3a2a2a",
-                  borderLeft: `4px solid ${result.updated ? "#4ade80" : "#ff7a47"}`,
-                  borderRadius: "4px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <span>{result.name}</span>
-                <span style={{ color: result.updated ? "#4ade80" : "#ff7a47" }}>
-                  {result.updated ? "✓ Updated" : "✗ Not found"}
-                </span>
-              </div>
-            ))}
+            {results
+              .sort((a, b) => {
+                // Sort updated first
+                if (a.updated && !b.updated) return -1;
+                if (!a.updated && b.updated) return 1;
+                return 0;
+              })
+              .map((result, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    padding: "0.75rem",
+                    marginBottom: "0.5rem",
+                    backgroundColor: result.updated ? "#1a3a2a" : "#3a2a2a",
+                    borderLeft: `4px solid ${result.updated ? "#4ade80" : "#ff7a47"}`,
+                    borderRadius: "4px",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span>{result.name}</span>
+                    <span style={{ color: result.updated ? "#4ade80" : "#ff7a47" }}>
+                      {result.updated ? "✓ Found" : "✗ Not found"}
+                    </span>
+                  </div>
+                </div>
+              ))}
           </div>
           <div style={{ marginTop: "1rem", padding: "1rem", backgroundColor: "#1a1a1a", borderRadius: "6px" }}>
-            <strong>Summary:</strong> {results.filter((r) => r.updated).length} of {results.length} cards updated
+            <strong>Summary:</strong> {results.filter((r) => r.updated).length} of {results.length} cards updated ({Math.round((results.filter((r) => r.updated).length / results.length) * 100)}%)
           </div>
         </div>
       )}
