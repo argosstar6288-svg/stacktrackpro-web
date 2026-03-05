@@ -55,7 +55,6 @@ export async function POST(request: NextRequest) {
     console.log("[AI Scan] Request received - Processing card scan");
     console.log("[AI Scan] OpenAI API Key Status:", process.env.OPENAI_API_KEY ? "FOUND" : "NOT FOUND");
     console.log("[AI Scan] Key length:", process.env.OPENAI_API_KEY?.length || 0);
-    console.log("[AI Scan] Key starts with:", process.env.OPENAI_API_KEY?.substring(0, 25) + "..." || "KEY NOT SET");
 
     if (!image) {
       return NextResponse.json(
@@ -127,7 +126,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { 
           error: "OpenAI API key not configured",
-          message: "The server is not properly configured for AI scanning. Please contact support.",
+          message: `AI scanning is not configured for this environment (${process.env.VERCEL_ENV || process.env.NODE_ENV || "unknown"}). Add OPENAI_API_KEY and redeploy.`,
           debug: "OPENAI_API_KEY is missing from environment variables" 
         },
         { status: 500 }

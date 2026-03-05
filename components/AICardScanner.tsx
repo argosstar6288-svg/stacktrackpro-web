@@ -243,7 +243,12 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
             const message = normalizeErrorText(getScanErrorMessage(errorData));
             console.error(`Failed to scan card ${i + 1}:`, message);
 
-            if (errorData?.quotaExceeded || errorData?.providerQuotaExceeded) {
+            const isConfigurationError =
+              String(errorData?.error || "").toLowerCase().includes("api key not configured") ||
+              String(errorData?.debug || "").toLowerCase().includes("openai_api_key") ||
+              String(errorData?.message || "").toLowerCase().includes("not properly configured");
+
+            if (errorData?.quotaExceeded || errorData?.providerQuotaExceeded || isConfigurationError) {
               blockingError = message;
               break;
             }
