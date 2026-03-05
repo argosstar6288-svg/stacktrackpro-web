@@ -81,39 +81,60 @@
   grid-template-columns: 44px 1fr auto;
   gap: 12px;
   align-items: center;
-  padding: 12px 14px;
-  border-radius: 14px;
-  border: 2px solid #1E90FF;
-  background: #1E90FF;
-  color: inherit;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(145deg, rgba(30, 144, 255, 0.95), rgba(30, 144, 255, 0.85));
+  color: white;
   text-align: left;
   cursor: pointer;
-  transition: transform 0.2s ease, border 0.2s ease;
+  backdrop-filter: blur(20px);
+  box-shadow: 
+    0 4px 16px rgba(30, 144, 255, 0.2),
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .threadCard:nth-child(even) {
-  background: #FF8C00;
-  border-color: #FF8C00;
+  background: linear-gradient(145deg, rgba(255, 140, 0, 0.95), rgba(255, 140, 0, 0.85));
+  box-shadow: 
+    0 4px 16px rgba(255, 140, 0, 0.2),
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 .threadCard:hover {
-  transform: translateY(-2px);
-  border-color: #1E90FF;
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 
+    0 8px 24px rgba(30, 144, 255, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .threadCard:nth-child(even):hover {
-  border-color: #FF8C00;
+  box-shadow: 
+    0 8px 24px rgba(255, 140, 0, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .threadActive {
-  border-color: #1E90FF;
-  background: #1E90FF;
-  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.3);
+  background: linear-gradient(145deg, rgba(30, 144, 255, 1), rgba(30, 144, 255, 0.9));
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 
+    0 8px 24px rgba(30, 144, 255, 0.4),
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 .threadUnread {
-  background: #FF8C00;
-  border-color: #FF8C00;
+  background: linear-gradient(145deg, rgba(255, 140, 0, 1), rgba(255, 140, 0, 0.9));
+  box-shadow: 
+    0 4px 16px rgba(255, 140, 0, 0.3),
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .avatar {
@@ -518,24 +539,38 @@
 :global(.group-item) {
   display: flex;
   gap: 12px;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  padding: 14px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
   margin-bottom: 8px;
   cursor: pointer;
-  transition: all 0.2s;
+  backdrop-filter: blur(10px);
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.15),
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: left;
   width: 100%;
 }
 
 :global(.group-item:hover) {
-  background: rgba(255, 255, 255, 0.08);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.08));
+  transform: translateY(-2px);
+  box-shadow: 
+    0 6px 20px rgba(0, 0, 0, 0.2),
+    0 3px 10px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 :global(.group-item.active) {
-  background: rgba(30, 144, 255, 0.2);
-  border-color: #1E90FF;
+  background: linear-gradient(145deg, rgba(30, 144, 255, 0.3), rgba(30, 144, 255, 0.2));
+  border-color: rgba(30, 144, 255, 0.5);
+  box-shadow: 
+    0 6px 20px rgba(30, 144, 255, 0.3),
+    0 3px 10px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 :global(.group-icon) {
