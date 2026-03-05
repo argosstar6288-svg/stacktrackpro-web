@@ -16,6 +16,7 @@ import {
   PortfolioTimeSeries,
   CardValueHistory
 } from "../../lib/revenueMetrics";
+import { RefreshCollectionButton } from "@/components/RefreshCollectionButton";
 import styles from "./portfolio.module.css";
 import "../../signup/dashboard.css";
 import {
@@ -115,6 +116,9 @@ export default function PortfolioPage() {
         <div className="dash-content">
           {/* CENTER */}
           <div className="dash-center">
+            {/* REFRESH BUTTON */}
+            <RefreshCollectionButton />
+
             {/* KEY METRICS CARDS */}
             <div className={styles.metricsGrid}>
               <div className={styles.metricCard}>

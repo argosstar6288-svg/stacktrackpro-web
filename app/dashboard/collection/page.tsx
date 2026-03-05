@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { auth } from "../../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { CollectionManager } from "../../components/CollectionManager";
+import { RefreshCollectionButton } from "@/components/RefreshCollectionButton";
 import { useUserFolders, createFolder, deleteFolder, addCardToFolder, type Folder } from "@/lib/cards";
 import styles from "./collection.module.css";
 
@@ -92,6 +93,9 @@ export default function CollectionPage() {
           </button>
         </div>
       </div>
+
+      {/* REFRESH BUTTON */}
+      <RefreshCollectionButton />
 
       <div className={styles.layout}>
         {/* Sidebar with folders */}
