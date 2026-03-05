@@ -14,7 +14,125 @@ interface CollectionManagerProps {
   folderId?: string;
 }
 
-// Multi-source image search function
+// Data source search functions
+async function searchPriceCharting(cleanName: string): Promise<string | null> {
+  try {
+    console.log(`    📍 PriceCharting: searching sports card database for "${cleanName}"`);
+    
+    const searchPatterns = [
+      cleanName,
+      cleanName.replace(/\s+\d{4}$/, ""),
+      cleanName.split(" ").slice(0, 3).join(" "),
+    ];
+
+    for (const pattern of searchPatterns) {
+      try {
+        const url = `https://www.pricecharting.com/api/product?t=${encodeURIComponent(pattern)}`;
+        const response = await fetch(url, {
+          headers: { 'Accept': 'application/json' }
+        });
+        
+        if (!response.ok) continue;
+        const data = await response.json();
+        
+        if (data.image_url || data.image || data.photo_url || data.thumbnail) {
+          const imageUrl = data.image_url || data.image || data.photo_url || data.thumbnail;
+          console.log(`      ✅ Success! Found on PriceCharting`);
+          return imageUrl;
+        }
+        
+        if (data.products?.length > 0) {
+          const product = data.products[0];
+          if (product.image_url || product.image || product.photo) {
+            console.log(`      ✅ Success! Found on PriceCharting`);
+            return product.image_url || product.image || product.photo;
+          }
+        }
+      } catch (err) {
+        continue;
+      }
+    }
+    
+    console.log(`    ⏭️  PriceCharting: no matches found`);
+  } catch (error) {
+    console.log(`    ⏭️  PriceCharting: skipping (error)`);
+  }
+  return null;
+}
+
+async function searchTradingCardDatabase(cleanName: string): Promise<string | null> {
+  try {
+    console.log(`    📍 Trading Card Database: searching "${cleanName}"`);
+    
+    const searchPatterns = [
+      cleanName,
+      cleanName.split(" ").slice(0, 2).join(" "),
+      cleanName.split(" ")[0],
+    ];
+
+    for (const pattern of searchPatterns) {
+      try {
+        // Trading Card Database API endpoint
+        const url = `https://www.tcgdatabase.com/api/card/search?q=${encodeURIComponent(pattern)}&limit=1`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.cards?.length > 0) {
+          const card = data.cards[0];
+          if (card.image || card.image_url || card.imageUrl) {
+            console.log(`      ✅ Success! Found "${card.name}" on Trading Card Database`);
+            return card.image || card.image_url || card.imageUrl;
+          }
+        }
+      } catch (err) {
+        continue;
+      }
+    }
+    
+    console.log(`    ⏭️  Trading Card Database: no matches found`);
+  } catch (error) {
+    console.log(`    ⏭️  Trading Card Database: skipping (error)`);
+  }
+  return null;
+}
+
+async function searchTCGPlayer(cleanName: string): Promise<string | null> {
+  try {
+    console.log(`    📍 TCGPlayer: searching "${cleanName}"`);
+    
+    // TCGPlayer official API endpoint
+    const url = `https://api.tcgplayer.com/v1.32.0/search/products?q=${encodeURIComponent(cleanName)}&limit=1`;
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.results?.length > 0) {
+      const product = data.results[0];
+      
+      // Try to fetch product details for image
+      if (product.productId) {
+        try {
+          const detailUrl = `https://api.tcgplayer.com/v1.32.0/products/${product.productId}`;
+          const detailResponse = await fetch(detailUrl);
+          const detailData = await detailResponse.json();
+          
+          if (detailData.data?.image || detailData.data?.smallImage) {
+            console.log(`      ✅ Success! Found "${detailData.data.name}" on TCGPlayer`);
+            return detailData.data.image || detailData.data.smallImage;
+          }
+        } catch (err) {
+          // Continue with alternative image source if detail fetch fails
+        }
+      }
+    }
+    
+    console.log(`    ⏭️  TCGPlayer: no matches found`);
+  } catch (error) {
+    console.log(`    ⏭️  TCGPlayer: skipping (error)`);
+  }
+  return null;
+}
+
+// Multi-source image search function - consolidated to 3 primary sources
 async function searchMultipleSources(cardName: string, cardNumber?: string): Promise<string | null> {
   try {
     const searchQuery = cardNumber 
@@ -39,108 +157,21 @@ async function searchMultipleSources(cardName: string, cardNumber?: string): Pro
 
     console.log(`  📝 Cleaned name: "${cleanName}"`);
     if (cardNumber) console.log(`  🏷️  Card number: "${cardNumber}"`);
+    console.log(`  🌐 Searching across 3 primary databases...`);
 
+    // Try sources in order: PriceCharting, Trading Card Database, TCGPlayer
+    const sources = [
+      searchPriceCharting,
+      searchTradingCardDatabase,
+      searchTCGPlayer,
+    ];
 
-    const searches = [cleanName, cleanName.split(" ").slice(0, 2).join(" "), cleanName.split(" ")[0]];
-
-    // Try PokéTCG API
-    console.log(`  📍 Trying PokéTCG...`);
-    for (const searchName of searches) {
-      if (!searchName) continue;
-
-      try {
-        let url = `https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(searchName)}"`;
-        let response = await fetch(url);
-        let data = await response.json();
-
-        if (data.data?.length > 0 && data.data[0].images?.small) {
-          console.log(`  ✅ Found on PokéTCG!`);
-          return data.data[0].images.small;
-        }
-
-        url = `https://api.pokemontcg.io/v2/cards?q=name:*${encodeURIComponent(searchName)}*`;
-        response = await fetch(url);
-        data = await response.json();
-
-        if (data.data?.length > 0 && data.data[0].images?.small) {
-          console.log(`  ✅ Found on PokéTCG (partial match)!`);
-          return data.data[0].images.small;
-        }
-      } catch (error) {
-        // Continue to next source
-      }
+    for (const source of sources) {
+      const result = await source(cleanName);
+      if (result) return result;
     }
 
-    // Try Scryfall for Magic cards
-    console.log(`  📍 Trying Scryfall...`);
-    try {
-      const url = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(`"${cleanName}"`)}`;
-      const response = await fetch(url);
-      const data = await response.json();
-
-      if (data.data?.length > 0 && data.data[0].image_uris?.normal) {
-        console.log(`  ✅ Found on Scryfall!`);
-        return data.data[0].image_uris.normal;
-      }
-    } catch (error) {
-      // Continue
-    }
-
-    // Try PriceCharting for sports cards
-    console.log(`  📍 Trying PriceCharting...`);
-    try {
-      const searchPatterns = [
-        cleanName,
-        cleanName.replace(/\s+\d{4}$/, ""),
-        cleanName.split(" ").slice(0, 3).join(" "),
-      ];
-
-      for (const pattern of searchPatterns) {
-        try {
-          const url = `https://www.pricecharting.com/api/product?t=${encodeURIComponent(pattern)}`;
-          const response = await fetch(url, {
-            headers: { 'Accept': 'application/json' }
-          });
-          
-          if (!response.ok) continue;
-          const data = await response.json();
-          
-          if (data.image_url || data.image || data.photo_url || data.thumbnail) {
-            console.log(`  ✅ Found on PriceCharting!`);
-            return data.image_url || data.image || data.photo_url || data.thumbnail;
-          }
-          
-          if (data.products?.length > 0) {
-            const product = data.products[0];
-            if (product.image_url || product.image || product.photo) {
-              console.log(`  ✅ Found on PriceCharting!`);
-              return product.image_url || product.image || product.photo;
-            }
-          }
-        } catch (err) {
-          continue;
-        }
-      }
-    } catch (error) {
-      // Continue
-    }
-
-    // Try YGOProDeck for Yu-Gi-Oh
-    console.log(`  📍 Trying YGOProDeck...`);
-    try {
-      const url = `https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(cleanName)}`;
-      const response = await fetch(url);
-      const data = await response.json();
-
-      if (data.data?.length > 0 && data.data[0].card_images?.[0]?.image_url) {
-        console.log(`  ✅ Found on YGOProDeck!`);
-        return data.data[0].card_images[0].image_url;
-      }
-    } catch (error) {
-      // Continue
-    }
-
-    console.log(`  ❌ No image found - try CSV upload or manual entry\n`);
+    console.log(`  ❌ No image found in any database\n`);
     return null;
   } catch (error) {
     console.error("Search error:", error);

@@ -7,185 +7,6 @@ import { onAuthStateChanged } from "firebase/auth";
 import { useUserCards, updateCard, Card } from "@/lib/cards";
 import styles from "../../admin.module.css";
 
-async function searchPokemonTCG(cleanName: string): Promise<string | null> {
-  try {
-    const searches = [cleanName, cleanName.split(" ").slice(0, 2).join(" "), cleanName.split(" ")[0]];
-
-    for (const searchName of searches) {
-      if (!searchName) continue;
-
-      console.log(`    📍 PokéTCG: trying exact match "${searchName}"`);
-      let url = `https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(searchName)}"`;
-      let response = await fetch(url);
-      let data = await response.json();
-
-      if (data.data?.length > 0) {
-        const card = data.data[0];
-        if (card.images?.small) {
-          console.log(`      ✅ Success! Found "${card.name}" on PokéTCG`);
-          return card.images.small;
-        }
-      }
-
-      console.log(`    📍 PokéTCG: trying partial match "${searchName}"`);
-      url = `https://api.pokemontcg.io/v2/cards?q=name:*${encodeURIComponent(searchName)}*`;
-      response = await fetch(url);
-      data = await response.json();
-
-      if (data.data?.length > 0) {
-        const card = data.data[0];
-        if (card.images?.small) {
-          console.log(`      ✅ Success! Found "${card.name}" on PokéTCG (partial match)`);
-          return card.images.small;
-        }
-      }
-    }
-    console.log(`    ⏭️  PokéTCG: no matches, trying next source...`);
-  } catch (error) {
-    console.error("PokéTCG error:", error);
-  }
-  return null;
-}
-
-async function searchCardKingdom(cleanName: string): Promise<string | null> {
-  try {
-    console.log(`    [CardKingdom] Searching...`);
-    // CardKingdom doesn't have a public free API, but we can try a web-based approach
-    // For now, skip this source
-    return null;
-  } catch (error) {
-    console.error("CardKingdom error:", error);
-  }
-  return null;
-}
-
-async function searchSCRYFall(cleanName: string): Promise<string | null> {
-  try {
-    console.log(`    📍 Scryfall: searching Magic cards for "${cleanName}"`);
-    const url = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(`"${cleanName}"` + " is:booster")}`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (data.data?.length > 0) {
-      const card = data.data[0];
-      if (card.image_uris?.normal) {
-        console.log(`      ✅ Success! Found "${card.name}" on Scryfall`);
-        return card.image_uris.normal;
-      }
-    }
-    console.log(`    ⏭️  Scryfall: no matches found`);
-  } catch (error) {
-    console.log(`    ⏭️  Scryfall: skipping (error)`);
-  }
-  return null;
-}
-
-async function searchBulbapedia(cleanName: string): Promise<string | null> {
-  try {
-    console.log(`    📍 Bulbapedia: searching wiki for "${cleanName}"`);
-    const url = `https://bulbapedia.bulbagarden.net/w/api.php?action=query&titles=${encodeURIComponent(cleanName)}&format=json&prop=pageimages&piprop=original`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    const pages = data.query?.pages;
-    if (pages) {
-      const page = Object.values(pages)[0] as any;
-      if (page.original?.source) {
-        console.log(`      ✅ Success! Found image on Bulbapedia`);
-        return page.original.source;
-      }
-    }
-    console.log(`    ⏭️  Bulbapedia: no results found`);
-  } catch (error) {
-    console.log(`    ⏭️  Bulbapedia: skipping (error)`);
-  }
-  return null;
-}
-
-async function searchPokellector(cleanName: string): Promise<string | null> {
-  try {
-    console.log(`    📍 Pokellector: searching card database for "${cleanName}"`);
-    const url = `https://www.pokellector.com/api/search?q=${encodeURIComponent(cleanName)}`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (data.results?.length > 0) {
-      const card = data.results[0];
-      if (card.imageUrl || card.image_url || card.imageSmall) {
-        console.log(`      ✅ Success! Found on Pokellector collection tracker`);
-        return card.imageUrl || card.image_url || card.imageSmall;
-      }
-    }
-    console.log(`    ⏭️  Pokellector: no matches found`);
-  } catch (error) {
-    console.log(`    ⏭️  Pokellector: skipping (error)`);
-  }
-  return null;
-}
-
-async function searchYGOProDeck(cleanName: string): Promise<string | null> {
-  try {
-    console.log(`    📍 YGOProDeck: searching Yu-Gi-Oh database for "${cleanName}"`);
-    const url = `https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(cleanName)}`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (data.data?.length > 0) {
-      const card = data.data[0];
-      if (card.card_images?.[0]?.image_url) {
-        console.log(`      ✅ Success! Found "${card.card_images[0].name}" on YGOProDeck`);
-        return card.card_images[0].image_url;
-      }
-    }
-    console.log(`    ⏭️  YGOProDeck: no matches found`);
-  } catch (error) {
-    console.log(`    ⏭️  YGOProDeck: skipping (error)`);
-  }
-  return null;
-}
-
-async function searchDeckbox(cleanName: string): Promise<string | null> {
-  try {
-    console.log(`    📍 Deckbox: searching universal card database for "${cleanName}"`);
-    const url = `https://deckbox.org/api/v2/cards/search?q=${encodeURIComponent(cleanName)}&limit=1`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (data.length > 0) {
-      const card = data[0];
-      if (card.image_url) {
-        console.log(`      ✅ Success! Found on Deckbox`);
-        return card.image_url;
-      }
-    }
-    console.log(`    ⏭️  Deckbox: no matches found`);
-  } catch (error) {
-    console.log(`    ⏭️  Deckbox: skipping (error)`);
-  }
-  return null;
-}
-
-async function searchMagicGatherer(cleanName: string): Promise<string | null> {
-  try {
-    console.log(`    📍 Magic Gatherer: searching official database for "${cleanName}"`);
-    const url = `https://api.scryfall.com/cards/search?q=name:"${encodeURIComponent(cleanName)}"`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (data.data?.length > 0) {
-      const card = data.data[0];
-      if (card.image_uris?.large) {
-        console.log(`      ✅ Success! Found "${card.name}" on Magic Gatherer`);
-        return card.image_uris.large;
-      }
-    }
-    console.log(`    ⏭️  Magic Gatherer: no results found`);
-  } catch (error) {
-    console.log(`    ⏭️  Magic Gatherer: skipping (error)`);
-  }
-  return null;
-}
-
 async function searchPriceCharting(cleanName: string): Promise<string | null> {
   try {
     console.log(`    📍 PriceCharting: searching sports card database for "${cleanName}"`);
@@ -208,14 +29,14 @@ async function searchPriceCharting(cleanName: string): Promise<string | null> {
         
         if (data.image_url || data.image || data.photo_url || data.thumbnail) {
           const imageUrl = data.image_url || data.image || data.photo_url || data.thumbnail;
-          console.log(`      ✅ Success! Found on PriceCharting sports card market`);
+          console.log(`      ✅ Success! Found on PriceCharting`);
           return imageUrl;
         }
         
         if (data.products?.length > 0) {
           const product = data.products[0];
           if (product.image_url || product.image || product.photo) {
-            console.log(`      ✅ Success! Found on PriceCharting sports card market`);
+            console.log(`      ✅ Success! Found on PriceCharting`);
             return product.image_url || product.image || product.photo;
           }
         }
@@ -227,6 +48,78 @@ async function searchPriceCharting(cleanName: string): Promise<string | null> {
     console.log(`    ⏭️  PriceCharting: no matches found`);
   } catch (error) {
     console.log(`    ⏭️  PriceCharting: skipping (error)`);
+  }
+  return null;
+}
+
+async function searchTradingCardDatabase(cleanName: string): Promise<string | null> {
+  try {
+    console.log(`    📍 Trading Card Database: searching "${cleanName}"`);
+    
+    const searchPatterns = [
+      cleanName,
+      cleanName.split(" ").slice(0, 2).join(" "),
+      cleanName.split(" ")[0],
+    ];
+
+    for (const pattern of searchPatterns) {
+      try {
+        // Trading Card Database API endpoint
+        const url = `https://www.tcgdatabase.com/api/card/search?q=${encodeURIComponent(pattern)}&limit=1`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.cards?.length > 0) {
+          const card = data.cards[0];
+          if (card.image || card.image_url || card.imageUrl) {
+            console.log(`      ✅ Success! Found "${card.name}" on Trading Card Database`);
+            return card.image || card.image_url || card.imageUrl;
+          }
+        }
+      } catch (err) {
+        continue;
+      }
+    }
+    
+    console.log(`    ⏭️  Trading Card Database: no matches found`);
+  } catch (error) {
+    console.log(`    ⏭️  Trading Card Database: skipping (error)`);
+  }
+  return null;
+}
+
+async function searchTCGPlayer(cleanName: string): Promise<string | null> {
+  try {
+    console.log(`    📍 TCGPlayer: searching "${cleanName}"`);
+    
+    // TCGPlayer official API endpoint
+    const url = `https://api.tcgplayer.com/v1.32.0/search/products?q=${encodeURIComponent(cleanName)}&limit=1`;
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.results?.length > 0) {
+      const product = data.results[0];
+      
+      // Try to fetch product details for image
+      if (product.productId) {
+        try {
+          const detailUrl = `https://api.tcgplayer.com/v1.32.0/products/${product.productId}`;
+          const detailResponse = await fetch(detailUrl);
+          const detailData = await detailResponse.json();
+          
+          if (detailData.data?.image || detailData.data?.smallImage) {
+            console.log(`      ✅ Success! Found "${detailData.data.name}" on TCGPlayer`);
+            return detailData.data.image || detailData.data.smallImage;
+          }
+        } catch (err) {
+          // Continue with alternative image source if detail fetch fails
+        }
+      }
+    }
+    
+    console.log(`    ⏭️  TCGPlayer: no matches found`);
+  } catch (error) {
+    console.log(`    ⏭️  TCGPlayer: skipping (error)`);
   }
   return null;
 }
@@ -256,18 +149,13 @@ async function searchMultipleSources(cardName: string, cardNumber?: string): Pro
 
     console.log(`  📝 Cleaned name: "${cleanName}"`);
     if (cardNumber) console.log(`  🏷️  Card number: "${cardNumber}"`);
-    console.log(`  🌐 Searching across 8 databases...`);
+    console.log(`  🌐 Searching across 3 primary databases...`);
 
-    // Try sources in order
+    // Try sources in order: PriceCharting, Trading Card Database, TCGPlayer
     const sources = [
-      searchPokemonTCG,
-      searchPokellector,
       searchPriceCharting,
-      searchBulbapedia,
-      searchSCRYFall,
-      searchMagicGatherer,
-      searchYGOProDeck,
-      searchDeckbox,
+      searchTradingCardDatabase,
+      searchTCGPlayer,
     ];
 
     for (const source of sources) {
@@ -364,7 +252,7 @@ export default function BulkImageUpdatePage() {
       <h1 style={{ marginBottom: "1rem", color: "#10b3f0" }}>Bulk Image Update</h1>
 
       <div style={{ backgroundColor: "#3a2a2a", padding: "1rem", borderRadius: "8px", marginBottom: "2rem", borderLeft: "4px solid #ff7a47" }}>
-        <strong>ℹ️ Multiple Data Sources:</strong> Searches across <strong>Pokémon TCG</strong>, <strong>Pokellector</strong>, <strong>PriceCharting</strong>, <strong>Scryfall</strong>, <strong>Magic Gatherer</strong>, <strong>YGOProDeck</strong>, and <strong>Deckbox</strong>. Supports Pokémon, sports cards, Magic, Yu-Gi-Oh, and more!
+        <strong>ℹ️ Data Sources:</strong> Searches across <strong>PriceCharting</strong>, <strong>Trading Card Database</strong>, and <strong>TCGPlayer API</strong> for card images.
       </div>
 
       <div style={{ backgroundColor: "#222", padding: "1.5rem", borderRadius: "8px", marginBottom: "2rem" }}>
