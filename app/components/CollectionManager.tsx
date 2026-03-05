@@ -17,7 +17,7 @@ interface CollectionManagerProps {
 // Data source search functions
 async function searchPriceCharting(cleanName: string): Promise<string | null> {
   try {
-    console.log(`    📍 PriceCharting: searching sports card database for "${cleanName}"`);
+    console.log(`    📍 PriceCharting (Sports Cards): searching for "${cleanName}"`);
     
     const searchPatterns = [
       cleanName,
@@ -25,44 +25,52 @@ async function searchPriceCharting(cleanName: string): Promise<string | null> {
       cleanName.split(" ").slice(0, 3).join(" "),
     ];
 
-    for (const pattern of searchPatterns) {
+    for (let i = 0; i < searchPatterns.length; i++) {
+      const pattern = searchPatterns[i];
       try {
+        console.log(`       🔎 Attempt ${i + 1}/3: "${pattern}"`);
         const url = `https://www.pricecharting.com/api/product?t=${encodeURIComponent(pattern)}`;
         const response = await fetch(url, {
           headers: { 'Accept': 'application/json' }
         });
         
-        if (!response.ok) continue;
+        if (!response.ok) {
+          console.log(`       ⚠️  API returned status ${response.status}`);
+          continue;
+        }
         const data = await response.json();
         
         if (data.image_url || data.image || data.photo_url || data.thumbnail) {
           const imageUrl = data.image_url || data.image || data.photo_url || data.thumbnail;
-          console.log(`      ✅ Success! Found on PriceCharting`);
+          console.log(`      ✅ Match found! PriceCharting returned image URL`);
           return imageUrl;
         }
         
         if (data.products?.length > 0) {
           const product = data.products[0];
           if (product.image_url || product.image || product.photo) {
-            console.log(`      ✅ Success! Found on PriceCharting`);
+            console.log(`      ✅ Match found! PriceCharting product image located`);
             return product.image_url || product.image || product.photo;
           }
         }
+        
+        console.log(`       ℹ️  No image in response`);
       } catch (err) {
+        console.log(`       ⚠️  Request failed, trying next pattern...`);
         continue;
       }
     }
     
-    console.log(`    ⏭️  PriceCharting: no matches found`);
+    console.log(`    ⏭️  PriceCharting: all 3 attempts exhausted, moving to next source`);
   } catch (error) {
-    console.log(`    ⏭️  PriceCharting: skipping (error)`);
+    console.log(`    ⏭️  PriceCharting: skipped (unexpected error)`);
   }
   return null;
 }
 
 async function searchTradingCardDatabase(cleanName: string): Promise<string | null> {
   try {
-    console.log(`    📍 Trading Card Database: searching "${cleanName}"`);
+    console.log(`    📍 Trading Card Database (Universal TCG): searching for "${cleanName}"`);
     
     const searchPatterns = [
       cleanName,
@@ -70,8 +78,10 @@ async function searchTradingCardDatabase(cleanName: string): Promise<string | nu
       cleanName.split(" ")[0],
     ];
 
-    for (const pattern of searchPatterns) {
+    for (let i = 0; i < searchPatterns.length; i++) {
+      const pattern = searchPatterns[i];
       try {
+        console.log(`       🔎 Attempt ${i + 1}/3: "${pattern}"`);
         // Trading Card Database API endpoint
         const url = `https://www.tcgdatabase.com/api/card/search?q=${encodeURIComponent(pattern)}&limit=1`;
         const response = await fetch(url);
@@ -80,54 +90,68 @@ async function searchTradingCardDatabase(cleanName: string): Promise<string | nu
         if (data.cards?.length > 0) {
           const card = data.cards[0];
           if (card.image || card.image_url || card.imageUrl) {
-            console.log(`      ✅ Success! Found "${card.name}" on Trading Card Database`);
+            console.log(`      ✅ Match found! Located "${card.name}" in Trading Card Database`);
             return card.image || card.image_url || card.imageUrl;
           }
+          console.log(`       ℹ️  Found "${card.name}" but no image data`);
+        } else {
+          console.log(`       ℹ️  No cards match "${pattern}"`);
         }
       } catch (err) {
+        console.log(`       ⚠️  Request failed, trying next pattern...`);
         continue;
       }
     }
     
-    console.log(`    ⏭️  Trading Card Database: no matches found`);
+    console.log(`    ⏭️  Trading Card Database: all 3 attempts exhausted, moving to next source`);
   } catch (error) {
-    console.log(`    ⏭️  Trading Card Database: skipping (error)`);
+    console.log(`    ⏭️  Trading Card Database: skipped (unexpected error)`);
   }
   return null;
 }
 
 async function searchTCGPlayer(cleanName: string): Promise<string | null> {
   try {
-    console.log(`    📍 TCGPlayer: searching "${cleanName}"`);
+    console.log(`    📍 TCGPlayer (Official Platform): searching for "${cleanName}"`);
     
     // TCGPlayer official API endpoint
-    const url = `https://api.tcgplayer.com/v1.32.0/search/products?q=${encodeURIComponent(cleanName)}&limit=1`;
-    const response = await fetch(url);
-    const data = await response.json();
-    
-    if (data.results?.length > 0) {
-      const product = data.results[0];
+    try {
+      console.log(`       🔎 Querying official TCGPlayer database...`);
+      const url = `https://api.tcgplayer.com/v1.32.0/search/products?q=${encodeURIComponent(cleanName)}&limit=1`;
+      const response = await fetch(url);
+      const data = await response.json();
       
-      // Try to fetch product details for image
-      if (product.productId) {
-        try {
-          const detailUrl = `https://api.tcgplayer.com/v1.32.0/products/${product.productId}`;
-          const detailResponse = await fetch(detailUrl);
-          const detailData = await detailResponse.json();
-          
-          if (detailData.data?.image || detailData.data?.smallImage) {
-            console.log(`      ✅ Success! Found "${detailData.data.name}" on TCGPlayer`);
-            return detailData.data.image || detailData.data.smallImage;
+      if (data.results?.length > 0) {
+        const product = data.results[0];
+        console.log(`       ℹ️  Found product: "${product.name || cleanName}"`);
+        
+        // Try to fetch product details for image
+        if (product.productId) {
+          try {
+            console.log(`       🔎 Fetching detailed product info...`);
+            const detailUrl = `https://api.tcgplayer.com/v1.32.0/products/${product.productId}`;
+            const detailResponse = await fetch(detailUrl);
+            const detailData = await detailResponse.json();
+            
+            if (detailData.data?.image || detailData.data?.smallImage) {
+              console.log(`      ✅ Match found! TCGPlayer image located for "${detailData.data.name}"`);
+              return detailData.data.image || detailData.data.smallImage;
+            }
+            console.log(`       ℹ️  Product found but no image available`);
+          } catch (err) {
+            console.log(`       ⚠️  Could not fetch product details`);
           }
-        } catch (err) {
-          // Continue with alternative image source if detail fetch fails
         }
+      } else {
+        console.log(`       ℹ️  No products found in TCGPlayer database`);
       }
+    } catch (err) {
+      console.log(`       ⚠️  TCGPlayer API request failed`);
     }
     
-    console.log(`    ⏭️  TCGPlayer: no matches found`);
+    console.log(`    ⏭️  TCGPlayer: no image located, moving to next source`);
   } catch (error) {
-    console.log(`    ⏭️  TCGPlayer: skipping (error)`);
+    console.log(`    ⏭️  TCGPlayer: skipped (unexpected error)`);
   }
   return null;
 }
@@ -139,7 +163,7 @@ async function searchMultipleSources(cardName: string, cardNumber?: string): Pro
       ? `${cardNumber} ${cardName}` 
       : cardName;
     
-    console.log(`\n🔍 Searching for image: "${searchQuery}"`);
+    console.log(`\n🔍 Image Search Started: "${searchQuery}"`);
 
     // Clean name
     let cleanName = cardName
@@ -155,9 +179,11 @@ async function searchMultipleSources(cardName: string, cardNumber?: string): Pro
       .replace(/\s+Rapid\s+Strike\s*$/gi, "")
       .trim();
 
-    console.log(`  📝 Cleaned name: "${cleanName}"`);
-    if (cardNumber) console.log(`  🏷️  Card number: "${cardNumber}"`);
-    console.log(`  🌐 Searching across 3 primary databases...`);
+    if (cardNumber) {
+      console.log(`  📌 Card ID: ${cardNumber}`);
+    }
+    console.log(`  📝 Searching for: "${cleanName}"`);
+    console.log(`  🌐 Querying 3 primary sources in order...\n`);
 
     // Try sources in order: PriceCharting, Trading Card Database, TCGPlayer
     const sources = [
@@ -171,7 +197,7 @@ async function searchMultipleSources(cardName: string, cardNumber?: string): Pro
       if (result) return result;
     }
 
-    console.log(`  ❌ No image found in any database\n`);
+    console.log(`  ❌ Image not found - all 3 sources exhausted (try CSV upload or manual URL entry)\n`);
     return null;
   } catch (error) {
     console.error("Search error:", error);
