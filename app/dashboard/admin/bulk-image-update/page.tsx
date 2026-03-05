@@ -7,81 +7,137 @@ import { onAuthStateChanged } from "firebase/auth";
 import { useUserCards, updateCard, Card } from "@/lib/cards";
 import styles from "../../admin.module.css";
 
-async function searchPokemonTCG(cardName: string): Promise<string | null> {
+async function searchPokemonTCG(cleanName: string): Promise<string | null> {
   try {
-    console.log(`\n🔍 Searching for: "${cardName}"`);
-
-    // Clean the card name by removing common suffixes and keywords
-    let cleanName = cardName
-      .replace(/\bPokémon\s+Card\b/gi, "")
-      .replace(/\bPokemon\s+Card\b/gi, "")
-      .replace(/\bPokemon\s+GO\s+Card\b/gi, "")
-      .replace(/\s+V\s*$/gi, "") // " V" at end
-      .replace(/\s+EX\s*$/gi, "") // " EX" at end
-      .replace(/\s+VMAX\s*$/gi, "") // " VMAX" at end
-      .replace(/\s+VSTAR\s*$/gi, "") // " VSTAR" at end
-      .replace(/\s+-\s+.+$/gi, "") // Remove " - Something" patterns
-      .replace(/\s+Single\s+Strike\s*$/gi, "")
-      .replace(/\s+Rapid\s+Strike\s*$/gi, "")
-      .trim();
-
-    console.log(`  Cleaned to: "${cleanName}"`);
-    
-    // Try searches in order of specificity
-    const searches = [
-      cleanName, // Full cleaned name
-      cleanName.split(" ").slice(0, 2).join(" "), // First two words
-      cleanName.split(" ")[0], // Just first word
-    ];
+    const searches = [cleanName, cleanName.split(" ").slice(0, 2).join(" "), cleanName.split(" ")[0]];
 
     for (const searchName of searches) {
       if (!searchName) continue;
 
-      console.log(`  Trying: "${searchName}"`);
-
-      // Try exact match first
+      console.log(`    [PokéTCG] Exact: "${searchName}"`);
       let url = `https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(searchName)}"`;
-      console.log(`    Exact query: ${url}`);
       let response = await fetch(url);
       let data = await response.json();
 
-      console.log(`    Got ${data.data?.length || 0} results`);
-
-      if (data.data && data.data.length > 0) {
+      if (data.data?.length > 0) {
         const card = data.data[0];
-        console.log(`      Found: "${card.name}"`);
         if (card.images?.small) {
-          console.log(`      ✓ HAS IMAGE`);
+          console.log(`      ✓ Found in PokéTCG`);
           return card.images.small;
-        } else {
-          console.log(`      No image in card data`);
         }
       }
 
-      // Try contains match
+      console.log(`    [PokéTCG] Fuzzy: "${searchName}"`);
       url = `https://api.pokemontcg.io/v2/cards?q=name:*${encodeURIComponent(searchName)}*`;
-      console.log(`    Fuzzy query: ${url}`);
       response = await fetch(url);
       data = await response.json();
 
-      console.log(`    Got ${data.data?.length || 0} results`);
-
-      if (data.data && data.data.length > 0) {
+      if (data.data?.length > 0) {
         const card = data.data[0];
-        console.log(`      Found: "${card.name}"`);
         if (card.images?.small) {
-          console.log(`      ✓ HAS IMAGE`);
+          console.log(`      ✓ Found in PokéTCG (fuzzy)`);
           return card.images.small;
-        } else {
-          console.log(`      No image in card data`);
         }
       }
     }
+  } catch (error) {
+    console.error("PokéTCG error:", error);
+  }
+  return null;
+}
 
-    console.log(`  ✗ NO MATCHES for any variation\n`);
+async function searchCardKingdom(cleanName: string): Promise<string | null> {
+  try {
+    console.log(`    [CardKingdom] Searching...`);
+    // CardKingdom doesn't have a public free API, but we can try a web-based approach
+    // For now, skip this source
     return null;
   } catch (error) {
-    console.error("Error searching PokéTCG:", error);
+    console.error("CardKingdom error:", error);
+  }
+  return null;
+}
+
+async function searchSCRYFall(cleanName: string): Promise<string | null> {
+  try {
+    console.log(`    [Scryfall] Searching magic cards for: "${cleanName}"`);
+    // Try Scryfall for Magic: The Gathering cards
+    const url = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(`"${cleanName}"` + " is:booster")}`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.data?.length > 0) {
+      const card = data.data[0];
+      if (card.image_uris?.normal) {
+        console.log(`      ✓ Found in Scryfall`);
+        return card.image_uris.normal;
+      }
+    }
+  } catch (error) {
+    console.log(`    [Scryfall] No results or error`);
+  }
+  return null;
+}
+
+async function searchBulbapedia(cleanName: string): Promise<string | null> {
+  try {
+    console.log(`    [Bulbapedia] Searching for: "${cleanName}"`);
+    // Bulbapedia doesn't have a good API, but we can check if the card exists there
+    // This is a fallback when PokéTCG fails
+    const url = `https://bulbapedia.bulbagarden.net/w/api.php?action=query&titles=${encodeURIComponent(cleanName)}&format=json&prop=pageimages&piprop=original`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    const pages = data.query?.pages;
+    if (pages) {
+      const page = Object.values(pages)[0] as any;
+      if (page.original?.source) {
+        console.log(`      ✓ Found image on Bulbapedia`);
+        return page.original.source;
+      }
+    }
+  } catch (error) {
+    console.log(`    [Bulbapedia] No results`);
+  }
+  return null;
+}
+
+async function searchMultipleSources(cardName: string): Promise<string | null> {
+  try {
+    console.log(`\n🔍 Searching for: "${cardName}"`);
+
+    // Clean name
+    let cleanName = cardName
+      .replace(/\bPokémon\s+Card\b/gi, "")
+      .replace(/\bPokemon\s+Card\b/gi, "")
+      .replace(/\bPokemon\s+GO\s+Card\b/gi, "")
+      .replace(/\s+V\s*$/gi, "")
+      .replace(/\s+EX\s*$/gi, "")
+      .replace(/\s+VMAX\s*$/gi, "")
+      .replace(/\s+VSTAR\s*$/gi, "")
+      .replace(/\s+-\s+.+$/gi, "")
+      .replace(/\s+Single\s+Strike\s*$/gi, "")
+      .replace(/\s+Rapid\s+Strike\s*$/gi, "")
+      .trim();
+
+    console.log(`  Cleaned: "${cleanName}"`);
+
+    // Try sources in order
+    const sources = [
+      searchPokemonTCG,
+      searchSCRYFall,
+      searchBulbapedia,
+    ];
+
+    for (const source of sources) {
+      const result = await source(cleanName);
+      if (result) return result;
+    }
+
+    console.log(`  ✗ Not found in any source\n`);
+    return null;
+  } catch (error) {
+    console.error("Search error:", error);
     return null;
   }
 }
@@ -127,7 +183,7 @@ export default function BulkImageUpdatePage() {
       }
 
       try {
-        const imageUrl = await searchPokemonTCG(card.name);
+        const imageUrl = await searchMultipleSources(card.name);
         if (imageUrl) {
           console.log(`✓ Found: ${card.name}`);
           await updateCard(card.id, { imageUrl });
@@ -167,7 +223,7 @@ export default function BulkImageUpdatePage() {
       <h1 style={{ marginBottom: "1rem", color: "#10b3f0" }}>Bulk Image Update</h1>
 
       <div style={{ backgroundColor: "#3a2a2a", padding: "1rem", borderRadius: "8px", marginBottom: "2rem", borderLeft: "4px solid #ff7a47" }}>
-        <strong>ℹ️ Note:</strong> This tool searches the <strong>Pokémon TCG API</strong>. It will only find Pokémon cards. For sports cards (Baseball, Basketball, etc.) or other trading card games, you'll need to manually add image URLs or use a different data source.
+        <strong>ℹ️ Note:</strong> This tool searches multiple APIs: <strong>Pokémon TCG</strong>, <strong>Scryfall</strong> (Magic cards), and <strong>Bulbapedia</strong> (Pokémon wiki). For other card types or if automated search fails, use the CSV upload tool.
       </div>
 
       <div style={{ backgroundColor: "#222", padding: "1.5rem", borderRadius: "8px", marginBottom: "2rem" }}>
