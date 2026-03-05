@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
 import styles from "./CardItem.module.css";
 
 interface CardItemProps {
@@ -25,17 +25,39 @@ interface CardItemProps {
 
 export default function CardItem({ card, badge, onClick, className }: CardItemProps) {
   const cardName = card.name || card.cardName || "Untitled Card";
-  const imageUrl =
-    card.frontImageUrl ||
-    card.photoUrl ||
-    card.imageUrl ||
-    card.thumbnailUrl ||
-    "/placeholder-card.svg";
+  const imageUrl = useMemo(() => {
+    const isRenderableImageUrl = (value?: string) => {
+      if (!value || typeof value !== "string") return false;
+      const trimmed = value.trim();
+      return (
+        trimmed.startsWith("https://") ||
+        trimmed.startsWith("http://") ||
+        trimmed.startsWith("data:image/") ||
+        trimmed.startsWith("blob:") ||
+        trimmed.startsWith("/")
+      );
+    };
 
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    // Fallback to placeholder if image fails to load
-    e.currentTarget.src = "/placeholder-card.svg";
-    console.warn(`[CardItem] Failed to load image: ${imageUrl}, using placeholder`);
+    const candidates = [
+      card.imageUrl,
+      card.photoUrl,
+      card.frontImageUrl,
+      card.thumbnailUrl,
+    ];
+
+    return candidates.find((candidate) => isRenderableImageUrl(candidate)) || "/placeholder-card.svg";
+  }, [card.frontImageUrl, card.imageUrl, card.photoUrl, card.thumbnailUrl]);
+
+  const [currentImageUrl, setCurrentImageUrl] = useState(imageUrl);
+
+  useEffect(() => {
+    setCurrentImageUrl(imageUrl);
+  }, [imageUrl]);
+
+  const handleImageError = () => {
+    if (currentImageUrl !== "/placeholder-card.svg") {
+      setCurrentImageUrl("/placeholder-card.svg");
+    }
   };
 
   return (
@@ -46,26 +68,23 @@ export default function CardItem({ card, badge, onClick, className }: CardItemPr
       tabIndex={onClick ? 0 : undefined}
     >
       <div className={styles.imageWrapper}>
-        <Image
-          src={imageUrl}
+        <img
+          src={currentImageUrl}
           alt={cardName}
-          width={560}
-          height={784}
-          sizes="(max-width: 768px) 70vw, (max-width: 1200px) 36vw, 420px"
           className={styles.cardImage}
           onError={handleImageError}
-          unoptimized
+          loading="lazy"
+          decoding="async"
         />
         {/* Hover preview - larger image display */}
         <div className={styles.hoverPreview}>
-          <Image
-            src={imageUrl}
+          <img
+            src={currentImageUrl}
             alt={cardName}
-            width={480}
-            height={680}
             className={styles.previewImage}
             onError={handleImageError}
-            unoptimized
+            loading="lazy"
+            decoding="async"
           />
         </div>
         {badge && <div className={styles.badge}>{badge}</div>}

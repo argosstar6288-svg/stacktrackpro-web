@@ -74,6 +74,18 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
   };
 
   const resolveCardImageUrl = (card: Card) => {
+    const isRenderableImageUrl = (value?: string) => {
+      if (!value || typeof value !== "string") return false;
+      const trimmed = value.trim();
+      return (
+        trimmed.startsWith("https://") ||
+        trimmed.startsWith("http://") ||
+        trimmed.startsWith("data:image/") ||
+        trimmed.startsWith("blob:") ||
+        trimmed.startsWith("/")
+      );
+    };
+
     const imageCandidates = [
       card.imageUrl,
       card.photoUrl,
@@ -81,11 +93,9 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
       card.thumbnailUrl,
     ];
 
-    const selected = imageCandidates.find(
-      (candidate) => typeof candidate === "string" && candidate.trim().length > 0
-    );
+    const selected = imageCandidates.find((candidate) => isRenderableImageUrl(candidate));
 
-    return selected || "/placeholder-card.png";
+    return selected || "/placeholder-card.svg";
   };
 
   // Filter and sort cards
