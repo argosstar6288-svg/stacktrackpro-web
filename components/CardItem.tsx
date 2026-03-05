@@ -52,22 +52,6 @@ export default function CardItem({ card, badge, onClick, className }: CardItemPr
     ];
 
     const selectedUrl = candidates.find((candidate) => isRenderableImageUrl(candidate)) || "/placeholder-card.svg";
-    
-    // Debug logging
-    console.log(`[CardItem] ${cardName}:`, {
-      candidates: candidates.filter(c => c),
-      selected: selectedUrl,
-      allFields: {
-        imageUrl: card.imageUrl,
-        photoUrl: card.photoUrl,
-        frontImageUrl: card.frontImageUrl,
-        thumbnailUrl: card.thumbnailUrl,
-        cardImage: card.cardImage,
-        image: card.image,
-        imagePath: card.imagePath,
-      }
-    });
-
     return selectedUrl;
   }, [card.cardImage, card.frontImageUrl, card.image, card.imagePath, card.imageUrl, card.photoUrl, card.thumbnailUrl]);
 
@@ -78,14 +62,13 @@ export default function CardItem({ card, badge, onClick, className }: CardItemPr
   }, [imageUrl]);
 
   const handleImageError = () => {
-    console.log(`[CardItem] Image failed to load: ${currentImageUrl} (card: ${cardName})`);
     if (currentImageUrl !== "/placeholder-card.svg") {
       setCurrentImageUrl("/placeholder-card.svg");
     }
   };
 
   const handleImageLoad = () => {
-    console.log(`[CardItem] Image loaded successfully: ${currentImageUrl} (card: ${cardName})`);
+    // Image loaded successfully
   };
 
   return (
