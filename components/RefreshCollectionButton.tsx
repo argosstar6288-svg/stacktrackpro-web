@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { auth } from "@/lib/firebase";
-import { getLastRefreshTime, needsRefresh } from "@/lib/cards";
+import { getLastRefreshTime, needsRefresh, refreshUserCollectionValues } from "@/lib/cards";
 import styles from "./RefreshCollectionButton.module.css";
 
 export function RefreshCollectionButton() {
@@ -46,27 +46,7 @@ export function RefreshCollectionButton() {
     setError(null);
 
     try {
-      const idToken = await user.getIdToken();
-      const response = await fetch(`/api/refresh-collection-values?userId=${user.uid}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
-
-      if (!response.ok) {
-        let message = "Failed to refresh collection values";
-        try {
-          const errorData = await response.json();
-          if (errorData?.error) {
-            message = errorData.error;
-          }
-        } catch {
-        }
-        throw new Error(message);
-      }
-
-      await response.json();
+      await refreshUserCollectionValues(user.uid);
       
       setLastRefresh(new Date());
       setNeedsUpdate(false);
