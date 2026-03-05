@@ -219,9 +219,12 @@ export function useUserFolders() {
  * In production, this would call a real market data API
  */
 async function fetchMarketPrice(card: Card): Promise<number> {
+  const currentValue = Number(card.value);
+  const safeCurrentValue = Number.isFinite(currentValue) && currentValue > 0 ? currentValue : 1;
+
   // Simulate market price fluctuation (-5% to +10% of current value)
   const fluctuation = (Math.random() * 0.15) - 0.05; // -5% to +10%
-  const newValue = Math.max(1, Math.round(card.value * (1 + fluctuation)));
+  const newValue = Math.max(1, Math.round(safeCurrentValue * (1 + fluctuation)));
   
   // Add some realistic price movement based on rarity
   let rarityMultiplier = 1;
@@ -274,40 +277,48 @@ export async function refreshUserCollectionValues(userId: string): Promise<{
       if (!card.id) continue;
       
       const newValue = await fetchMarketPrice(card);
+      const currentValue = Number(card.value);
+      const safeCurrentValue = Number.isFinite(currentValue) ? currentValue : 0;
       
       // Only update if value changed
-      if (newValue !== card.value) {
-        await updateDoc(doc(db, "cards", card.id), {
-          value: newValue,
-          lastValueUpdate: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-        updatedCards++;
+      if (newValue !== safeCurrentValue) {
+        try {
+          await updateDoc(doc(db, "cards", card.id), {
+            value: newValue,
+            updatedAt: serverTimestamp(),
+          });
+          updatedCards++;
+        } catch (cardUpdateError) {
+          console.error(`Failed to update card ${card.id}:`, cardUpdateError);
+          // Continue processing other cards instead of failing entire refresh
+        }
       }
       
       totalValue += newValue;
     }
 
-    // Update or create user's portfolio metadata
-    const portfoliosQuery = query(collection(db, "portfolios"), where("userId", "==", userId));
-    const portfolioSnapshot = await getDocs(portfoliosQuery);
-    
-    if (portfolioSnapshot.empty) {
-      // Create new portfolio document
-      await addDoc(collection(db, "portfolios"), {
-        userId,
-        lastRefresh: serverTimestamp(),
-        totalValue,
-        totalCards: cards.length,
-      });
-    } else {
-      // Update existing portfolio document
-      const portfolioDoc = portfolioSnapshot.docs[0];
-      await updateDoc(doc(db, "portfolios", portfolioDoc.id), {
-        lastRefresh: serverTimestamp(),
-        totalValue,
-        totalCards: cards.length,
-      });
+    // Update or create user's portfolio metadata (best effort)
+    try {
+      const portfoliosQuery = query(collection(db, "portfolios"), where("userId", "==", userId));
+      const portfolioSnapshot = await getDocs(portfoliosQuery);
+
+      if (portfolioSnapshot.empty) {
+        await addDoc(collection(db, "portfolios"), {
+          userId,
+          lastRefresh: serverTimestamp(),
+          totalValue,
+          totalCards: cards.length,
+        });
+      } else {
+        const portfolioDoc = portfolioSnapshot.docs[0];
+        await updateDoc(doc(db, "portfolios", portfolioDoc.id), {
+          lastRefresh: serverTimestamp(),
+          totalValue,
+          totalCards: cards.length,
+        });
+      }
+    } catch (portfolioError) {
+      console.error("Portfolio metadata update skipped:", portfolioError);
     }
 
     console.log(`Refreshed ${updatedCards} cards for user ${userId}`);
