@@ -231,9 +231,14 @@ async function searchPriceCharting(cleanName: string): Promise<string | null> {
   return null;
 }
 
-async function searchMultipleSources(cardName: string): Promise<string | null> {
+async function searchMultipleSources(cardName: string, cardNumber?: string): Promise<string | null> {
   try {
-    console.log(`\n🔍 Searching for image: "${cardName}"`);
+    // Build search query with card number if available
+    const searchQuery = cardNumber 
+      ? `${cardNumber} ${cardName}` 
+      : cardName;
+    
+    console.log(`\n🔍 Searching for image: "${searchQuery}"`);
 
     // Clean name
     let cleanName = cardName
@@ -250,6 +255,7 @@ async function searchMultipleSources(cardName: string): Promise<string | null> {
       .trim();
 
     console.log(`  📝 Cleaned name: "${cleanName}"`);
+    if (cardNumber) console.log(`  🏷️  Card number: "${cardNumber}"`);
     console.log(`  🌐 Searching across 8 databases...`);
 
     // Try sources in order
@@ -318,7 +324,7 @@ export default function BulkImageUpdatePage() {
       }
 
       try {
-        const imageUrl = await searchMultipleSources(card.name);
+        const imageUrl = await searchMultipleSources(card.name, card.cardNumber);
         if (imageUrl) {
           console.log(`✓ Found: ${card.name}`);
           await updateCard(card.id, { imageUrl });

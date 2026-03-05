@@ -15,9 +15,13 @@ interface CollectionManagerProps {
 }
 
 // Multi-source image search function
-async function searchMultipleSources(cardName: string): Promise<string | null> {
+async function searchMultipleSources(cardName: string, cardNumber?: string): Promise<string | null> {
   try {
-    console.log(`\n🔍 Searching for image: "${cardName}"`);
+    const searchQuery = cardNumber 
+      ? `${cardNumber} ${cardName}` 
+      : cardName;
+    
+    console.log(`\n🔍 Searching for image: "${searchQuery}"`);
 
     // Clean name
     let cleanName = cardName
@@ -34,6 +38,8 @@ async function searchMultipleSources(cardName: string): Promise<string | null> {
       .trim();
 
     console.log(`  📝 Cleaned name: "${cleanName}"`);
+    if (cardNumber) console.log(`  🏷️  Card number: "${cardNumber}"`);
+
 
     const searches = [cleanName, cleanName.split(" ").slice(0, 2).join(" "), cleanName.split(" ")[0]];
 
@@ -201,7 +207,7 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
     setUpdatingImages(prev => new Set(prev).add(card.id));
     
     try {
-      const imageUrl = await searchMultipleSources(card.name);
+      const imageUrl = await searchMultipleSources(card.name, card.cardNumber);
       
       if (imageUrl) {
         await updateCard(card.id, { imageUrl });
@@ -357,6 +363,7 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
                 <tr>
                   <th>Photo</th>
                   <th>Card</th>
+                  <th>Card #</th>
                   <th>Player</th>
                   <th>Sport</th>
                   <th>Year</th>
@@ -407,6 +414,9 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
                           {card.rarity}
                         </div>
                       </div>
+                    </td>
+                    <td style={{ fontSize: "0.9em", color: "#10b3f0", fontWeight: "500" }}>
+                      {card.cardNumber || "—"}
                     </td>
                     <td>{card.player}</td>
                     <td>{card.sport}</td>

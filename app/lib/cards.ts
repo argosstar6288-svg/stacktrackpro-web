@@ -11,6 +11,7 @@ export interface Card {
   userId: string;
   name: string;
   player: string;
+  cardNumber?: string; // e.g., "054/112" or "001" for card identification
   sport: "Baseball" | "Basketball" | "Football" | "Hockey" | "Soccer" | "Other";
   brand: string;
   year: number;

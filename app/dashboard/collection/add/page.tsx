@@ -27,6 +27,7 @@ export default function CollectionAddPage() {
     value: "",
     rarity: "Uncommon" as Card["rarity"],
     player: "",
+    cardNumber: "",
     brand: "",
     year: new Date().getFullYear().toString(),
     sport: "Baseball",
@@ -214,6 +215,7 @@ export default function CollectionAddPage() {
         value: Number(formData.value),
         rarity: formData.rarity,
         player: formData.player,
+        cardNumber: formData.cardNumber,
         brand: formData.brand,
         year: formData.year ? Number(formData.year) : new Date().getFullYear(),
         sport: formData.sport as Card["sport"],
@@ -313,6 +315,17 @@ export default function CollectionAddPage() {
               value={formData.player}
               onChange={handleChange}
               placeholder="e.g., Mickey Mantle"
+            />
+          </label>
+
+          <label className={styles.field}>
+            <span>Card Number</span>
+            <input
+              name="cardNumber"
+              type="text"
+              value={formData.cardNumber}
+              onChange={handleChange}
+              placeholder="e.g., 054/112 or 001"
             />
           </label>
 
