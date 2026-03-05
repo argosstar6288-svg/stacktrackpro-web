@@ -11,9 +11,10 @@ import "./collection.css";
 
 interface CollectionManagerProps {
   sportFilter?: string | null;
+  folderId?: string;
 }
 
-export function CollectionManager({ sportFilter }: CollectionManagerProps) {
+export function CollectionManager({ sportFilter, folderId }: CollectionManagerProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const { cards, loading: cardsLoading } = useUserCards();
@@ -89,6 +90,12 @@ export function CollectionManager({ sportFilter }: CollectionManagerProps) {
 
   // Filter and sort cards
   const filteredCards = cards.filter((card) => {
+    // Apply folder filter if specified
+    if (folderId) {
+      const inFolder = card.folderIds?.includes(folderId);
+      if (!inFolder) return false;
+    }
+    
     // Apply sport filter from sidebar OR dropdown
     const matchesSport = sportFilter 
       ? card.sport === sportFilter

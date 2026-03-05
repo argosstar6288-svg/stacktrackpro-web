@@ -18,6 +18,14 @@ const sportCategories = [
   { id: "pokemon", name: "🎴 Pokemon/Other", sport: "Other" },
 ];
 
+const tradingCardCategories = [
+  { id: "yugioh", name: "🃏 Yu-Gi-Oh!", icon: "🃏" },
+  { id: "magic", name: "✨ Magic: The Gathering", icon: "✨" },
+  { id: "marvel", name: "🦸 Marvel", icon: "🦸" },
+  { id: "onepiece", name: "🏴‍☠️ One Piece", icon: "🏴‍☠️" },
+  { id: "dragonball", name: "🐉 Dragon Ball Z", icon: "🐉" },
+];
+
 export default function CollectionPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
@@ -27,6 +35,29 @@ export default function CollectionPage() {
   const [newFolderName, setNewFolderName] = useState("");
   const [creating, setCreating] = useState(false);
   const [selectedSport, setSelectedSport] = useState<string | null>(null);
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+
+  // Quick-create a default folder
+  const handleQuickCreateFolder = async (folderName: string) => {
+    if (!userId) return;
+
+    // Check if folder already exists
+    const folderExists = folders.some(f => f.name === folderName);
+    if (folderExists) {
+      setSelectedFolder(folders.find(f => f.name === folderName)?.id || null);
+      setSelectedSport(null);
+      return;
+    }
+
+    try {
+      const folderId = await createFolder(userId, folderName);
+      setSelectedFolder(folderId);
+      setSelectedSport(null);
+    } catch (error) {
+      console.error("Error creating folder:", error);
+      alert("Failed to create folder");
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -140,8 +171,11 @@ export default function CollectionPage() {
 
           <div className={styles.folderList}>
             <button
-              className={`${styles.folderItem} ${!selectedSport ? styles.active : ""}`}
-              onClick={() => setSelectedSport(null)}
+              className={`${styles.folderItem} ${!selectedSport && !selectedFolder ? styles.active : ""}`}
+              onClick={() => {
+                setSelectedSport(null);
+                setSelectedFolder(null);
+              }}
             >
               <span>📋</span> All Cards
             </button>
@@ -155,11 +189,64 @@ export default function CollectionPage() {
                 <button
                   key={category.id}
                   className={`${styles.folderItem} ${selectedSport === category.sport ? styles.active : ""}`}
-                  onClick={() => setSelectedSport(category.sport)}
+                  onClick={() => {
+                    setSelectedSport(category.sport);
+                    setSelectedFolder(null);
+                  }}
                 >
                   <span>{category.name}</span>
                 </button>
               ))}
+            </div>
+
+            {/* Trading Card Game Categories */}
+            <div style={{ marginTop: "0.5rem", marginBottom: "0.5rem" }}>
+              <div className={styles.sectionLabel}>
+                Trading Card Games
+              </div>
+              {tradingCardCategories.map((category) => {
+                const folderExists = folders.find(f => f.name === category.name);
+                return (
+                  <div
+                    key={category.id}
+                    className={styles.folderItem}
+                    onDragOver={(e) => {
+                      if (folderExists) {
+                        e.preventDefault();
+                        e.currentTarget.style.backgroundColor = "rgba(30, 144, 255, 0.3)";
+                      }
+                    }}
+                    onDragLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }}
+                    onDrop={async (e) => {
+                      if (!folderExists) return;
+                      e.preventDefault();
+                      e.currentTarget.style.backgroundColor = "transparent";
+                      const cardId = e.dataTransfer?.getData("cardId");
+                      const cardName = e.dataTransfer?.getData("cardName");
+                      if (cardId && folderExists.id) {
+                        try {
+                          await addCardToFolder(cardId, folderExists.id);
+                          alert(`✓ Added "${cardName}" to ${folderExists.name}`);
+                        } catch (err: any) {
+                          alert(`Failed to add card: ${err.message}`);
+                        }
+                      }
+                    }}
+                  >
+                    <button
+                      className={`${styles.folderBtn} ${selectedFolder === folderExists?.id ? styles.active : ""}`}
+                      onClick={() => handleQuickCreateFolder(category.name)}
+                      title={folderExists ? "View folder" : "Click to create folder"}
+                      style={{ width: "100%", display: "flex", alignItems: "center", gap: "8px" }}
+                    >
+                      <span>{category.icon}</span> {category.name.replace(/^[^\s]+ /, '')}
+                      {!folderExists && <span style={{ fontSize: "0.75rem", opacity: 0.6, marginLeft: "auto" }}>+</span>}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Custom Folders */}
@@ -174,54 +261,66 @@ export default function CollectionPage() {
             ) : folders.length === 0 ? (
               <div className={styles.noFolders}>No folders yet</div>
             ) : (
-              folders.map((folder) => (
-                <div
-                  key={folder.id}
-                  className={styles.folderItem}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    e.currentTarget.style.backgroundColor = "rgba(30, 144, 255, 0.3)";
-                  }}
-                  onDragLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "transparent";
-                  }}
-                  onDrop={async (e) => {
-                    e.preventDefault();
-                    e.currentTarget.style.backgroundColor = "transparent";
-                    const cardId = e.dataTransfer?.getData("cardId");
-                    const cardName = e.dataTransfer?.getData("cardName");
-                    if (cardId && folder.id) {
-                      try {
-                        await addCardToFolder(cardId, folder.id);
-                        alert(`✓ Added "${cardName}" to ${folder.name}`);
-                      } catch (err: any) {
-                        alert(`Failed to add card: ${err.message}`);
+              folders.map((folder) => {
+                // Skip folders that are in the trading card categories (they're shown above)
+                const isDefaultFolder = tradingCardCategories.some(cat => cat.name === folder.name);
+                if (isDefaultFolder) return null;
+                
+                return (
+                  <div
+                    key={folder.id}
+                    className={styles.folderItem}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.style.backgroundColor = "rgba(30, 144, 255, 0.3)";
+                    }}
+                    onDragLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }}
+                    onDrop={async (e) => {
+                      e.preventDefault();
+                      e.currentTarget.style.backgroundColor = "transparent";
+                      const cardId = e.dataTransfer?.getData("cardId");
+                      const cardName = e.dataTransfer?.getData("cardName");
+                      if (cardId && folder.id) {
+                        try {
+                          await addCardToFolder(cardId, folder.id);
+                          alert(`✓ Added "${cardName}" to ${folder.name}`);
+                        } catch (err: any) {
+                          alert(`Failed to add card: ${err.message}`);
+                        }
                       }
-                    }
-                  }}
-                >
-                  <button
-                    className={styles.folderBtn}
-                    onClick={() => router.push(`/dashboard/collection/folder/${folder.id}`)}
+                    }}
                   >
-                    <span>📁</span> {folder.name}
-                  </button>
-                  <button
-                    className={styles.deleteFolderBtn}
-                    onClick={() => handleDeleteFolder(folder.id!, folder.name)}
-                    title="Delete folder"
-                  >
-                    🗑
-                  </button>
-                </div>
-              ))
+                    <button
+                      className={`${styles.folderBtn} ${selectedFolder === folder.id ? styles.active : ""}`}
+                      onClick={() => {
+                        setSelectedFolder(folder.id || null);
+                        setSelectedSport(null);
+                      }}
+                    >
+                      <span>📁</span> {folder.name}
+                    </button>
+                    <button
+                      className={styles.deleteFolderBtn}
+                      onClick={() => handleDeleteFolder(folder.id!, folder.name)}
+                      title="Delete folder"
+                    >
+                      🗑
+                    </button>
+                  </div>
+                );
+              })
             )}
           </div>
         </aside>
 
         {/* Main content */}
         <section className={`panel ${styles.panel}`}>
-          <CollectionManager sportFilter={selectedSport} />
+          <CollectionManager 
+            sportFilter={selectedSport} 
+            folderId={selectedFolder || undefined}
+          />
         </section>
       </div>
     </div>
