@@ -98,6 +98,21 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
 
     const selected = imageCandidates.find((candidate) => isRenderableImageUrl(candidate));
 
+    if (selected && selected !== "/placeholder-card.svg") {
+      console.log(`[CollectionManager] ${card.name}:`, {
+        selected,
+        allFields: {
+          imageUrl: card.imageUrl,
+          photoUrl: card.photoUrl,
+          frontImageUrl: card.frontImageUrl,
+          thumbnailUrl: card.thumbnailUrl,
+          cardImage: (card as any).cardImage,
+          image: (card as any).image,
+          imagePath: (card as any).imagePath,
+        }
+      });
+    }
+
     return selected || "/placeholder-card.svg";
   };
 
@@ -243,8 +258,12 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
                         className="collection-card-thumb"
                         onError={(event) => {
                           const target = event.currentTarget;
+                          console.log(`[CollectionManager] Image FAILED: ${target.src} (card: ${card.name})`);
                           if (target.src.endsWith("/placeholder-card.svg")) return;
                           target.src = "/placeholder-card.svg";
+                        }}
+                        onLoad={(event) => {
+                          console.log(`[CollectionManager] Image LOADED: ${event.currentTarget.src} (card: ${card.name})`);
                         }}
                       />
                     </td>
