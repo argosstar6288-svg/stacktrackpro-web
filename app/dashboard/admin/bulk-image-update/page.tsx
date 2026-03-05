@@ -8,6 +8,91 @@ import { useUserCards, updateCard, Card } from "@/lib/cards";
 import { searchPokemonByName, validatePokemonMatch } from "@/lib/pokemon-stats";
 import styles from "../../admin.module.css";
 
+async function searchPokemonTCG(cleanName: string, cardNumber?: string): Promise<string | null> {
+  try {
+    console.log(`    📍 Pokemon TCG (Official API): searching for "${cleanName}"`);
+    
+    // Build search patterns: card number + name is most specific
+    const searchPatterns = cardNumber 
+      ? [
+          `${cleanName}`,  // Try full name with card number context
+          `${cardNumber}`,  // Try just the card number
+          cleanName.split(" ")[0],  // First word (Pokemon name)
+        ]
+      : [
+          cleanName,
+          cleanName.split(" ").slice(0, 2).join(" "),
+          cleanName.split(" ")[0],
+        ];
+
+    for (let i = 0; i < searchPatterns.length; i++) {
+      const pattern = searchPatterns[i];
+      if (!pattern || pattern.length < 2) continue;
+      
+      try {
+        console.log(`       🔎 Attempt ${i + 1}/${searchPatterns.length}: "${pattern}"`);
+        
+        // Use q parameter for name search
+        const url = `https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(pattern)}"&pageSize=10`;
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          console.log(`       ⚠️  API returned status ${response.status}`);
+          continue;
+        }
+        
+        const data = await response.json();
+        
+        if (data.data?.length > 0) {
+          // Try to find best match based on name relevance
+          for (const card of data.data) {
+            if (card.images?.small || card.images?.large) {
+              const cardName = (card.name || "").toLowerCase();
+              const searchTerms = cleanName.split(" ").filter(t => t.length > 2);
+              const relevanceScore = searchTerms.filter(term => cardName.includes(term.toLowerCase())).length;
+              
+              // Accept if name is relevant or if we have exact card number
+              if (relevanceScore > 0 || cardNumber) {
+                const imageUrl = card.images.large || card.images.small;
+                console.log(`      ✅ Match found! "${card.name}" from ${card.set.series} (relevance: ${relevanceScore}/${searchTerms.length})`);
+                return imageUrl;
+              }
+            }
+          }
+        }
+        
+        // Try partial/wildcard match if exact didn't work
+        const urlPartial = `https://api.pokemontcg.io/v2/cards?q=name:*${encodeURIComponent(pattern)}*&pageSize=10`;
+        const responsePartial = await fetch(urlPartial);
+        
+        if (responsePartial.ok) {
+          const dataPartial = await responsePartial.json();
+          
+          if (dataPartial.data?.length > 0) {
+            for (const card of dataPartial.data) {
+              if (card.images?.small || card.images?.large) {
+                const imageUrl = card.images.large || card.images.small;
+                console.log(`      ✅ Match found (partial)! "${card.name}" from ${card.set.series}`);
+                return imageUrl;
+              }
+            }
+          }
+        }
+        
+        console.log(`       ℹ️  No matches found for "${pattern}"`);
+      } catch (err) {
+        console.log(`       ⚠️  Request failed, trying next pattern...`);
+        continue;
+      }
+    }
+    
+    console.log(`    ⏭️  Pokemon TCG: all attempts exhausted, moving to next source`);
+  } catch (error) {
+    console.log(`    ⏭️  Pokemon TCG: skipped (unexpected error)`);
+  }
+  return null;
+}
+
 async function searchPriceCharting(cleanName: string, cardNumber?: string): Promise<string | null> {
   try {
     console.log(`    📍 PriceCharting (Sports Cards): searching for "${cleanName}"`);
@@ -241,12 +326,17 @@ async function searchMultipleSources(cardName: string, cardNumber?: string): Pro
     if (pokemonMatch) {
       console.log(`  🎮 Pokémon detected: ${pokemonMatch.name} (Type: ${pokemonMatch.type.join("/")})`);
       console.log(`  📊 Stats Total: ${pokemonMatch.total} | HP: ${pokemonMatch.hp}`);
+      console.log(`  🔄 Prioritizing Pokemon TCG API for official card data...\n`);
+
+      // Try Pokemon TCG API first for Pokemon cards - official source
+      const pokemonTCGResult = await searchPokemonTCG(cleanName, cardNumber);
+      if (pokemonTCGResult) return pokemonTCGResult;
     }
     
     console.log(`  📝 Searching for: "${cleanName}"`);
-    console.log(`  🌐 Querying 3 primary sources in order...\n`);
+    console.log(`  🌐 Querying primary sources in order...\n`);
 
-    // Try sources in order: PriceCharting, Trading Card Database, TCGPlayer
+    // Try remaining sources: PriceCharting, Trading Card Database, TCGPlayer
     const sources = [
       { name: 'PriceCharting', fn: searchPriceCharting },
       { name: 'Trading Card Database', fn: searchTradingCardDatabase },
@@ -258,7 +348,7 @@ async function searchMultipleSources(cardName: string, cardNumber?: string): Pro
       if (result) return result;
     }
 
-    console.log(`  ❌ Image not found - all 3 sources exhausted (try CSV upload or manual URL entry)\n`);
+    console.log(`  ❌ Image not found - all sources exhausted (try CSV upload or manual URL entry)\n`);
     return null;
   } catch (error) {
     console.error("Search error:", error);
