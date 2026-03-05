@@ -97,19 +97,6 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
     ];
 
     const selected = imageCandidates.find((candidate) => isRenderableImageUrl(candidate));
-
-    // Always log so we can see what fields are populated
-    console.log(`[CollectionManager] ${card.name} - Image fields:`, {
-      imageUrl: card.imageUrl || "(empty)",
-      photoUrl: card.photoUrl || "(empty)",
-      frontImageUrl: card.frontImageUrl || "(empty)",
-      thumbnailUrl: card.thumbnailUrl || "(empty)",
-      cardImage: (card as any).cardImage || "(empty)",
-      image: (card as any).image || "(empty)",
-      imagePath: (card as any).imagePath || "(empty)",
-      selected: selected || "(all empty - using placeholder)"
-    });
-
     return selected || "/placeholder-card.svg";
   };
 
@@ -255,12 +242,8 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
                         className="collection-card-thumb"
                         onError={(event) => {
                           const target = event.currentTarget;
-                          console.log(`[CollectionManager] Image FAILED: ${target.src} (card: ${card.name})`);
                           if (target.src.endsWith("/placeholder-card.svg")) return;
                           target.src = "/placeholder-card.svg";
-                        }}
-                        onLoad={(event) => {
-                          console.log(`[CollectionManager] Image LOADED: ${event.currentTarget.src} (card: ${card.name})`);
                         }}
                       />
                     </td>

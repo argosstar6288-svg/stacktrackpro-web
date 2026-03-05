@@ -157,16 +157,6 @@ async function normalizeCardImage(card: Card): Promise<Card> {
       card.imagePath,
     ];
 
-    console.log(`[normalizeCardImage] ${card.name} - RAW fields BEFORE normalization:`, {
-      imageUrl: card.imageUrl || "(empty)",
-      photoUrl: card.photoUrl || "(empty)",
-      frontImageUrl: card.frontImageUrl || "(empty)",
-      thumbnailUrl: card.thumbnailUrl || "(empty)",
-      cardImage: card.cardImage || "(empty)",
-      image: card.image || "(empty)",
-      imagePath: card.imagePath || "(empty)",
-    });
-
     for (const candidate of imageCandidates) {
       try {
         const resolved = await Promise.race([
@@ -174,7 +164,6 @@ async function normalizeCardImage(card: Card): Promise<Card> {
           new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)) // 5 sec timeout
         ]);
         if (resolved) {
-          console.log(`[normalizeCardImage] ${card.name} - RESOLVED to:`, resolved);
           return {
             ...card,
             imageUrl: resolved,
@@ -186,7 +175,6 @@ async function normalizeCardImage(card: Card): Promise<Card> {
       }
     }
 
-    console.log(`[normalizeCardImage] ${card.name} - Could not resolve any image URL`);
     return card;
   } catch (err) {
     console.error("[normalizeCardImage] Error normalizing card:", card.id, err);
@@ -215,8 +203,6 @@ export function useUserCards() {
             ...doc.data(),
           } as Card));
 
-          console.log("[useUserCards] Loaded", rawCards.length, "cards from Firestore");
-          
           const normalizedCards = await Promise.allSettled(
             rawCards.map((card) => normalizeCardImage(card))
           );
@@ -225,7 +211,6 @@ export function useUserCards() {
             .filter((result) => result.status === "fulfilled")
             .map((result) => (result as PromiseFulfilledResult<Card>).value);
           
-          console.log("[useUserCards] Normalized", successfulCards.length, "cards (failed:", normalizedCards.length - successfulCards.length, ")");
           setCards(successfulCards);
           setLoading(false);
         } catch (error) {
@@ -366,8 +351,6 @@ export async function getCardsInFolder(folderId: string, userId: string): Promis
       id: cardDoc.id,
       ...cardDoc.data(),
     } as Card));
-
-    console.log("[getCardsInFolder] Loaded", cards.length, "cards for folder", folderId);
 
     const normalizedCards = await Promise.allSettled(
       cards.map((card) => normalizeCardImage(card))
