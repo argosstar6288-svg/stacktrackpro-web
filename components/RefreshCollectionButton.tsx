@@ -51,10 +51,18 @@ export function RefreshCollectionButton() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to refresh collection values");
+        let message = "Failed to refresh collection values";
+        try {
+          const errorData = await response.json();
+          if (errorData?.error) {
+            message = errorData.error;
+          }
+        } catch {
+        }
+        throw new Error(message);
       }
 
-      const data = await response.json();
+      await response.json();
       
       setLastRefresh(new Date());
       setNeedsUpdate(false);

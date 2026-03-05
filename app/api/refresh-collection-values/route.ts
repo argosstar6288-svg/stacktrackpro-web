@@ -16,21 +16,19 @@ import { refreshAllUserCollectionValues, refreshUserCollectionValues } from "@/l
  */
 export async function POST(request: NextRequest) {
   try {
-    // Optional: Add authorization check
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId");
+    const refreshAll = searchParams.get("all") === "true";
     const authHeader = request.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
-    
-    // Verify cron secret if configured
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+
+    // Protect global refresh endpoint; allow user-specific refresh from UI
+    if (refreshAll && cronSecret && authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
-
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
-    const refreshAll = searchParams.get("all") === "true";
 
     let result;
 
