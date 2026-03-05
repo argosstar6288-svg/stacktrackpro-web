@@ -32,6 +32,12 @@ export default function CardItem({ card, badge, onClick, className }: CardItemPr
     console.log(`[CardItem] Card: ${cardName}, ImageURL:`, imageUrl);
   }
 
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    // Fallback to placeholder if image fails to load
+    e.currentTarget.src = "/placeholder-card.svg";
+    console.warn(`[CardItem] Failed to load image: ${imageUrl}, using placeholder`);
+  };
+
   return (
     <div 
       className={`${styles.cardItem} ${className || ""}`}
@@ -47,8 +53,21 @@ export default function CardItem({ card, badge, onClick, className }: CardItemPr
           height={420}
           sizes="(max-width: 768px) 100vw, 400px"
           className={styles.cardImage}
+          onError={handleImageError}
           unoptimized
         />
+        {/* Hover preview - larger image display */}
+        <div className={styles.hoverPreview}>
+          <Image
+            src={imageUrl}
+            alt={cardName}
+            width={480}
+            height={680}
+            className={styles.previewImage}
+            onError={handleImageError}
+            unoptimized
+          />
+        </div>
         {badge && <div className={styles.badge}>{badge}</div>}
       </div>
 
