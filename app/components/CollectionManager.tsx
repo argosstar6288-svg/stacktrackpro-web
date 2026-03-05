@@ -78,6 +78,44 @@ async function searchMultipleSources(cardName: string): Promise<string | null> {
       // Continue
     }
 
+    // Try PriceCharting for sports cards
+    try {
+      const searchPatterns = [
+        cleanName,
+        cleanName.replace(/\s+\d{4}$/, ""),
+        cleanName.split(" ").slice(0, 3).join(" "),
+      ];
+
+      for (const pattern of searchPatterns) {
+        try {
+          const url = `https://www.pricecharting.com/api/product?t=${encodeURIComponent(pattern)}`;
+          const response = await fetch(url, {
+            headers: { 'Accept': 'application/json' }
+          });
+          
+          if (!response.ok) continue;
+          const data = await response.json();
+          
+          if (data.image_url || data.image || data.photo_url || data.thumbnail) {
+            console.log(`  ✓ Found in PriceCharting`);
+            return data.image_url || data.image || data.photo_url || data.thumbnail;
+          }
+          
+          if (data.products?.length > 0) {
+            const product = data.products[0];
+            if (product.image_url || product.image || product.photo) {
+              console.log(`  ✓ Found in PriceCharting (products)`);
+              return product.image_url || product.image || product.photo;
+            }
+          }
+        } catch (err) {
+          continue;
+        }
+      }
+    } catch (error) {
+      // Continue
+    }
+
     // Try YGOProDeck for Yu-Gi-Oh
     try {
       const url = `https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(cleanName)}`;

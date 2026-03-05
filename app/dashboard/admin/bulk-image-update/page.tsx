@@ -186,6 +186,59 @@ async function searchMagicGatherer(cleanName: string): Promise<string | null> {
   return null;
 }
 
+async function searchPriceCharting(cleanName: string): Promise<string | null> {
+  try {
+    console.log(`    [PriceCharting] Searching for: "${cleanName}"`);
+    
+    // PriceCharting search - try multiple patterns for sports cards
+    const searchPatterns = [
+      cleanName,
+      cleanName.replace(/\s+\d{4}$/, ""), // Remove year from end
+      cleanName.split(" ").slice(0, 3).join(" "), // First 3 words
+    ];
+
+    for (const pattern of searchPatterns) {
+      try {
+        // Try direct product search endpoint
+        const url = `https://www.pricecharting.com/api/product?t=${encodeURIComponent(pattern)}`;
+        const response = await fetch(url, {
+          headers: {
+            'Accept': 'application/json',
+          }
+        });
+        
+        if (!response.ok) continue;
+        
+        const data = await response.json();
+        
+        // Check various possible image field names
+        if (data.image_url || data.image || data.photo_url || data.thumbnail) {
+          const imageUrl = data.image_url || data.image || data.photo_url || data.thumbnail;
+          console.log(`      ✓ Found in PriceCharting`);
+          return imageUrl;
+        }
+        
+        // Check if data has products array
+        if (data.products?.length > 0) {
+          const product = data.products[0];
+          if (product.image_url || product.image || product.photo) {
+            console.log(`      ✓ Found in PriceCharting (products)`);
+            return product.image_url || product.image || product.photo;
+          }
+        }
+      } catch (err) {
+        // Try next pattern
+        continue;
+      }
+    }
+    
+    console.log(`    [PriceCharting] No results`);
+  } catch (error) {
+    console.log(`    [PriceCharting] Error:`, error);
+  }
+  return null;
+}
+
 async function searchMultipleSources(cardName: string): Promise<string | null> {
   try {
     console.log(`\n🔍 Searching for: "${cardName}"`);
@@ -210,6 +263,7 @@ async function searchMultipleSources(cardName: string): Promise<string | null> {
     const sources = [
       searchPokemonTCG,
       searchPokellector,
+      searchPriceCharting,
       searchBulbapedia,
       searchSCRYFall,
       searchMagicGatherer,
@@ -311,7 +365,7 @@ export default function BulkImageUpdatePage() {
       <h1 style={{ marginBottom: "1rem", color: "#10b3f0" }}>Bulk Image Update</h1>
 
       <div style={{ backgroundColor: "#3a2a2a", padding: "1rem", borderRadius: "8px", marginBottom: "2rem", borderLeft: "4px solid #ff7a47" }}>
-        <strong>ℹ️ Multiple Data Sources:</strong> Searches across <strong>Pokémon TCG</strong>, <strong>Pokellector</strong>, <strong>Bulbapedia</strong>, <strong>Scryfall</strong>, <strong>Magic Gatherer</strong>, <strong>YGOProDeck</strong>, and <strong>Deckbox</strong>. Supports Pokémon cards, Magic, Yu-Gi-Oh, and more. Use CSV upload for manual image URLs.
+        <strong>ℹ️ Multiple Data Sources:</strong> Searches across <strong>Pokémon TCG</strong>, <strong>Pokellector</strong>, <strong>PriceCharting</strong>, <strong>Scryfall</strong>, <strong>Magic Gatherer</strong>, <strong>YGOProDeck</strong>, and <strong>Deckbox</strong>. Supports Pokémon, sports cards, Magic, Yu-Gi-Oh, and more!
       </div>
 
       <div style={{ backgroundColor: "#222", padding: "1.5rem", borderRadius: "8px", marginBottom: "2rem" }}>
