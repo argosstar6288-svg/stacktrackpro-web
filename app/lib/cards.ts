@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, getDocs, arrayUnion, arrayRemove } from "firebase/firestore";
-import { db } from "./firebase";
+import { getDownloadURL, ref } from "firebase/storage";
+import { db, storage } from "./firebase";
 import { useCurrentUser } from "./useCurrentUser";
 
 export interface Card {
@@ -34,6 +35,59 @@ export interface Folder {
   createdAt?: any;
 }
 
+function isRenderableImageUrl(value?: string): boolean {
+  if (!value || typeof value !== "string") return false;
+  const trimmed = value.trim();
+
+  return (
+    trimmed.startsWith("https://") ||
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("data:image/") ||
+    trimmed.startsWith("blob:") ||
+    trimmed.startsWith("/")
+  );
+}
+
+function isStorageReference(value?: string): boolean {
+  if (!value || typeof value !== "string") return false;
+  const trimmed = value.trim();
+
+  return trimmed.startsWith("gs://") || (!trimmed.startsWith("http") && trimmed.includes("/"));
+}
+
+async function resolveStorageImageUrl(value?: string): Promise<string | null> {
+  if (!value) return null;
+
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  if (isRenderableImageUrl(trimmed)) return trimmed;
+  if (!isStorageReference(trimmed)) return null;
+
+  try {
+    const storageRef = ref(storage, trimmed);
+    return await getDownloadURL(storageRef);
+  } catch {
+    return null;
+  }
+}
+
+async function normalizeCardImage(card: Card): Promise<Card> {
+  const imageCandidates = [card.imageUrl, card.photoUrl, card.frontImageUrl, card.thumbnailUrl];
+
+  for (const candidate of imageCandidates) {
+    const resolved = await resolveStorageImageUrl(candidate);
+    if (resolved) {
+      return {
+        ...card,
+        imageUrl: resolved,
+      };
+    }
+  }
+
+  return card;
+}
+
 export function useUserCards() {
   const { user } = useCurrentUser();
   const [cards, setCards] = useState<Card[]>([]);
@@ -48,12 +102,16 @@ export function useUserCards() {
 
     const q = query(collection(db, "cards"), where("userId", "==", user.uid));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      } as Card));
-      setCards(data);
-      setLoading(false);
+      void (async () => {
+        const rawCards = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        } as Card));
+
+        const normalizedCards = await Promise.all(rawCards.map((card) => normalizeCardImage(card)));
+        setCards(normalizedCards);
+        setLoading(false);
+      })();
     });
 
     return () => unsubscribe();
@@ -178,10 +236,12 @@ export async function getCardsInFolder(folderId: string, userId: string): Promis
   );
   const snapshot = await getDocs(cardsQuery);
 
-  return snapshot.docs.map((cardDoc) => ({
+  const cards = snapshot.docs.map((cardDoc) => ({
     id: cardDoc.id,
     ...cardDoc.data(),
   } as Card));
+
+  return Promise.all(cards.map((card) => normalizeCardImage(card)));
 }
 
 export function useUserFolders() {

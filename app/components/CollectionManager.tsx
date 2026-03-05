@@ -238,6 +238,11 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
                         src={resolveCardImageUrl(card)}
                         alt={card.name}
                         className="collection-card-thumb"
+                        onError={(event) => {
+                          const target = event.currentTarget;
+                          if (target.src.endsWith("/placeholder-card.svg")) return;
+                          target.src = "/placeholder-card.svg";
+                        }}
                       />
                     </td>
                     <td>
