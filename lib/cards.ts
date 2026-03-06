@@ -19,6 +19,8 @@ export interface Card {
   userId: string;
   name: string;
   value: number;
+  marketPrice?: number; // Current market price from PriceCharting
+  priceLastUpdated?: string; // ISO date string of last price fetch
   rarity: "Common" | "Uncommon" | "Rare" | "Legendary";
   sport?: string;
   year?: number;
