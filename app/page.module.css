@@ -26,10 +26,11 @@
   right: -20%;
   width: 600px;
   height: 600px;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.15), transparent 70%);
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.35), transparent 70%);
   border-radius: 50%;
   pointer-events: none;
   z-index: 0;
+  filter: blur(1px);
 }
 
 .page::after {
@@ -39,10 +40,11 @@
   left: -10%;
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(168, 85, 247, 0.12), transparent 70%);
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.30), transparent 70%);
   border-radius: 50%;
   pointer-events: none;
   z-index: 0;
+  filter: blur(1px);
 }
 
 .main {
