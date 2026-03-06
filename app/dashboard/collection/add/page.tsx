@@ -105,71 +105,54 @@ export default function CollectionAddPage() {
   };
 
   const handleScanComplete = async (results: any[]) => {
-    setShowScanner(false);
-    
-    if (results.length === 1) {
-      // Single card - populate the form
-      const result = results[0];
-      const scannedImage =
-        (typeof result?.imageUrl === "string" && result.imageUrl) ||
-        (typeof result?.photoUrl === "string" && result.photoUrl) ||
-        "";
+    if (!results.length) {
+      setShowScanner(false);
+      setError("No scan results were returned.");
+      return;
+    }
 
-      setFormData({
-        name: result.name || "",
-        player: result.player || "",
-        brand: result.brand || "",
-        cardNumber: result.cardNumber || "",
-        year: result.year?.toString() || new Date().getFullYear().toString(),
-        sport: result.sport || "Baseball",
-        condition: result.condition || "Mint",
-        value: result.estimatedValue?.toString() || "",
-        rarity: "Uncommon",
-      });
-      setCardImagePreview(scannedImage);
-      setCardImageFile(null);
-      setError("");
-      setAddMethod("scan");
-    } else {
-      // Multiple cards - upload images to storage and save
-      try {
-        setSaving(true);
-        setError(`Saving ${results.length} cards...`);
-        
-        for (let i = 0; i < results.length; i++) {
-          const result = results[i];
-          setError(`Saving card ${i + 1} of ${results.length}...`);
-          
-          let imageUrl = PLACEHOLDER_IMAGE_URL;
-          const scannedImage =
-            (typeof result?.imageUrl === "string" && result.imageUrl) ||
-            (typeof result?.photoUrl === "string" && result.photoUrl) ||
-            "";
-          
-          if (scannedImage && scannedImage.startsWith("data:")) {
-            imageUrl = await uploadScannedImage(user.uid, result.name, scannedImage);
-          } else if (scannedImage) {
-            imageUrl = scannedImage;
-          }
-          
-          await addCard(user.uid, {
-            name: result.name,
-            value: result.estimatedValue,
-            rarity: "Uncommon",
-            player: result.player || "",
-            brand: result.brand || "",
-            year: result.year || new Date().getFullYear(),
-            sport: result.sport as Card["sport"],
-            condition: result.condition as Card["condition"],
-            imageUrl,
-          });
+    try {
+      setSaving(true);
+      setError(`Saving ${results.length} scanned card${results.length > 1 ? "s" : ""} to your collection...`);
+
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        setError(`Saving card ${i + 1} of ${results.length}...`);
+
+        let imageUrl = PLACEHOLDER_IMAGE_URL;
+        const scannedImage =
+          (typeof result?.imageUrl === "string" && result.imageUrl) ||
+          (typeof result?.photoUrl === "string" && result.photoUrl) ||
+          "";
+
+        if (scannedImage && scannedImage.startsWith("data:")) {
+          imageUrl = await uploadScannedImage(user.uid, result.name || "scanned-card", scannedImage);
+        } else if (scannedImage) {
+          imageUrl = scannedImage;
         }
-        
-        router.push("/dashboard/collection");
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to save cards");
-        setSaving(false);
+
+        await addCard(user.uid, {
+          name: result.name || "Scanned Card",
+          value: Number(result.estimatedValue || 0),
+          rarity: "Uncommon",
+          player: result.player || "",
+          cardNumber: result.cardNumber || "",
+          brand: result.brand || "",
+          year: Number(result.year) || new Date().getFullYear(),
+          sport: (result.sport || "Other") as Card["sport"],
+          condition: (result.condition || "Good") as Card["condition"],
+          imageUrl,
+          photoUrl: imageUrl,
+        });
       }
+
+      setShowScanner(false);
+      router.push("/dashboard/collection");
+    } catch (err) {
+      setShowScanner(false);
+      setError(err instanceof Error ? err.message : "Failed to save scanned cards");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -243,6 +226,8 @@ export default function CollectionAddPage() {
           Back to Collection
         </Link>
       </div>
+
+      {error && !showScanner && !addMethod && <div className={styles.error}>{error}</div>}
 
       {!addMethod && !showScanner && (
         <div className={styles.methodsGrid}>
