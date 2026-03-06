@@ -38,6 +38,8 @@ export default function CollectionPage() {
   const [selectedSport, setSelectedSport] = useState<string | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [scanSaveMessage, setScanSaveMessage] = useState("");
+  const [updatingPrices, setUpdatingPrices] = useState(false);
+  const [priceUpdateProgress, setPriceUpdateProgress] = useState({ current: 0, total: 0 });
 
   // Quick-create a default folder
   const handleQuickCreateFolder = async (folderName: string) => {
@@ -121,6 +123,94 @@ export default function CollectionPage() {
     }
   };
 
+  const handleBulkPriceUpdate = async () => {
+    if (!userId) return;
+
+    const confirmed = confirm(
+      "Update market prices for all cards in your collection?\n\n" +
+      "This will fetch current prices from PriceCharting.com.\n" +
+      "Note: Rate limit is 1 request per second. Large collections may take time."
+    );
+
+    if (!confirmed) return;
+
+    setUpdatingPrices(true);
+    setPriceUpdateProgress({ current: 0, total: 0 });
+
+    try {
+      // Import getUserCards and updateCard dynamically to avoid circular dependencies
+      const { getUserCards, updateCard } = await import("../../../lib/cards");
+      const cards = await getUserCards(userId);
+
+      if (cards.length === 0) {
+        alert("No cards found in your collection");
+        return;
+      }
+
+      setPriceUpdateProgress({ current: 0, total: cards.length });
+      let successCount = 0;
+      let failCount = 0;
+
+      for (let i = 0; i < cards.length; i++) {
+        const card = cards[i];
+        setPriceUpdateProgress({ current: i + 1, total: cards.length });
+
+        try {
+          const response = await fetch("/api/price-lookup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              cardName: card.name,
+              player: card.player || undefined,
+              year: card.year || undefined,
+              brand: card.brand || undefined,
+              sport: card.sport || undefined,
+              condition: card.condition || undefined,
+            }),
+          });
+
+          if (response.ok) {
+            const priceData = await response.json();
+            if (priceData.found && priceData.suggestedPrice && card.id) {
+              await updateCard(card.id, {
+                marketPrice: priceData.suggestedPrice,
+                priceLastUpdated: new Date().toISOString(),
+              });
+              successCount++;
+            } else {
+              failCount++;
+            }
+          } else {
+            failCount++;
+          }
+
+          // Rate limit: 1 request per second
+          if (i < cards.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        } catch (error) {
+          console.error(`Failed to update price for card ${card.name}:`, error);
+          failCount++;
+        }
+      }
+
+      alert(
+        `Price update complete!\n\n` +
+        `✓ Successfully updated: ${successCount} cards\n` +
+        `✗ Failed or not found: ${failCount} cards`
+      );
+
+      // Refresh the page to show updated prices
+      window.location.reload();
+    } catch (error) {
+      console.error("Bulk price update error:", error);
+      alert("Failed to update prices. Please try again.");
+    } finally {
+      setUpdatingPrices(false);
+      setPriceUpdateProgress({ current: 0, total: 0 });
+    }
+  };
+
   if (isLoading) {
     return <div className={styles.loading}>Loading...</div>;
   }
@@ -136,6 +226,18 @@ export default function CollectionPage() {
           <div className={styles.search}>
             <input type="text" placeholder="Quick search..." />
           </div>
+          <button 
+            className={styles.addButton}
+            onClick={handleBulkPriceUpdate}
+            disabled={updatingPrices}
+            style={{ background: "rgba(34, 197, 94, 0.7)" }}
+            title="Update market prices for all cards"
+          >
+            {updatingPrices 
+              ? `💰 Updating... ${priceUpdateProgress.current}/${priceUpdateProgress.total}`
+              : "💰 Update Prices"
+            }
+          </button>
           <button 
             className={styles.addButton}
             onClick={() => router.push('/dashboard/collection/add')}

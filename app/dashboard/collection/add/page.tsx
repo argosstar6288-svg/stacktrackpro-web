@@ -22,6 +22,7 @@ export default function CollectionAddPage() {
   const [cardImageFile, setCardImageFile] = useState<File | null>(null);
   const [cardImagePreview, setCardImagePreview] = useState("");
   const [addMethod, setAddMethod] = useState<"scan" | "manual" | null>(null);
+  const [fetchingPrice, setFetchingPrice] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     value: "",
@@ -72,6 +73,51 @@ export default function CollectionAddPage() {
       ...prev,
       [name]: name === "value" ? (value ? Number(value) : "") : value,
     }));
+  };
+
+  const handleFetchPrice = async () => {
+    if (!formData.name) {
+      setError("Please enter a card name first");
+      return;
+    }
+
+    setFetchingPrice(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/price-lookup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cardName: formData.name,
+          player: formData.player || undefined,
+          year: formData.year ? Number(formData.year) : undefined,
+          brand: formData.brand || undefined,
+          sport: formData.sport || undefined,
+          condition: formData.condition || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch price");
+      }
+
+      const data = await response.json();
+
+      if (data.found && data.suggestedPrice) {
+        setFormData((prev) => ({
+          ...prev,
+          value: String(data.suggestedPrice),
+        }));
+        setError(`✓ Found market price: $${data.suggestedPrice} (${data.productName})`);
+      } else {
+        setError("⚠ Card not found in price database. Using estimated value.");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch market price");
+    } finally {
+      setFetchingPrice(false);
+    }
   };
 
   const dataUrlToBlob = (dataUrl: string): Blob => {
@@ -134,6 +180,8 @@ export default function CollectionAddPage() {
         await addCard(user.uid, {
           name: result.name || "Scanned Card",
           value: Number(result.estimatedValue || 0),
+          marketPrice: Number(result.estimatedValue || 0),
+          priceLastUpdated: new Date().toISOString(),
           rarity: "Uncommon",
           player: result.player || "",
           cardNumber: result.cardNumber || "",
@@ -338,14 +386,26 @@ export default function CollectionAddPage() {
 
           <label className={styles.field}>
             <span>Value (USD) *</span>
-            <input
-              name="value"
-              type="number"
-              value={formData.value}
-              onChange={handleChange}
-              placeholder="0"
-              required
-            />
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <input
+                name="value"
+                type="number"
+                value={formData.value}
+                onChange={handleChange}
+                placeholder="0"
+                required
+                style={{ flex: 1 }}
+              />
+              <button
+                type="button"
+                onClick={handleFetchPrice}
+                disabled={fetchingPrice || !formData.name}
+                className={styles.priceButton}
+                title="Fetch current market price"
+              >
+                {fetchingPrice ? "⏳" : "💰"}
+              </button>
+            </div>
           </label>
 
           <label className={styles.field}>

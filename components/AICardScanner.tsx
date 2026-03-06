@@ -321,6 +321,33 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
           if (!result.condition) result.condition = 'Good';
           if (!result.year) result.year = new Date().getFullYear();
           
+          // Fetch real-time market price from PriceCharting
+          try {
+            const priceResponse = await fetch("/api/price-lookup", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                cardName: result.name,
+                player: result.player,
+                year: result.year,
+                brand: result.brand,
+                sport: result.sport,
+                condition: result.condition,
+              }),
+            });
+            
+            if (priceResponse.ok) {
+              const priceData = await priceResponse.json();
+              if (priceData.found && priceData.suggestedPrice) {
+                result.estimatedValue = priceData.suggestedPrice;
+                console.log(`[Scanner] Updated price for "${result.name}": $${priceData.suggestedPrice}`);
+              }
+            }
+          } catch (priceError) {
+            // Don't fail the scan if price lookup fails
+            console.warn(`[Scanner] Price lookup failed for "${result.name}":`, priceError);
+          }
+          
           // Accept any result - even if confidence is low
           results.push(result);
         } catch (cardError) {

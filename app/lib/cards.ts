@@ -18,6 +18,8 @@ export interface Card {
   rarity: "Common" | "Uncommon" | "Rare" | "Legendary";
   condition: "Poor" | "Fair" | "Good" | "Excellent" | "Mint";
   value: number;
+  marketPrice?: number; // Current market price from PriceCharting
+  priceLastUpdated?: string; // ISO date string of last price fetch
   imageUrl?: string;
   photoUrl?: string;
   frontImageUrl?: string;
