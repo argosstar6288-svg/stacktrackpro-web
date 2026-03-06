@@ -41,19 +41,20 @@ export default function CardItem({ card, badge, onClick, className }: CardItemPr
       );
     };
 
+    // Prioritize high-quality image URLs first (TCG large images, then smaller variants)
     const candidates = [
-      card.imageUrl,
-      card.photoUrl,
-      card.frontImageUrl,
-      card.thumbnailUrl,
-      card.cardImage,
-      card.image,
-      card.imagePath,
+      card.image,           // TCG image URL (often highest quality)
+      card.imageUrl,        // Primary uploaded image
+      card.frontImageUrl,   // Front-facing scans
+      card.photoUrl,        // Photo uploads
+      card.cardImage,       // Alternative image field
+      card.thumbnailUrl,    // Thumbnails (lower priority)
+      card.imagePath,       // Storage paths
     ];
 
     const selectedUrl = candidates.find((candidate) => isRenderableImageUrl(candidate)) || "/placeholder-card.svg";
     return selectedUrl;
-  }, [card.cardImage, card.frontImageUrl, card.image, card.imagePath, card.imageUrl, card.photoUrl, card.thumbnailUrl]);
+  }, [card.image, card.imageUrl, card.frontImageUrl, card.photoUrl, card.cardImage, card.thumbnailUrl, card.imagePath]);
 
   const [currentImageUrl, setCurrentImageUrl] = useState(imageUrl);
 

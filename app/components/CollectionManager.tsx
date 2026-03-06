@@ -495,14 +495,15 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
       );
     };
 
+    // Prioritize high-quality image URLs first (TCG large images, then smaller variants)
     const imageCandidates = [
-      card.imageUrl,
-      card.photoUrl,
-      card.frontImageUrl,
-      card.thumbnailUrl,
-      (card as any).cardImage,
-      (card as any).image,
-      (card as any).imagePath,
+      (card as any).image,          // TCG image URL (often highest quality)
+      card.imageUrl,                 // Primary uploaded image
+      card.frontImageUrl,            // Front-facing scans
+      card.photoUrl,                 // Photo uploads
+      (card as any).cardImage,       // Alternative image field
+      card.thumbnailUrl,             // Thumbnails (lower priority)
+      (card as any).imagePath,       // Storage paths
     ];
 
     const selected = imageCandidates.find((candidate) => isRenderableImageUrl(candidate));
