@@ -83,10 +83,6 @@ export default function Sidebar() {
           );
         })}
       </nav>
-      <div className="sidebar-footer">
-        <p className="sidebar-user">Logged in as</p>
-        <p className="sidebar-user-name">Alex Morgan</p>
-      </div>
     </aside>
   );
 }
