@@ -37,6 +37,19 @@ function getScanErrorMessage(errorData: any): string {
     return "AI scanning is temporarily unavailable due to service billing limits. Please try again later or add cards manually.";
   }
 
+  if (errorData?.configurationError) {
+    return "AI scanning is temporarily unavailable on this deployment. Please try again in a minute.";
+  }
+
+  if (
+    String(errorData?.type || "").toLowerCase().includes("invalid_request_error") &&
+    (String(errorData?.error || "").toLowerCase().includes("couldn't read this image") ||
+      String(errorData?.message || "").toLowerCase().includes("couldn't read this image") ||
+      String(errorData?.error || "").toLowerCase().includes("unsupported image"))
+  ) {
+    return "We couldn't read this image. Please upload a clear JPG or PNG photo of a single card.";
+  }
+
   const normalized = errorMessage.toLowerCase();
   if (
     normalized.includes("insufficient_quota") ||
@@ -44,6 +57,14 @@ function getScanErrorMessage(errorData: any): string {
     normalized.includes("check your plan and billing")
   ) {
     return "AI scanning is temporarily unavailable due to service billing limits. Please try again later or add cards manually.";
+  }
+
+  if (
+    normalized.includes("not configured for this environment") ||
+    normalized.includes("api key not configured") ||
+    normalized.includes("temporarily unavailable on this deployment")
+  ) {
+    return "AI scanning is temporarily unavailable on this deployment. Please try again in a minute.";
   }
 
   return errorMessage;
@@ -58,6 +79,22 @@ function normalizeErrorText(rawMessage: string): string {
     normalized.includes("platform.openai.com/docs/guides/error-codes/api-errors")
   ) {
     return "AI scanning is temporarily unavailable due to service billing limits. Please try again later or add cards manually.";
+  }
+
+  if (
+    normalized.includes("not configured for this environment") ||
+    normalized.includes("api key not configured") ||
+    normalized.includes("temporarily unavailable on this deployment")
+  ) {
+    return "AI scanning is temporarily unavailable on this deployment. Please try again in a minute.";
+  }
+
+  if (
+    normalized.includes("unsupported image") ||
+    normalized.includes("couldn't read this image") ||
+    normalized.includes("image_parse_error")
+  ) {
+    return "We couldn't read this image. Please upload a clear JPG or PNG photo of a single card.";
   }
 
   return rawMessage;

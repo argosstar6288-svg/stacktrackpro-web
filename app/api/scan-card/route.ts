@@ -51,6 +51,7 @@ function isProviderQuotaError(errorPayload: any): boolean {
 export async function POST(request: NextRequest) {
   try {
     const { image, userId } = await request.json();
+    const runtimeEnv = process.env.VERCEL_ENV || process.env.NODE_ENV || "unknown";
 
     console.log("[AI Scan] Request received - Processing card scan");
     console.log("[AI Scan] OpenAI API Key Status:", process.env.OPENAI_API_KEY ? "FOUND" : "NOT FOUND");
@@ -119,17 +120,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for OpenAI API key
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey =
+      process.env.OPENAI_API_KEY?.trim() ||
+      process.env.OPENAI_API_KEY_PRODUCTION?.trim() ||
+      process.env.OPENAI_API_KEY_SECRET?.trim();
     if (!apiKey) {
       console.error("[AI Scan] OpenAI API key not found in environment variables");
       console.error("[AI Scan] Available env keys:", Object.keys(process.env).filter(k => k.includes('OPENAI') || k.includes('API')));
       return NextResponse.json(
         { 
-          error: "OpenAI API key not configured",
-          message: `AI scanning is not configured for this environment (${process.env.VERCEL_ENV || process.env.NODE_ENV || "unknown"}). Add OPENAI_API_KEY and redeploy.`,
-          debug: "OPENAI_API_KEY is missing from environment variables" 
+          error: "AI scanning is temporarily unavailable",
+          message: `AI scanning is temporarily unavailable on this deployment (${runtimeEnv}). Please try again shortly.`,
+          configurationError: true,
+          debug: "OPENAI_API_KEY is missing from environment variables"
         },
-        { status: 500 }
+        { status: 503 }
       );
     }
 
@@ -265,6 +270,16 @@ CONFIDENCE GUIDE:
             },
             { status: 503 }
           );
+        }
+
+        // Check for unsupported image / parsing errors
+        if (
+          fallbackError?.error?.code === "image_parse_error" ||
+          String(fallbackError?.error?.message || "").toLowerCase().includes("unsupported image") ||
+          String(fallbackError?.error?.message || "").toLowerCase().includes("image is valid")
+        ) {
+          userMessage = "We couldn't read this image. Please upload a clear JPG or PNG photo of a single card.";
+          debugInfo = "Unsupported or unreadable image format";
         }
 
         // Check for authentication errors
