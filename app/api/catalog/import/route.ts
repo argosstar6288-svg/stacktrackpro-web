@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { collection, doc, setDoc, writeBatch, getDocs, query, where } from "firebase/firestore";
+import { generateStackTrackId } from "@/lib/universal-card-id";
 
 interface ImportStats {
   total: number;
@@ -112,12 +113,23 @@ async function importPokemonCards(setId: string | undefined, limit: number, offs
 
     for (const card of data.data || []) {
       try {
+        // Generate universal StackTrack ID
+        const stacktrackId = generateStackTrackId({
+          game: "pokemon",
+          name: card.name,
+          year: parseInt(card.set.releaseDate?.split("-")[0] || "0"),
+          set: card.set.id || card.set.name,
+          cardNumber: card.number,
+        });
+
         const cardRef = doc(db, "cardCatalog", "pokemon", "cards", card.id);
 
         const cardData = {
+          stacktrackId,
           catalogId: card.id,
+          tcgplayerId: card.tcgplayer?.productId || null,
           name: card.name,
-          game: "pokemon",
+          game: "pokemon" as const,
           set: {
             id: card.set.id,
             name: card.set.name,
@@ -128,6 +140,7 @@ async function importPokemonCards(setId: string | undefined, limit: number, offs
           supertype: card.supertype,
           types: card.types || [],
           hp: card.hp || null,
+          year: parseInt(card.set.releaseDate?.split("-")[0] || "0"),
           images: {
             small: card.images?.small || null,
             large: card.images?.large || null,
@@ -193,18 +206,29 @@ async function importMagicCards(setCode: string | undefined, limit: number, offs
 
     for (const card of data.data || []) {
       try {
+        // Generate universal StackTrack ID
+        const stacktrackId = generateStackTrackId({
+          game: "magic",
+          name: card.name,
+          year: parseInt(card.released_at?.split("-")[0] || "0"),
+          set: card.set_name || card.set,
+          cardNumber: card.collector_number,
+        });
+
         const cardRef = doc(db, "cardCatalog", "magic", "cards", card.id);
 
         const cardData = {
+          stacktrackId,
           catalogId: card.id,
           name: card.name,
-          game: "magic",
+          game: "magic" as const,
           set: {
             code: card.set,
             name: card.set_name,
           },
           cardNumber: card.collector_number,
           rarity: card.rarity,
+          year: parseInt(card.released_at?.split("-")[0] || "0"),
           manaCost: card.mana_cost || null,
           type: card.type_line,
           colors: card.colors || [],
@@ -276,12 +300,23 @@ async function importYuGiOhCards(setName: string | undefined, limit: number, off
 
     for (const card of cards.slice(offset, offset + limit)) {
       try {
+        // Generate universal StackTrack ID
+        const firstSet = card.card_sets?.[0];
+        const stacktrackId = generateStackTrackId({
+          game: "yugioh",
+          name: card.name,
+          year: 0, // Yu-Gi-Oh doesn't provide consistent year data
+          set: firstSet?.set_name || "unknown",
+          cardNumber: firstSet?.set_code || String(card.id),
+        });
+
         const cardRef = doc(db, "cardCatalog", "yugioh", "cards", String(card.id));
 
         const cardData = {
+          stacktrackId,
           catalogId: String(card.id),
           name: card.name,
-          game: "yugioh",
+          game: "yugioh" as const,
           type: card.type,
           race: card.race,
           attribute: card.attribute || null,

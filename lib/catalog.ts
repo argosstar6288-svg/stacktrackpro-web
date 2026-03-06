@@ -4,21 +4,43 @@ import { db } from "./firebase";
 import { collection, doc, getDoc, getDocs, query, where, orderBy, limit } from "firebase/firestore";
 
 export interface CatalogCard {
-  catalogId: string;
+  // Universal StackTrack ID (primary identifier)
+  stacktrackId: string;
+  
+  // External IDs for API mapping
+  catalogId: string; // Pokemon TCG ID, Scryfall ID, etc.
+  tcgplayerId?: string;
+  pricechartingId?: string;
+  psaId?: string;
+  
+  // Core card data
   name: string;
   game: "pokemon" | "magic" | "yugioh" | "sports";
   set: any;
   cardNumber?: string;
   rarity?: string;
+  
+  // Sports card specific
+  player?: string;
+  team?: string;
+  sport?: string;
+  brand?: string;
+  
+  // Images
   images: {
     small: string | null;
     large: string | null;
   };
+  
+  // Pricing
   pricing?: {
     market: number;
     lastUpdated: string;
   };
+  
+  // Search optimization
   searchTerms: string[];
+  year?: number;
 }
 
 /**
@@ -62,15 +84,24 @@ export async function searchCatalog(
         }
 
         results.push({
+          stacktrackId: data.stacktrackId || "",
           catalogId: data.catalogId || docSnap.id,
+          tcgplayerId: data.tcgplayerId,
+          pricechartingId: data.pricechartingId,
+          psaId: data.psaId,
           name: data.name,
           game: data.game,
           set: data.set,
           cardNumber: data.cardNumber,
           rarity: data.rarity,
+          player: data.player,
+          team: data.team,
+          sport: data.sport,
+          brand: data.brand,
           images: data.images || { small: null, large: null },
           pricing: data.pricing,
           searchTerms: data.searchTerms || [],
+          year: data.year,
         });
 
         if (results.length >= maxResults) break;
@@ -102,15 +133,24 @@ export async function getCardFromCatalog(
 
     const data = cardSnap.data();
     return {
+      stacktrackId: data.stacktrackId || "",
       catalogId: data.catalogId || cardSnap.id,
+      tcgplayerId: data.tcgplayerId,
+      pricechartingId: data.pricechartingId,
+      psaId: data.psaId,
       name: data.name,
       game: data.game,
       set: data.set,
       cardNumber: data.cardNumber,
       rarity: data.rarity,
+      player: data.player,
+      team: data.team,
+      sport: data.sport,
+      brand: data.brand,
       images: data.images || { small: null, large: null },
       pricing: data.pricing,
       searchTerms: data.searchTerms || [],
+      year: data.year,
     };
   } catch (error) {
     console.error("Error getting card from catalog:", error);
