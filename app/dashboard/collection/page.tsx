@@ -37,6 +37,7 @@ export default function CollectionPage() {
   const [creating, setCreating] = useState(false);
   const [selectedSport, setSelectedSport] = useState<string | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+  const [scanSaveMessage, setScanSaveMessage] = useState("");
 
   // Quick-create a default folder
   const handleQuickCreateFolder = async (folderName: string) => {
@@ -71,6 +72,24 @@ export default function CollectionPage() {
     });
 
     return () => unsubscribe();
+  }, [router]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    const savedFromScan = params.get("savedFromScan");
+    const savedCountRaw = params.get("savedCount");
+    const savedCount = Number(savedCountRaw || 0);
+
+    if (savedFromScan !== "1" || !Number.isFinite(savedCount) || savedCount <= 0) {
+      return;
+    }
+
+    setScanSaveMessage(
+      `Saved ${savedCount} scanned card${savedCount > 1 ? "s" : ""} to your collection.`
+    );
+    router.replace("/dashboard/collection", { scroll: false });
   }, [router]);
 
   const handleCreateFolder = async () => {
@@ -139,6 +158,20 @@ export default function CollectionPage() {
           </button>
         </div>
       </div>
+
+      {scanSaveMessage && (
+        <div className={styles.scanSavedToast} role="status" aria-live="polite">
+          <span>{scanSaveMessage}</span>
+          <button
+            type="button"
+            className={styles.scanSavedToastClose}
+            onClick={() => setScanSaveMessage("")}
+            aria-label="Dismiss success message"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* REFRESH BUTTON */}
       <RefreshCollectionButton />

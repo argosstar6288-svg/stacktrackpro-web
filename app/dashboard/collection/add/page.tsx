@@ -147,7 +147,7 @@ export default function CollectionAddPage() {
       }
 
       setShowScanner(false);
-      router.push("/dashboard/collection");
+      router.push(`/dashboard/collection?savedFromScan=1&savedCount=${results.length}`);
     } catch (err) {
       setShowScanner(false);
       setError(err instanceof Error ? err.message : "Failed to save scanned cards");
