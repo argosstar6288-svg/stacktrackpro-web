@@ -48,7 +48,37 @@ function isProviderQuotaError(errorPayload: any): boolean {
   );
 }
 
+// Helper function to add CORS headers to all responses
+function corsResponse(data: any, status: number = 200): NextResponse {
+  return NextResponse.json(data, {
+    status,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Content-Type": "application/json",
+    },
+  });
+}
+
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Max-Age": "86400",
+    },
+  });
+}
+
 export async function POST(request: NextRequest) {
+  const response = new NextResponse(null);
+  response.headers.set("Access-Control-Allow-Origin", "*");
+  response.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
   try {
     const { image, userId } = await request.json();
     const runtimeEnv = process.env.VERCEL_ENV || process.env.NODE_ENV || "unknown";
@@ -65,10 +95,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!userId) {
-      return NextResponse.json(
-        { error: "User ID required" },
-        { status: 400 }
-      );
+      return corsResponse({ error: "User ID required" }, 400);
     }
 
     // Check user quota
@@ -113,10 +140,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (typeof image === "string" && image.length > 5_000_000) {
-      return NextResponse.json(
-        { error: "Image too large. Please upload a smaller or cropped photo." },
-        { status: 413 }
-      );
+      return corsResponse({ error: "Image too large. Please upload a smaller or cropped photo." }, 413);
     }
 
     // Check for OpenAI API key
