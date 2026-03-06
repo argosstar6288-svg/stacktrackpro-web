@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { collectionGroup, onSnapshot, query, where } from "firebase/firestore";
-import { db } from "../../lib/firebase";
+import { signOut } from "firebase/auth";
+import { auth, db } from "../../lib/firebase";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import { isAdminEmail } from "../../lib/adminAccess";
 
@@ -22,6 +24,7 @@ const navItems = [
 
 export default function Sidebar() {
   const { user } = useCurrentUser();
+  const router = useRouter();
   const [inboxUnread, setInboxUnread] = useState(0);
 
   useEffect(() => {
@@ -49,6 +52,15 @@ export default function Sidebar() {
 
     return () => unsubscribe();
   }, [user]);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push("/login");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
 
   return (
     <aside className="dashboard-sidebar">
@@ -83,6 +95,34 @@ export default function Sidebar() {
           );
         })}
       </nav>
+      <div className="sidebar-footer">
+        <button 
+          onClick={handleLogout}
+          className="sidebar-logout-btn"
+          style={{
+            width: "100%",
+            padding: "12px 20px",
+            background: "rgba(255, 255, 255, 0.1)",
+            border: "1px solid rgba(255, 255, 255, 0.2)",
+            borderRadius: "8px",
+            color: "white",
+            cursor: "pointer",
+            fontSize: "14px",
+            fontWeight: "500",
+            transition: "all 0.2s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)";
+            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.3)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
+            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.2)";
+          }}
+        >
+          Log Out
+        </button>
+      </div>
     </aside>
   );
 }
