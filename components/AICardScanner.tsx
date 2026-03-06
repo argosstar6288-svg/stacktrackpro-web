@@ -351,10 +351,15 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
         await incrementScanCount();
       }
 
+      // Reset scanning state before completing
+      setScanning(false);
+      setScanProgress({ current: 0, total: 0 });
+      
       onScanComplete(results);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to scan cards");
       setScanning(false);
+      setScanProgress({ current: 0, total: 0 });
     }
   };
 
