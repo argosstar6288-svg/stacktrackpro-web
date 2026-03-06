@@ -124,14 +124,14 @@ export async function POST(request: NextRequest) {
         const snapshot = await getDocs(q);
         console.log(`[DNA Match] Found ${snapshot.size} cards in ${game}`);
 
-        for (const docSnap of snapshot.docs) {
-          const cardData = docSnap.data();
+        snapshot.docs.forEach(docSnap => {
+          const cardData = docSnap.data() as any;
           catalogCards.push({
             catalogId: docSnap.id,
-            stacktrackId: cardData.stacktrackId,
-            name: cardData.name,
-            game: cardData.game,
-            set: cardData.set,
+            stacktrackId: cardData.stacktrackId || "",
+            name: cardData.name || "",
+            game: cardData.game || game,
+            set: cardData.set || {},
             cardNumber: cardData.cardNumber,
             year: cardData.year,
             player: cardData.player,
@@ -140,10 +140,10 @@ export async function POST(request: NextRequest) {
             brand: cardData.brand,
             type: cardData.type,
             dna: cardData.dna,
-            images: cardData.images,
+            images: cardData.images || { small: null, large: null },
             pricing: cardData.pricing,
           });
-        }
+        });
       } catch (error) {
         console.error(`[DNA Match] Error searching ${game}:`, error);
       }
