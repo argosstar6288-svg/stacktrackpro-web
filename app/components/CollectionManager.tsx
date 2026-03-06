@@ -648,9 +648,9 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
                   >
                     <td>
                       <img
-                        src={resolveCardImageUrl(card)}
+                        src={resolveCardImageUrl(card) || "/placeholder-card.svg"}
                         alt={card.name}
-                        className="collection-card-thumb"
+                        className="collection-card-thumb w-full rounded"
                         onError={(event) => {
                           const target = event.currentTarget;
                           if (target.src.endsWith("/placeholder-card.svg")) return;

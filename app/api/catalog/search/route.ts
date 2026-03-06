@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, orderBy, limit as firestoreLimit } from "firebase/firestore";
+import { cleanText } from "@/lib/card-dna";
 
 interface SearchResult {
   catalogId: string;
@@ -44,14 +45,17 @@ export async function GET(request: NextRequest) {
     const setFilter = searchParams.get("set");
     const limit = parseInt(searchParams.get("limit") || "20");
 
-    if (!searchQuery || searchQuery.length < 2) {
+    const cleanedQuery = cleanText(searchQuery || "");
+    const cleanedSetFilter = setFilter ? cleanText(setFilter) : null;
+
+    if (!cleanedQuery || cleanedQuery.length < 2) {
       return corsResponse({ error: "Search query must be at least 2 characters" }, 400);
     }
 
-    console.log(`[Catalog Search] Query: "${searchQuery}", Game: ${gameFilter || "all"}, Limit: ${limit}`);
+    console.log(`[Catalog Search] Query: "${cleanedQuery}", Game: ${gameFilter || "all"}, Limit: ${limit}`);
 
     const results: SearchResult[] = [];
-    const searchTermLower = searchQuery.toLowerCase();
+    const searchTermLower = cleanedQuery;
 
     // Determine which games to search
     const gamesToSearch = gameFilter 
@@ -61,7 +65,7 @@ export async function GET(request: NextRequest) {
     // Search each game catalog
     for (const game of gamesToSearch) {
       try {
-        const gameResults = await searchGameCatalog(game, searchTermLower, setFilter, limit);
+        const gameResults = await searchGameCatalog(game, searchTermLower, cleanedSetFilter, limit);
         results.push(...gameResults);
       } catch (error) {
         console.error(`[Catalog Search] Error searching ${game}:`, error);
@@ -78,7 +82,7 @@ export async function GET(request: NextRequest) {
     console.log(`[Catalog Search] Found ${limitedResults.length} results`);
 
     return corsResponse({
-      query: searchQuery,
+      query: cleanedQuery,
       results: limitedResults,
       totalFound: limitedResults.length,
       timestamp: new Date().toISOString(),

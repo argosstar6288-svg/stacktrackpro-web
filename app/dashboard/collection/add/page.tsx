@@ -5,13 +5,34 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { addCard, type Card } from "../../../../lib/cards";
-import { storage } from "../../../../lib/firebase";
+import { db, storage } from "../../../../lib/firebase";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { addDoc, collection } from "firebase/firestore";
 import { useCurrentUser } from "../../../../lib/useCurrentUser";
+import { generateStackTrackId } from "../../../../lib/universal-card-id";
 import AICardScanner from "../../../../components/AICardScanner";
 import styles from "./collection-add.module.css";
 
 const PLACEHOLDER_IMAGE_URL = "/placeholder-card.svg";
+
+interface PossibleMatch {
+  id: string;
+  cardId: string;
+  name: string;
+  player?: string;
+  year?: number;
+  brand?: string;
+  sport?: string;
+  cardNumber?: string;
+  imageUrl?: string;
+  confidence?: number;
+}
+
+interface PendingScanMatch {
+  scanResult: any;
+  possibleMatches: PossibleMatch[];
+  selectedMatchId: string;
+}
 
 export default function CollectionAddPage() {
   const router = useRouter();
@@ -19,6 +40,7 @@ export default function CollectionAddPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [showScanner, setShowScanner] = useState(false);
+  const [pendingScanMatches, setPendingScanMatches] = useState<PendingScanMatch[]>([]);
   const [cardImageFile, setCardImageFile] = useState<File | null>(null);
   const [cardImagePreview, setCardImagePreview] = useState("");
   const [addMethod, setAddMethod] = useState<"scan" | "manual" | null>(null);
@@ -150,6 +172,108 @@ export default function CollectionAddPage() {
     }
   };
 
+  const getSafeSport = (value: string): Card["sport"] => {
+    const normalized = String(value || "Other").toLowerCase();
+    if (normalized.includes("baseball")) return "Baseball";
+    if (normalized.includes("basketball")) return "Basketball";
+    if (normalized.includes("football")) return "Football";
+    if (normalized.includes("hockey")) return "Hockey";
+    if (normalized.includes("soccer")) return "Soccer";
+    return "Other";
+  };
+
+  const buildFallbackCardId = (result: any): string =>
+    generateStackTrackId({
+      game: result?.sport || "sports",
+      name: result?.name || "Scanned Card",
+      player: result?.player || "Unknown",
+      year: result?.year || new Date().getFullYear(),
+      set: result?.brand || "unknown",
+      cardNumber: result?.cardNumber || "0",
+      sport: result?.sport || "other",
+    });
+
+  const handleSelectMatch = (scanIndex: number, selectedMatchId: string) => {
+    setPendingScanMatches((previous) =>
+      previous.map((entry, index) =>
+        index === scanIndex
+          ? { ...entry, selectedMatchId }
+          : entry
+      )
+    );
+  };
+
+  const handleSaveSelectedMatches = async () => {
+    if (!pendingScanMatches.length) return;
+
+    try {
+      setSaving(true);
+      setError("Saving selected cards to your collection...");
+
+      for (let i = 0; i < pendingScanMatches.length; i++) {
+        const entry = pendingScanMatches[i];
+        const selectedMatch =
+          entry.possibleMatches.find((match) => match.id === entry.selectedMatchId) ||
+          entry.possibleMatches[0];
+
+        if (!selectedMatch) {
+          throw new Error(`Missing selected match for scanned card ${i + 1}`);
+        }
+
+        const result = entry.scanResult;
+        const scannedImage =
+          (typeof result?.imageUrl === "string" && result.imageUrl) ||
+          (typeof result?.photoUrl === "string" && result.photoUrl) ||
+          "";
+
+        let imageUrl = selectedMatch.imageUrl || PLACEHOLDER_IMAGE_URL;
+        if (scannedImage && scannedImage.startsWith("data:")) {
+          imageUrl = await uploadScannedImage(user.uid, selectedMatch.name || "scanned-card", scannedImage);
+        } else if (scannedImage && imageUrl === PLACEHOLDER_IMAGE_URL) {
+          imageUrl = scannedImage;
+        }
+
+        const cardId = selectedMatch.cardId || buildFallbackCardId(result);
+        if (!cardId) {
+          throw new Error(`cardId is undefined for selected card ${selectedMatch.name}`);
+        }
+
+        await addCard(user.uid, {
+          name: selectedMatch.name || result.name || "Scanned Card",
+          value: Number(result.estimatedValue || 0),
+          marketPrice: Number(result.estimatedValue || 0),
+          priceLastUpdated: new Date().toISOString(),
+          rarity: "Uncommon",
+          player: selectedMatch.player || result.player || "",
+          cardNumber: selectedMatch.cardNumber || result.cardNumber || "",
+          brand: selectedMatch.brand || result.brand || "",
+          year: Number(selectedMatch.year || result.year) || new Date().getFullYear(),
+          sport: getSafeSport(selectedMatch.sport || result.sport),
+          condition: (result.condition || "Good") as Card["condition"],
+          imageUrl,
+          photoUrl: imageUrl,
+        });
+
+        await addDoc(collection(db, "userCollections"), {
+          userId: user.uid,
+          cardId,
+          quantity: 1,
+          condition: "raw",
+          created: Date.now(),
+        });
+      }
+
+      const savedCount = pendingScanMatches.length;
+      setPendingScanMatches([]);
+      setError("");
+      router.push(`/dashboard/collection?savedFromScan=1&savedCount=${savedCount}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save selected cards");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleScanComplete = async (results: any[]) => {
     if (!results.length) {
       setShowScanner(false);
@@ -159,43 +283,76 @@ export default function CollectionAddPage() {
 
     try {
       setSaving(true);
-      setError(`Saving ${results.length} scanned card${results.length > 1 ? "s" : ""} to your collection...`);
+      setError(`Finding possible matches for ${results.length} scanned card${results.length > 1 ? "s" : ""}...`);
+
+      const pendingMatches: PendingScanMatch[] = [];
 
       for (let i = 0; i < results.length; i++) {
         const result = results[i];
-        setError(`Saving card ${i + 1} of ${results.length}...`);
+        setError(`Finding matches for card ${i + 1} of ${results.length}...`);
 
-        let imageUrl = PLACEHOLDER_IMAGE_URL;
-        const scannedImage =
-          (typeof result?.imageUrl === "string" && result.imageUrl) ||
-          (typeof result?.photoUrl === "string" && result.photoUrl) ||
-          "";
+        const dnaResponse = await fetch("/api/catalog/dna-match", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            player: result.player,
+            team: result.team,
+            year: result.year,
+            set: result.brand,
+            cardNumber: result.cardNumber,
+            brand: result.brand,
+            sport: result.sport,
+            name: result.name,
+            limit: 3,
+          }),
+        });
 
-        if (scannedImage && scannedImage.startsWith("data:")) {
-          imageUrl = await uploadScannedImage(user.uid, result.name || "scanned-card", scannedImage);
-        } else if (scannedImage) {
-          imageUrl = scannedImage;
+        const dnaPayload = dnaResponse.ok ? await dnaResponse.json() : { matches: [] };
+        const apiMatches = Array.isArray(dnaPayload?.matches) ? dnaPayload.matches : [];
+
+        const possibleMatches: PossibleMatch[] = apiMatches.slice(0, 3).map((match: any, matchIndex: number) => ({
+          id: `${i}-${matchIndex}-${match.stacktrackId || match.catalogId || "candidate"}`,
+          cardId: match.stacktrackId || match.catalogId || buildFallbackCardId(result),
+          name: match.name || result.name || "Scanned Card",
+          player: match.cardData?.player || result.player || "",
+          year: Number(match.cardData?.year || result.year) || new Date().getFullYear(),
+          brand: match.cardData?.brand || match.cardData?.set?.name || result.brand || "",
+          sport: match.cardData?.sport || result.sport || "Other",
+          cardNumber: match.cardData?.cardNumber || result.cardNumber || "",
+          imageUrl:
+            match.cardData?.images?.large ||
+            match.cardData?.images?.small ||
+            result.imageUrl ||
+            result.photoUrl ||
+            PLACEHOLDER_IMAGE_URL,
+          confidence: match.percentage || 0,
+        }));
+
+        if (possibleMatches.length === 0) {
+          possibleMatches.push({
+            id: `${i}-manual`,
+            cardId: buildFallbackCardId(result),
+            name: result.name || "Scanned Card",
+            player: result.player || "",
+            year: Number(result.year) || new Date().getFullYear(),
+            brand: result.brand || "",
+            sport: result.sport || "Other",
+            cardNumber: result.cardNumber || "",
+            imageUrl: result.imageUrl || result.photoUrl || PLACEHOLDER_IMAGE_URL,
+            confidence: 0,
+          });
         }
 
-        await addCard(user.uid, {
-          name: result.name || "Scanned Card",
-          value: Number(result.estimatedValue || 0),
-          marketPrice: Number(result.estimatedValue || 0),
-          priceLastUpdated: new Date().toISOString(),
-          rarity: "Uncommon",
-          player: result.player || "",
-          cardNumber: result.cardNumber || "",
-          brand: result.brand || "",
-          year: Number(result.year) || new Date().getFullYear(),
-          sport: (result.sport || "Other") as Card["sport"],
-          condition: (result.condition || "Good") as Card["condition"],
-          imageUrl,
-          photoUrl: imageUrl,
+        pendingMatches.push({
+          scanResult: result,
+          possibleMatches,
+          selectedMatchId: possibleMatches[0].id,
         });
       }
 
       setShowScanner(false);
-      router.push(`/dashboard/collection?savedFromScan=1&savedCount=${results.length}`);
+      setPendingScanMatches(pendingMatches);
+      setError("");
     } catch (err) {
       setShowScanner(false);
       setError(err instanceof Error ? err.message : "Failed to save scanned cards");
@@ -470,6 +627,78 @@ export default function CollectionAddPage() {
             onCancel={() => setShowScanner(false)}
             userId={user.uid}
           />
+        </div>
+      )}
+
+      {pendingScanMatches.length > 0 && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.matchSelectionModal}>
+            <h2 className={styles.matchSelectionTitle}>Possible Matches</h2>
+            <p className={styles.matchSelectionSubtitle}>
+              We found possible cards. Select the correct card for each scan before adding.
+            </p>
+
+            {pendingScanMatches.map((entry, scanIndex) => (
+              <section key={`scan-${scanIndex}`} className={styles.matchSection}>
+                <h3 className={styles.matchSectionTitle}>
+                  We found {entry.possibleMatches.length} possible card{entry.possibleMatches.length > 1 ? "s" : ""}
+                </h3>
+
+                <div className={styles.matchCardsGrid}>
+                  {entry.possibleMatches.map((candidate) => {
+                    const isSelected = entry.selectedMatchId === candidate.id;
+                    return (
+                      <button
+                        key={candidate.id}
+                        type="button"
+                        className={`${styles.matchCard} ${isSelected ? styles.matchCardSelected : ""}`}
+                        onClick={() => handleSelectMatch(scanIndex, candidate.id)}
+                      >
+                        <img
+                          src={candidate.imageUrl || PLACEHOLDER_IMAGE_URL}
+                          alt={candidate.name}
+                          className={`${styles.matchCardImage} w-full rounded`}
+                          onError={(event) => {
+                            const target = event.currentTarget;
+                            if (target.src.endsWith("/placeholder-card.svg")) return;
+                            target.src = PLACEHOLDER_IMAGE_URL;
+                          }}
+                        />
+                        <div className={styles.matchCardInfo}>
+                          <div className={styles.matchCardName}>{candidate.name}</div>
+                          <div className={styles.matchCardMeta}>
+                            {candidate.year || "—"} • {candidate.brand || "Unknown Set"} • #{candidate.cardNumber || "—"}
+                          </div>
+                          {typeof candidate.confidence === "number" && (
+                            <div className={styles.matchCardConfidence}>Confidence: {candidate.confidence}%</div>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
+
+            <div className={styles.actions}>
+              <button
+                type="button"
+                className={styles.ghostButton}
+                onClick={() => setPendingScanMatches([])}
+                disabled={saving}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={handleSaveSelectedMatches}
+                disabled={saving}
+              >
+                {saving ? "Saving..." : "Add Selected Cards"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

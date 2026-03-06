@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, limit as firestoreLimit } from "firebase/firestore";
-import { matchCardDNA, generateCardDNA, buildDNASearchQuery, shouldAutoMatch, type DNAMatch } from "@/lib/card-dna";
+import { matchCardDNA, generateCardDNA, buildDNASearchQuery, cleanScanInputForSearch } from "@/lib/card-dna";
 
 /**
  * Card DNA Matching API
@@ -44,7 +44,8 @@ export async function OPTIONS() {
  */
 export async function POST(request: NextRequest) {
   try {
-    const scanData = await request.json();
+    const rawScanData = await request.json();
+    const cleanedScanData = cleanScanInputForSearch(rawScanData);
     const {
       player,
       team,
@@ -55,8 +56,8 @@ export async function POST(request: NextRequest) {
       sport,
       name,
       type,
-      limit = 10,
-    } = scanData;
+    } = cleanedScanData;
+    const limit = Number(rawScanData?.limit) || 10;
 
     console.log("[DNA Match] Scan data:", {
       player,
@@ -98,26 +99,51 @@ export async function POST(request: NextRequest) {
     for (const game of gamesToSearch) {
       try {
         const cardsRef = collection(db, "cardCatalog", game, "cards");
-        
-        // Use search terms or filters to narrow results
+
+        // Player-first narrowing (then year), fallback to name token/year.
         let q;
-        if (searchTerms.length > 0) {
-          // Search by first search term
-          q = query(
-            cardsRef,
-            where("searchTerms", "array-contains", searchTerms[0]),
-            firestoreLimit(100) // Limit initial fetch
-          );
+        const playerToken = player?.split(" ").find((token) => token.length > 1);
+        const nameToken = searchTerms.find((token) => token.length > 1);
+
+        if (playerToken) {
+          if (filters.year) {
+            q = query(
+              cardsRef,
+              where("searchTerms", "array-contains", playerToken),
+              where("year", "==", filters.year),
+              firestoreLimit(150)
+            );
+          } else {
+            q = query(
+              cardsRef,
+              where("searchTerms", "array-contains", playerToken),
+              firestoreLimit(200)
+            );
+          }
+        } else if (nameToken) {
+          if (filters.year) {
+            q = query(
+              cardsRef,
+              where("searchTerms", "array-contains", nameToken),
+              where("year", "==", filters.year),
+              firestoreLimit(150)
+            );
+          } else {
+            q = query(
+              cardsRef,
+              where("searchTerms", "array-contains", nameToken),
+              firestoreLimit(200)
+            );
+          }
         } else if (filters.year) {
-          // Filter by year
           q = query(
             cardsRef,
             where("year", "==", filters.year),
-            firestoreLimit(100)
+            firestoreLimit(200)
           );
         } else {
-          // No filters - skip this game (too many results)
-          console.log(`[DNA Match] Skipping ${game} - no filters`);
+          // No narrowing criteria; skip to avoid scanning huge catalogs.
+          console.log(`[DNA Match] Skipping ${game} - no player/name/year filters`);
           continue;
         }
 
@@ -126,6 +152,15 @@ export async function POST(request: NextRequest) {
 
         snapshot.docs.forEach(docSnap => {
           const cardData = docSnap.data() as any;
+
+          // Extra in-memory narrowing: player contains "kobe" style matching.
+          if (player) {
+            const catalogPlayer = String(cardData?.dna?.player || cardData?.player || "").toLowerCase();
+            if (!catalogPlayer.includes(player)) {
+              return;
+            }
+          }
+
           catalogCards.push({
             catalogId: docSnap.id,
             stacktrackId: cardData.stacktrackId || "",
@@ -182,15 +217,13 @@ export async function POST(request: NextRequest) {
       `[DNA Match] Top match: ${topMatches[0]?.name} (${topMatches[0]?.percentage}%)`
     );
 
-    // Determine if we have a confident auto-match
-    const autoMatch = topMatches.length > 0 && shouldAutoMatch(topMatches[0]);
-
     return corsResponse({
       success: true,
       matches: topMatches,
       totalMatches: matches.length,
-      autoMatch: autoMatch ? topMatches[0] : null,
-      scanDNA: generateCardDNA(scanData),
+      autoMatch: null,
+      requireSelection: true,
+      scanDNA: generateCardDNA(cleanedScanData),
       timestamp: new Date().toISOString(),
     });
 

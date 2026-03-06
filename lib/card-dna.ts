@@ -50,12 +50,6 @@ const SYNONYMS: { [key: string]: string } = {
   "base": "base set",
   "jungle": "jungle",
   "fossil": "fossil",
-  
-  // Common OCR mistakes
-  "0": "o",
-  "1": "i",
-  "5": "s",
-  "8": "b",
 };
 
 /**
@@ -75,17 +69,41 @@ const TEAM_MAPPINGS: { [key: string]: string } = {
 };
 
 /**
+ * Always clean scanned/OCR text before searching.
+ *
+ * Example behavior:
+ * cleanText("1996 TOPS #138") -> "1996 tops 138"
+ */
+export function cleanText(text: string | undefined | null): string {
+  if (!text) return "";
+
+  return text
+    .toLowerCase()
+    .replace(/0/g, "o")
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Clean card number while preserving numeric fidelity.
+ */
+function cleanCardNumber(text: string | undefined | null): string {
+  if (!text) return "";
+
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .trim();
+}
+
+/**
  * Normalize text for DNA matching
  */
 export function normalizeText(text: string | undefined | null): string {
   if (!text) return "";
-  
-  let normalized = text
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s]/g, " ") // Replace punctuation with spaces
-    .replace(/\s+/g, " ")     // Collapse multiple spaces
-    .trim();
+
+  let normalized = cleanText(text);
   
   // Apply synonyms
   for (const [original, replacement] of Object.entries(SYNONYMS)) {
@@ -132,11 +150,38 @@ export function generateCardDNA(cardData: {
     team: normalizeText(cardData.team),
     year: String(cardData.year || "").slice(0, 4),
     set: normalizeText(setName),
-    number: normalizeText(cardData.cardNumber || cardData.number),
+    number: cleanCardNumber(cardData.cardNumber || cardData.number),
     brand: normalizeText(cardData.brand),
     sport: normalizeText(cardData.sport),
     name: normalizeText(cardData.name),
     type: normalizeText(cardData.type),
+  };
+}
+
+/**
+ * Clean scan payload before any catalog search/matching.
+ */
+export function cleanScanInputForSearch(scanData: {
+  player?: string;
+  team?: string;
+  year?: number | string;
+  set?: string;
+  cardNumber?: string;
+  brand?: string;
+  sport?: string;
+  name?: string;
+  type?: string;
+}) {
+  return {
+    player: normalizeText(scanData.player),
+    team: normalizeText(scanData.team),
+    year: scanData.year ? parseInt(String(scanData.year).slice(0, 4), 10) : undefined,
+    set: normalizeText(scanData.set),
+    cardNumber: cleanCardNumber(scanData.cardNumber),
+    brand: normalizeText(scanData.brand),
+    sport: normalizeText(scanData.sport),
+    name: normalizeText(scanData.name),
+    type: normalizeText(scanData.type),
   };
 }
 

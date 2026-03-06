@@ -3,6 +3,7 @@
 import { db } from "./firebase";
 import { collection, doc, getDoc, getDocs, query, where, orderBy, limit } from "firebase/firestore";
 import type { CardDNA } from "./card-dna";
+import { cleanText } from "./card-dna";
 
 export interface CatalogCard {
   // Universal StackTrack ID (primary identifier)
@@ -57,7 +58,7 @@ export async function searchCatalog(
   maxResults = 20
 ): Promise<CatalogCard[]> {
   const results: CatalogCard[] = [];
-  const searchLower = searchTerm.toLowerCase();
+  const searchLower = cleanText(searchTerm);
 
   const gamesToSearch = gameFilter
     ? [gameFilter]
@@ -82,7 +83,7 @@ export async function searchCatalog(
         // Apply set filter if provided
         if (setFilter) {
           const cardSet = data.set?.id || data.set?.code || data.set?.name || "";
-          if (!cardSet.toLowerCase().includes(setFilter.toLowerCase())) {
+          if (!cleanText(cardSet).includes(cleanText(setFilter))) {
             continue;
           }
         }

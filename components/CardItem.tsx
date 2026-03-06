@@ -28,6 +28,7 @@ interface CardItemProps {
 
 export default function CardItem({ card, badge, onClick, className }: CardItemProps) {
   const cardName = card.name || card.cardName || "Untitled Card";
+  const placeholderImageUrl = "/placeholder-card.svg";
   const imageUrl = useMemo(() => {
     const isRenderableImageUrl = (value?: string) => {
       if (!value || typeof value !== "string") return false;
@@ -52,7 +53,7 @@ export default function CardItem({ card, badge, onClick, className }: CardItemPr
       card.imagePath,       // Storage paths
     ];
 
-    const selectedUrl = candidates.find((candidate) => isRenderableImageUrl(candidate)) || "/placeholder-card.svg";
+    const selectedUrl = candidates.find((candidate) => isRenderableImageUrl(candidate)) || placeholderImageUrl;
     return selectedUrl;
   }, [card.image, card.imageUrl, card.frontImageUrl, card.photoUrl, card.cardImage, card.thumbnailUrl, card.imagePath]);
 
@@ -63,8 +64,8 @@ export default function CardItem({ card, badge, onClick, className }: CardItemPr
   }, [imageUrl]);
 
   const handleImageError = () => {
-    if (currentImageUrl !== "/placeholder-card.svg") {
-      setCurrentImageUrl("/placeholder-card.svg");
+    if (currentImageUrl !== placeholderImageUrl) {
+      setCurrentImageUrl(placeholderImageUrl);
     }
   };
 
@@ -81,9 +82,9 @@ export default function CardItem({ card, badge, onClick, className }: CardItemPr
     >
       <div className={styles.imageWrapper}>
         <img
-          src={currentImageUrl}
+          src={currentImageUrl || placeholderImageUrl}
           alt={cardName}
-          className={styles.cardImage}
+          className={`${styles.cardImage} w-full rounded`}
           onError={handleImageError}
           onLoad={handleImageLoad}
           loading="lazy"
@@ -92,7 +93,7 @@ export default function CardItem({ card, badge, onClick, className }: CardItemPr
         {/* Hover preview - larger image display */}
         <div className={styles.hoverPreview}>
           <img
-            src={currentImageUrl}
+            src={currentImageUrl || placeholderImageUrl}
             alt={cardName}
             className={styles.previewImage}
             onError={handleImageError}
