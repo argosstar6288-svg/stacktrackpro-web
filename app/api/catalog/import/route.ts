@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { collection, doc, setDoc, writeBatch, getDocs, query, where } from "firebase/firestore";
 import { generateStackTrackId } from "@/lib/universal-card-id";
+import { generateCardDNA } from "@/lib/card-dna";
 
 interface ImportStats {
   total: number;
@@ -153,6 +154,14 @@ async function importPokemonCards(setId: string | undefined, limit: number, offs
             card.number,
             ...(card.types || []).map((t: string) => t.toLowerCase()),
           ],
+          // DNA for fuzzy matching
+          dna: generateCardDNA({
+            name: card.name,
+            year: parseInt(card.set.releaseDate?.split("-")[0] || "0"),
+            set: card.set.name,
+            cardNumber: card.number,
+            type: card.supertype,
+          }),
         };
 
         batch.set(cardRef, cardData, { merge: true });
@@ -244,6 +253,14 @@ async function importMagicCards(setCode: string | undefined, limit: number, offs
             card.collector_number,
             ...(card.colors || []).map((c: string) => c.toLowerCase()),
           ],
+          // DNA for fuzzy matching
+          dna: generateCardDNA({
+            name: card.name,
+            year: parseInt(card.released_at?.split("-")[0] || "0"),
+            set: card.set_name,
+            cardNumber: card.collector_number,
+            type: card.type_line,
+          }),
         };
 
         batch.set(cardRef, cardData, { merge: true });
@@ -336,6 +353,14 @@ async function importYuGiOhCards(setName: string | undefined, limit: number, off
             card.type.toLowerCase(),
             card.race?.toLowerCase() || "",
           ].filter(Boolean),
+          // DNA for fuzzy matching
+          dna: generateCardDNA({
+            name: card.name,
+            year: 0,
+            set: firstSet?.set_name || "unknown",
+            cardNumber: firstSet?.set_code || String(card.id),
+            type: card.type,
+          }),
         };
 
         batch.set(cardRef, cardData, { merge: true });

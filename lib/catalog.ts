@@ -2,6 +2,7 @@
 
 import { db } from "./firebase";
 import { collection, doc, getDoc, getDocs, query, where, orderBy, limit } from "firebase/firestore";
+import type { CardDNA } from "./card-dna";
 
 export interface CatalogCard {
   // Universal StackTrack ID (primary identifier)
@@ -41,6 +42,9 @@ export interface CatalogCard {
   // Search optimization
   searchTerms: string[];
   year?: number;
+  
+  // Card DNA - Normalized fields for fuzzy matching
+  dna?: CardDNA;
 }
 
 /**
