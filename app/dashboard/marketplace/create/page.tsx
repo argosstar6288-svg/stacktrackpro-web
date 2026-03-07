@@ -62,6 +62,38 @@ export default function CreateListingPage() {
     return () => unsubscribe();
   }, [router]);
 
+  // Handle pre-filled card data from URL parameter
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    
+    const params = new URLSearchParams(window.location.search);
+    const cardParam = params.get("card");
+    
+    if (cardParam) {
+      try {
+        const cardData = JSON.parse(decodeURIComponent(cardParam));
+        setFormData({
+          selectedCard: cardData.id || "",
+          selectedCardImageUrl: cardData.imageUrl || "",
+          cardName: cardData.name || "",
+          player: cardData.player || "",
+          year: cardData.year || new Date().getFullYear(),
+          brand: cardData.brand || "",
+          sport: cardData.sport || "Baseball",
+          condition: cardData.condition || "Mint",
+          listingType: "sell",
+          price: cardData.value?.toString() || "",
+          tradeFor: "",
+          description: "",
+        });
+        // Clean up URL
+        window.history.replaceState({}, "", "/dashboard/marketplace/create");
+      } catch (error) {
+        console.error("Error parsing card data:", error);
+      }
+    }
+  }, []);
+
   const handleCardSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const cardId = e.target.value;
     const card = cards?.find((c) => c.id === cardId);

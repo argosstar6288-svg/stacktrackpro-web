@@ -91,6 +91,43 @@ export default function CreateAuctionPage() {
     }
   }, [router, user, userLoading]);
 
+  // Handle pre-filled card data from URL parameter
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    
+    const params = new URLSearchParams(window.location.search);
+    const cardParam = params.get("card");
+    
+    if (cardParam) {
+      try {
+        const cardData = JSON.parse(decodeURIComponent(cardParam));
+        // Create a mock card object from the data
+        const mockCard: Card = {
+          id: cardData.id || "",
+          name: cardData.name || "",
+          brand: cardData.brand || "",
+          year: cardData.year || new Date().getFullYear(),
+          condition: cardData.condition || "Mint",
+          imageUrl: cardData.imageUrl || "",
+          photoUrl: cardData.imageUrl || "",
+          frontImageUrl: cardData.imageUrl || "",
+          value: cardData.value || 0,
+          userId: user?.uid || "",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          sport: cardData.sport || "",
+          player: cardData.player || "",
+          rarity: cardData.rarity || "",
+        };
+        handleSelectFromCollection(mockCard);
+        // Clean up URL
+        window.history.replaceState({}, "", "/auctions/create");
+      } catch (error) {
+        console.error("Error parsing card data:", error);
+      }
+    }
+  }, [user]);
+
   const onImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;

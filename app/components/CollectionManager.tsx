@@ -453,6 +453,38 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
     }
   };
 
+  const handleListOnMarketplace = (card: Card) => {
+    // Navigate to marketplace create page with card pre-selected
+    const cardData = encodeURIComponent(JSON.stringify({
+      id: card.id,
+      name: card.name,
+      player: card.player,
+      year: card.year,
+      brand: card.brand,
+      sport: card.sport,
+      condition: card.condition,
+      value: card.value,
+      imageUrl: resolveCardImageUrl(card)
+    }));
+    router.push(`/dashboard/marketplace/create?card=${cardData}`);
+  };
+
+  const handleCreateAuction = (card: Card) => {
+    // Navigate to auction create page with card pre-selected
+    const cardData = encodeURIComponent(JSON.stringify({
+      id: card.id,
+      name: card.name,
+      player: card.player,
+      year: card.year,
+      brand: card.brand,
+      sport: card.sport,
+      condition: card.condition,
+      value: card.value,
+      imageUrl: resolveCardImageUrl(card)
+    }));
+    router.push(`/auctions/create?card=${cardData}`);
+  };
+
   const handleUpdateImage = async (card: Card) => {
     setUpdatingImages(prev => new Set(prev).add(card.id));
     
@@ -721,6 +753,34 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
                             </option>
                           ))}
                         </select>
+                        <button
+                          onClick={() => handleListOnMarketplace(card)}
+                          className="action-btn"
+                          title="List on Marketplace"
+                          style={{
+                            background: "rgba(34, 197, 94, 0.2)",
+                            border: "1px solid rgba(34, 197, 94, 0.4)",
+                            color: "#22c55e",
+                            padding: "4px 8px",
+                            fontSize: "0.75rem",
+                          }}
+                        >
+                          🛒 List
+                        </button>
+                        <button
+                          onClick={() => handleCreateAuction(card)}
+                          className="action-btn"
+                          title="Create Auction"
+                          style={{
+                            background: "rgba(168, 85, 247, 0.2)",
+                            border: "1px solid rgba(168, 85, 247, 0.4)",
+                            color: "#a855f7",
+                            padding: "4px 8px",
+                            fontSize: "0.75rem",
+                          }}
+                        >
+                          🔨 Auction
+                        </button>
                         <button
                           onClick={() => handleEdit(card)}
                           className="action-btn edit"
