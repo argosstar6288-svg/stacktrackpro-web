@@ -3,10 +3,9 @@ import {
   signInWithEmailAndPassword,
   sendEmailVerification,
   signOut,
-  User
 } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { auth, db } from "./firebase";
+import { auth } from "./firebase";
+import { createUserProfile } from "../../lib/createUserProfile";
 
 // PASSWORD STRENGTH VALIDATION
 export function validatePasswordStrength(password: string): {
@@ -45,36 +44,53 @@ export async function signUp(email: string, password: string, firstName: string,
     throw new Error(passwordValidation.errors.join(" "));
   }
 
-  const cred = await createUserWithEmailAndPassword(auth, email, password);
+  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedFirstName = firstName.trim();
+  const normalizedLastName = lastName.trim();
 
-  // Send verification email
-  await sendEmailVerification(cred.user);
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
 
-  // Create enhanced Firestore profile
-  await setDoc(doc(db, "users", cred.user.uid), {
-    uid: cred.user.uid,
-    email,
-    firstName,
-    lastName,
-    role: "free",
-    subscription: {
-      tier: "free",
-      status: "active",
-      renewalDate: null,
-      stripeCustomerId: null,
-    },
-    twoFactorAuth: {
-      enabled: false,
-      phoneNumber: null,
-      method: null, // "sms" or "email"
-    },
-    emailVerified: false,
-    onboardingComplete: false,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
+    // Send verification email
+    await sendEmailVerification(cred.user);
 
-  return cred.user;
+    // Create Firestore profile (includes 30-day trial)
+    await createUserProfile(cred.user, normalizedFirstName, normalizedLastName);
+
+    return cred.user;
+  } catch (err: any) {
+    const code = err?.code as string | undefined;
+
+    if (code === "auth/email-already-in-use") {
+      throw new Error("That email is already in use. Try logging in instead.");
+    }
+
+    if (code === "auth/invalid-email") {
+      throw new Error("Please enter a valid email address.");
+    }
+
+    if (code === "auth/operation-not-allowed") {
+      throw new Error("Email/password signup is currently disabled.");
+    }
+
+    if (code === "auth/network-request-failed") {
+      throw new Error("Network error. Check your connection and try again.");
+    }
+
+    if (code === "auth/too-many-requests") {
+      throw new Error("Too many attempts. Please wait a few minutes and try again.");
+    }
+
+    if (code === "auth/weak-password") {
+      throw new Error("Password is too weak. Use a stronger password.");
+    }
+
+    if (code === "permission-denied") {
+      throw new Error("Account created, but profile setup was blocked. Try logging in once; if it persists, contact support.");
+    }
+
+    throw new Error(err?.message || "Failed to create account. Please try again.");
+  }
 }
 
 // LOGIN
