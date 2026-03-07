@@ -133,8 +133,11 @@ export default function FoundingWallPage() {
         <h1 style={{ fontSize: "32px", marginBottom: "0.5rem" }}>
           🏛️ Founding Wall of Honor
         </h1>
-        <p style={{ color: "#666", fontSize: "16px", marginBottom: "2rem" }}>
+        <p style={{ color: "#666", fontSize: "16px", marginBottom: "0.5rem" }}>
           Meet the Founding Members who built StackTrackPro
+        </p>
+        <p style={{ color: "#ff9800", fontSize: "14px", marginBottom: "2rem", fontWeight: "bold" }}>
+          ⭐ Founding status is limited and invitation-based
         </p>
 
         {/* Stats Grid */}
@@ -384,11 +387,15 @@ export default function FoundingWallPage() {
 
         <div>
           <strong>Founder Exclusive Perks:</strong>
-          <ul style={{ margin: "0.5rem 0 0 1.5rem", color: "#666", lineHeight: "1.6" }}>
-            <li>✓ Lifetime access to all features</li>
-            <li>✓ Early access to new features</li>
-            <li>✓ Exclusive "Founding Member" badge</li>
-            <li>✓ Priority support (lifetime)</li>
+          <ul style={{ margin: "0.5rem 0 0 1.5rem", color: "#666", lineHeight: "1.8" }}>
+            <li>✓ A permanent "Founding Collector" profile badge (subject to good standing)</li>
+            <li>✓ Reduced marketplace fees (as defined at launch)</li>
+            <li>✓ Early access to new features and beta tools</li>
+            <li>✓ Access to private feedback channels</li>
+            <li>✓ Recognition within the StackTrack Pro community</li>
+            <li>✓ Free boosted listing</li>
+            <li>✓ Featured seller spotlight</li>
+            <li>✓ Early auction slots</li>
             <li>✓ Earn $50 per referral</li>
             <li>✓ Featured on Founding Wall</li>
           </ul>
