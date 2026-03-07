@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { logIn } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { useCurrentUser } from "@/lib/useCurrentUser";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -58,6 +59,9 @@ export default function LoginPage() {
           {loading ? "Logging in..." : "Log In"}
         </button>
         {error && <p style={{ color: "red" }}>{error}</p>}
+        <p style={{ marginTop: "12px", fontSize: "14px" }}>
+          Don&apos;t have an account? <Link href="/create-account">Create Account</Link>
+        </p>
       </form>
     </div>
   );

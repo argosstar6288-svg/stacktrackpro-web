@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signUp, validatePasswordStrength } from "../lib/auth";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -142,6 +143,10 @@ export default function SignupPage() {
         </button>
 
         {error && <p style={{ color: "red", marginTop: "10px" }}>{error}</p>}
+
+        <p style={{ marginTop: "12px", fontSize: "14px", textAlign: "center" }}>
+          Already have an account? <Link href="/login">Log In</Link>
+        </p>
       </form>
     </div>
   );
