@@ -11,6 +11,7 @@ interface UserSubscription {
   tier: string;
   status: string;
   renewalDate?: Date;
+  trialEndDate?: any; // Firestore Timestamp
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
   cancellationDate?: Date;
@@ -106,6 +107,7 @@ export default function BillingPage() {
 
   const statusBadgeColor = {
     active: "#4caf50",
+    trialing: "#10b3f0",
     canceled: "#ff9800",
     past_due: "#f44336",
   };
@@ -188,6 +190,29 @@ export default function BillingPage() {
                 </label>
                 <p style={{ fontSize: "16px", fontWeight: "bold", margin: "0.5rem 0 0 0" }}>
                   {new Date(subscription.renewalDate).toLocaleDateString()}
+                </p>
+              </div>
+            )}
+
+            {subscription.status === "trialing" && subscription.trialEndDate && (
+              <div>
+                <label style={{ fontSize: "12px", color: "#666", textTransform: "uppercase" }}>
+                  Trial Ends
+                </label>
+                <p style={{ fontSize: "16px", fontWeight: "bold", margin: "0.5rem 0 0 0", color: "#10b3f0" }}>
+                  {subscription.trialEndDate?.toDate ? 
+                    new Date(subscription.trialEndDate.toDate()).toLocaleDateString() : 
+                    new Date(subscription.trialEndDate).toLocaleDateString()}
+                </p>
+                <p style={{ fontSize: "12px", color: "#666", marginTop: "0.25rem" }}>
+                  {(() => {
+                    const endDate = subscription.trialEndDate?.toDate 
+                      ? new Date(subscription.trialEndDate.toDate()) 
+                      : new Date(subscription.trialEndDate);
+                    const today = new Date();
+                    const daysLeft = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                    return `${daysLeft} days remaining`;
+                  })()}
                 </p>
               </div>
             )}
@@ -279,6 +304,42 @@ export default function BillingPage() {
               View All Plans
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Trial Banner */}
+      {subscription && subscription.status === "trialing" && subscription.trialEndDate && (
+        <div
+          style={{
+            backgroundColor: "#e3f2fd",
+            border: "2px solid #10b3f0",
+            borderRadius: "8px",
+            padding: "1.5rem",
+            marginBottom: "2rem",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.5rem" }}>
+            <span style={{ fontSize: "32px" }}>🎉</span>
+            <h3 style={{ margin: 0, color: "#10b3f0" }}>You're on a 30-Day Free Trial!</h3>
+          </div>
+          <p style={{ color: "#666", marginBottom: "1rem" }}>
+            Enjoying Pro features? Upgrade before your trial ends to keep access to unlimited cards, auctions, and premium features.
+          </p>
+          <button
+            onClick={() => router.push("/dashboard/pricing")}
+            style={{
+              padding: "10px 24px",
+              backgroundColor: "#10b3f0",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: "bold",
+            }}
+          >
+            Upgrade Now
+          </button>
         </div>
       )}
 
