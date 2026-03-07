@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
+import { doc, getDoc, updateDoc, increment, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCurrentUser } from "../../../../lib/useCurrentUser";
 import Link from "next/link";
@@ -90,6 +90,26 @@ export default function ListingDetailPage() {
     if (!listing) return;
     alert("Propose trade functionality coming soon! For now, please contact the seller.");
     handleContactSeller();
+  };
+
+  const handleDeleteListing = async () => {
+    if (!listing) return;
+    
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this listing? This action cannot be undone."
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+      const listingRef = doc(db, "marketplace", listingId);
+      await deleteDoc(listingRef);
+      alert("Listing deleted successfully!");
+      router.push("/dashboard/marketplace");
+    } catch (error) {
+      console.error("Error deleting listing:", error);
+      alert("Failed to delete listing. Please try again.");
+    }
   };
 
   if (loading) {
@@ -227,7 +247,12 @@ export default function ListingDetailPage() {
               <p className={styles.ownerNote}>This is your listing</p>
               <div className={styles.actions}>
                 <button className={styles.editButton}>Edit Listing</button>
-                <button className={styles.deleteButton}>Remove Listing</button>
+                <button 
+                  className={styles.deleteButton}
+                  onClick={handleDeleteListing}
+                >
+                  Remove Listing
+                </button>
               </div>
             </div>
           )}

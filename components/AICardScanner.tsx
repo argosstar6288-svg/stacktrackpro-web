@@ -26,6 +26,8 @@ interface AICardScannerProps {
   userId?: string;
 }
 
+const TARGET_SCAN_IMAGE_SIZE = 800;
+
 function getScanErrorMessage(errorData: any): string {
   const errorMessage = String(errorData?.message || errorData?.error || "Failed to scan");
 
@@ -116,49 +118,54 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
     const validImages: string[] = [];
     let hasError = false;
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+    const fileList = Array.from(files);
+    const processedImages = await Promise.all(
+      fileList.map(async (file) => {
+        // Validate file type
+        if (!file.type.startsWith("image/")) {
+          setError(`File ${file.name} is not a valid image`);
+          hasError = true;
+          return null;
+        }
 
-      // Validate file type
-      if (!file.type.startsWith("image/")) {
-        setError(`File ${file.name} is not a valid image`);
-        hasError = true;
-        continue;
+        // Validate file size (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+          setError(`${file.name} exceeds 10MB limit`);
+          hasError = true;
+          return null;
+        }
+
+        // Read and enhance image
+        const reader = new FileReader();
+        return new Promise<string | null>((resolve) => {
+          reader.onloadend = async () => {
+            const originalImage = reader.result as string;
+
+            // Enhance image for better AI recognition
+            try {
+              const enhanced = await enhanceImage(originalImage);
+              resolve(enhanced);
+            } catch (err) {
+              console.error("Image enhancement failed, using original:", err);
+              resolve(originalImage);
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+      })
+    );
+
+    processedImages.forEach((image) => {
+      if (typeof image === "string") {
+        validImages.push(image);
       }
+    });
 
-      // Validate file size (max 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        setError(`${file.name} exceeds 10MB limit`);
-        hasError = true;
-        continue;
-      }
-
-      // Read and enhance image
-      const reader = new FileReader();
-      const imageData = await new Promise<string>((resolve) => {
-        reader.onloadend = async () => {
-          const originalImage = reader.result as string;
-          
-          // Enhance image for better AI recognition
-          try {
-            const enhanced = await enhanceImage(originalImage);
-            resolve(enhanced);
-          } catch (err) {
-            console.error('Image enhancement failed, using original:', err);
-            resolve(originalImage);
-          }
-        };
-        reader.readAsDataURL(file);
-      });
-
-      validImages.push(imageData);
-    }
-
-    setEnhancing(false);
     if (validImages.length > 0) {
       setSelectedImages(validImages);
       setError(hasError ? "Some files were skipped" : "");
     }
+    setEnhancing(false);
   };
 
   // Enhance image contrast, brightness, and sharpness for better AI recognition
@@ -173,8 +180,8 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
           return;
         }
 
-        // Downscale large images to reduce payload size
-        const maxDimension = 1600;
+        // Downscale images to 800px max for faster AI processing
+        const maxDimension = TARGET_SCAN_IMAGE_SIZE;
         const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
         const targetWidth = Math.round(img.width * scale);
         const targetHeight = Math.round(img.height * scale);
@@ -252,110 +259,102 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
     setScanProgress({ current: 0, total: selectedImages.length });
 
     const results: CardScanResult[] = [];
-
     const skippedCards: string[] = [];
     let blockingError = "";
     
     try {
-      for (let i = 0; i < selectedImages.length; i++) {
-        setScanProgress({ current: i + 1, total: selectedImages.length });
-
-        try {
-          const response = await fetch("/api/scan-card", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ image: selectedImages[i], userId }),
-          });
-
-          if (!response.ok) {
-            let errorData: any = null;
-            try {
-              errorData = await response.json();
-            } catch {
-              errorData = { error: "Failed to scan" };
-            }
-
-            const message = normalizeErrorText(getScanErrorMessage(errorData));
-            console.error(`Failed to scan card ${i + 1}:`, message);
-
-            const isConfigurationError =
-              String(errorData?.error || "").toLowerCase().includes("api key not configured") ||
-              String(errorData?.debug || "").toLowerCase().includes("openai_api_key") ||
-              String(errorData?.message || "").toLowerCase().includes("not properly configured");
-
-            if (errorData?.quotaExceeded || errorData?.providerQuotaExceeded || isConfigurationError) {
-              blockingError = message;
-              break;
-            }
-
-            skippedCards.push(`Card ${i + 1}: ${message}`);
-            continue;
-          }
-
-          const result: CardScanResult = await response.json();
-          
-          // Attach the scanned image to the result
-          result.imageUrl = selectedImages[i];
-          result.photoUrl = selectedImages[i];
-          
-          // Very lenient validation - accept almost anything
-          // Build name from any available info
-          if (!result.name) {
-            const nameParts = [
-              result.player,
-              result.year ? String(result.year) : null,
-              result.brand,
-              result.sport !== 'Other' ? result.sport : null
-            ].filter(Boolean);
-            result.name = nameParts.length > 0 ? nameParts.join(' ') : 'Sports Card';
-          }
-          
-          // Set defaults for any missing fields
-          if (!result.player) result.player = 'Unknown Player';
-          if (!result.estimatedValue) result.estimatedValue = 0;
-          if (!result.sport) result.sport = "Other";
-          if (!result.confidence) result.confidence = 0.3;
-          if (!result.brand) result.brand = 'Unknown';
-          if (!result.condition) result.condition = 'Good';
-          if (!result.year) result.year = new Date().getFullYear();
-          
-          // Fetch real-time market price from PriceCharting
+      const scanOutcomes = await Promise.all(
+        selectedImages.map(async (image, index) => {
           try {
-            const priceResponse = await fetch("/api/price-lookup", {
+            const response = await fetch("/api/scan-card", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                cardName: result.name,
-                player: result.player,
-                year: result.year,
-                brand: result.brand,
-                sport: result.sport,
-                condition: result.condition,
-              }),
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ image, userId }),
             });
-            
-            if (priceResponse.ok) {
-              const priceData = await priceResponse.json();
-              if (priceData.found && priceData.suggestedPrice) {
-                result.estimatedValue = priceData.suggestedPrice;
-                console.log(`[Scanner] Updated price for "${result.name}": $${priceData.suggestedPrice}`);
+
+            if (!response.ok) {
+              let errorData: any = null;
+              try {
+                errorData = await response.json();
+              } catch {
+                errorData = { error: "Failed to scan" };
               }
+
+              const message = normalizeErrorText(getScanErrorMessage(errorData));
+              const isConfigurationError =
+                String(errorData?.error || "").toLowerCase().includes("api key not configured") ||
+                String(errorData?.debug || "").toLowerCase().includes("openai_api_key") ||
+                String(errorData?.message || "").toLowerCase().includes("not properly configured");
+
+              return {
+                ok: false,
+                index,
+                message,
+                blocking: Boolean(
+                  errorData?.quotaExceeded || errorData?.providerQuotaExceeded || isConfigurationError
+                ),
+              };
             }
-          } catch (priceError) {
-            // Don't fail the scan if price lookup fails
-            console.warn(`[Scanner] Price lookup failed for "${result.name}":`, priceError);
+
+            const result: CardScanResult = await response.json();
+
+            result.imageUrl = image;
+            result.photoUrl = image;
+
+            if (!result.name) {
+              const nameParts = [
+                result.player,
+                result.year ? String(result.year) : null,
+                result.brand,
+                result.sport !== "Other" ? result.sport : null,
+              ].filter(Boolean);
+              result.name = nameParts.length > 0 ? nameParts.join(" ") : "Sports Card";
+            }
+
+            if (!result.player) result.player = "Unknown Player";
+            if (!result.estimatedValue) result.estimatedValue = 0;
+            if (!result.sport) result.sport = "Other";
+            if (!result.confidence) result.confidence = 0.3;
+            if (!result.brand) result.brand = "Unknown";
+            if (!result.condition) result.condition = "Good";
+            if (!result.year) result.year = new Date().getFullYear();
+
+            return { ok: true, index, result };
+          } catch (cardError) {
+            console.error(`Error scanning card ${index + 1}:`, cardError);
+            const rawMessage = cardError instanceof Error ? cardError.message : "Unknown error";
+            return {
+              ok: false,
+              index,
+              message: normalizeErrorText(rawMessage),
+              blocking: false,
+            };
+          } finally {
+            setScanProgress((previous) => ({
+              ...previous,
+              current: Math.min(previous.current + 1, previous.total),
+            }));
           }
-          
-          // Accept any result - even if confidence is low
-          results.push(result);
-        } catch (cardError) {
-          console.error(`Error scanning card ${i + 1}:`, cardError);
-          const rawMessage = cardError instanceof Error ? cardError.message : "Unknown error";
-          skippedCards.push(`Card ${i + 1}: ${normalizeErrorText(rawMessage)}`);
-        }
-      }
+        })
+      );
+
+      scanOutcomes
+        .sort((a, b) => a.index - b.index)
+        .forEach((outcome) => {
+          if (outcome.ok) {
+            results.push(outcome.result);
+            return;
+          }
+
+          if (outcome.blocking && !blockingError) {
+            blockingError = outcome.message;
+            return;
+          }
+
+          skippedCards.push(`Card ${outcome.index + 1}: ${outcome.message}`);
+        });
 
       if (blockingError) {
         throw new Error(normalizeErrorText(blockingError));
@@ -374,9 +373,7 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
       }
 
       // Increment scan count for successful scans
-      for (let i = 0; i < results.length; i++) {
-        await incrementScanCount();
-      }
+      await Promise.allSettled(results.map(() => incrementScanCount()));
 
       // Reset scanning state before completing
       setScanning(false);

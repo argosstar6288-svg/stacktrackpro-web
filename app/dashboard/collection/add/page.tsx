@@ -7,7 +7,7 @@ import Image from "next/image";
 import { addCard, type Card } from "../../../../lib/cards";
 import { db, storage } from "../../../../lib/firebase";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { addDoc, collection } from "firebase/firestore";
+import { collection, doc, serverTimestamp, updateDoc, writeBatch } from "firebase/firestore";
 import { useCurrentUser } from "../../../../lib/useCurrentUser";
 import { generateStackTrackId } from "../../../../lib/universal-card-id";
 import AICardScanner from "../../../../components/AICardScanner";
@@ -210,6 +210,9 @@ export default function CollectionAddPage() {
       setSaving(true);
       setError("Saving selected cards to your collection...");
 
+      const batch = writeBatch(db);
+      const pendingImageUploads: Array<{ cardDocId: string; cardName: string; dataUrl: string }> = [];
+
       for (let i = 0; i < pendingScanMatches.length; i++) {
         const entry = pendingScanMatches[i];
         const selectedMatch =
@@ -227,9 +230,7 @@ export default function CollectionAddPage() {
           "";
 
         let imageUrl = selectedMatch.imageUrl || PLACEHOLDER_IMAGE_URL;
-        if (scannedImage && scannedImage.startsWith("data:")) {
-          imageUrl = await uploadScannedImage(user.uid, selectedMatch.name || "scanned-card", scannedImage);
-        } else if (scannedImage && imageUrl === PLACEHOLDER_IMAGE_URL) {
+        if (scannedImage && !scannedImage.startsWith("data:") && imageUrl === PLACEHOLDER_IMAGE_URL) {
           imageUrl = scannedImage;
         }
 
@@ -238,7 +239,18 @@ export default function CollectionAddPage() {
           throw new Error(`cardId is undefined for selected card ${selectedMatch.name}`);
         }
 
-        await addCard(user.uid, {
+        const cardRef = doc(collection(db, "cards"));
+
+        if (scannedImage && scannedImage.startsWith("data:")) {
+          pendingImageUploads.push({
+            cardDocId: cardRef.id,
+            cardName: selectedMatch.name || "scanned-card",
+            dataUrl: scannedImage,
+          });
+        }
+
+        batch.set(cardRef, {
+          userId: user.uid,
           name: selectedMatch.name || result.name || "Scanned Card",
           value: Number(result.estimatedValue || 0),
           marketPrice: Number(result.estimatedValue || 0),
@@ -252,15 +264,47 @@ export default function CollectionAddPage() {
           condition: (result.condition || "Good") as Card["condition"],
           imageUrl,
           photoUrl: imageUrl,
+          addedAt: serverTimestamp(),
         });
 
-        await addDoc(collection(db, "userCollections"), {
+        const userCollectionRef = doc(collection(db, "userCollections"));
+        batch.set(userCollectionRef, {
           userId: user.uid,
           cardId,
           quantity: 1,
           condition: "raw",
           created: Date.now(),
         });
+      }
+
+      await batch.commit();
+
+      if (pendingImageUploads.length > 0) {
+        void Promise.allSettled(
+          pendingImageUploads.map(async (pendingUpload) => {
+            try {
+              const uploadedImageUrl = await uploadScannedImage(
+                user.uid,
+                pendingUpload.cardName,
+                pendingUpload.dataUrl
+              );
+
+              if (!uploadedImageUrl || uploadedImageUrl === PLACEHOLDER_IMAGE_URL) {
+                return;
+              }
+
+              await updateDoc(doc(db, "cards", pendingUpload.cardDocId), {
+                imageUrl: uploadedImageUrl,
+                photoUrl: uploadedImageUrl,
+              });
+            } catch (uploadError) {
+              console.error(
+                `Failed deferred image upload for card ${pendingUpload.cardDocId}:`,
+                uploadError
+              );
+            }
+          })
+        );
       }
 
       const savedCount = pendingScanMatches.length;
@@ -285,70 +329,94 @@ export default function CollectionAddPage() {
       setSaving(true);
       setError(`Finding possible matches for ${results.length} scanned card${results.length > 1 ? "s" : ""}...`);
 
-      const pendingMatches: PendingScanMatch[] = [];
+      let completed = 0;
+      const pendingMatches: PendingScanMatch[] = await Promise.all(
+        results.map(async (result, i) => {
+          try {
+            const dnaResponse = await fetch("/api/catalog/dna-match", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                player: result.player,
+                team: result.team,
+                year: result.year,
+                set: result.brand,
+                cardNumber: result.cardNumber,
+                brand: result.brand,
+                sport: result.sport,
+                name: result.name,
+                limit: 3,
+              }),
+            });
 
-      for (let i = 0; i < results.length; i++) {
-        const result = results[i];
-        setError(`Finding matches for card ${i + 1} of ${results.length}...`);
+            const dnaPayload = dnaResponse.ok ? await dnaResponse.json() : { matches: [] };
+            const apiMatches = Array.isArray(dnaPayload?.matches) ? dnaPayload.matches : [];
 
-        const dnaResponse = await fetch("/api/catalog/dna-match", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            player: result.player,
-            team: result.team,
-            year: result.year,
-            set: result.brand,
-            cardNumber: result.cardNumber,
-            brand: result.brand,
-            sport: result.sport,
-            name: result.name,
-            limit: 3,
-          }),
-        });
+            const possibleMatches: PossibleMatch[] = apiMatches.slice(0, 3).map((match: any, matchIndex: number) => ({
+              id: `${i}-${matchIndex}-${match.stacktrackId || match.catalogId || "candidate"}`,
+              cardId: match.stacktrackId || match.catalogId || buildFallbackCardId(result),
+              name: match.name || result.name || "Scanned Card",
+              player: match.cardData?.player || result.player || "",
+              year: Number(match.cardData?.year || result.year) || new Date().getFullYear(),
+              brand: match.cardData?.brand || match.cardData?.set?.name || result.brand || "",
+              sport: match.cardData?.sport || result.sport || "Other",
+              cardNumber: match.cardData?.cardNumber || result.cardNumber || "",
+              imageUrl:
+                match.cardData?.images?.large ||
+                match.cardData?.images?.small ||
+                result.imageUrl ||
+                result.photoUrl ||
+                PLACEHOLDER_IMAGE_URL,
+              confidence: match.percentage || 0,
+            }));
 
-        const dnaPayload = dnaResponse.ok ? await dnaResponse.json() : { matches: [] };
-        const apiMatches = Array.isArray(dnaPayload?.matches) ? dnaPayload.matches : [];
+            if (possibleMatches.length === 0) {
+              possibleMatches.push({
+                id: `${i}-manual`,
+                cardId: buildFallbackCardId(result),
+                name: result.name || "Scanned Card",
+                player: result.player || "",
+                year: Number(result.year) || new Date().getFullYear(),
+                brand: result.brand || "",
+                sport: result.sport || "Other",
+                cardNumber: result.cardNumber || "",
+                imageUrl: result.imageUrl || result.photoUrl || PLACEHOLDER_IMAGE_URL,
+                confidence: 0,
+              });
+            }
 
-        const possibleMatches: PossibleMatch[] = apiMatches.slice(0, 3).map((match: any, matchIndex: number) => ({
-          id: `${i}-${matchIndex}-${match.stacktrackId || match.catalogId || "candidate"}`,
-          cardId: match.stacktrackId || match.catalogId || buildFallbackCardId(result),
-          name: match.name || result.name || "Scanned Card",
-          player: match.cardData?.player || result.player || "",
-          year: Number(match.cardData?.year || result.year) || new Date().getFullYear(),
-          brand: match.cardData?.brand || match.cardData?.set?.name || result.brand || "",
-          sport: match.cardData?.sport || result.sport || "Other",
-          cardNumber: match.cardData?.cardNumber || result.cardNumber || "",
-          imageUrl:
-            match.cardData?.images?.large ||
-            match.cardData?.images?.small ||
-            result.imageUrl ||
-            result.photoUrl ||
-            PLACEHOLDER_IMAGE_URL,
-          confidence: match.percentage || 0,
-        }));
+            return {
+              scanResult: result,
+              possibleMatches,
+              selectedMatchId: possibleMatches[0].id,
+            };
+          } catch (matchError) {
+            console.error(`Failed DNA matching for card ${i + 1}:`, matchError);
 
-        if (possibleMatches.length === 0) {
-          possibleMatches.push({
-            id: `${i}-manual`,
-            cardId: buildFallbackCardId(result),
-            name: result.name || "Scanned Card",
-            player: result.player || "",
-            year: Number(result.year) || new Date().getFullYear(),
-            brand: result.brand || "",
-            sport: result.sport || "Other",
-            cardNumber: result.cardNumber || "",
-            imageUrl: result.imageUrl || result.photoUrl || PLACEHOLDER_IMAGE_URL,
-            confidence: 0,
-          });
-        }
+            const fallbackMatch: PossibleMatch = {
+              id: `${i}-manual`,
+              cardId: buildFallbackCardId(result),
+              name: result.name || "Scanned Card",
+              player: result.player || "",
+              year: Number(result.year) || new Date().getFullYear(),
+              brand: result.brand || "",
+              sport: result.sport || "Other",
+              cardNumber: result.cardNumber || "",
+              imageUrl: result.imageUrl || result.photoUrl || PLACEHOLDER_IMAGE_URL,
+              confidence: 0,
+            };
 
-        pendingMatches.push({
-          scanResult: result,
-          possibleMatches,
-          selectedMatchId: possibleMatches[0].id,
-        });
-      }
+            return {
+              scanResult: result,
+              possibleMatches: [fallbackMatch],
+              selectedMatchId: fallbackMatch.id,
+            };
+          } finally {
+            completed += 1;
+            setError(`Finding matches for card ${completed} of ${results.length}...`);
+          }
+        })
+      );
 
       setShowScanner(false);
       setPendingScanMatches(pendingMatches);
@@ -393,13 +461,11 @@ export default function CollectionAddPage() {
       setSaving(true);
 
       let imageUrl = PLACEHOLDER_IMAGE_URL;
-      if (cardImageFile) {
-        imageUrl = await uploadCardImage(user.uid, formData.name, cardImageFile);
-      } else if (cardImagePreview) {
+      if (!cardImageFile && cardImagePreview && !cardImagePreview.startsWith("blob:")) {
         imageUrl = cardImagePreview;
       }
 
-      await addCard(user.uid, {
+      const createdCardId = await addCard(user.uid, {
         name: formData.name,
         value: Number(formData.value),
         rarity: formData.rarity,
@@ -410,7 +476,25 @@ export default function CollectionAddPage() {
         sport: formData.sport as Card["sport"],
         condition: formData.condition as Card["condition"],
         imageUrl,
+        photoUrl: imageUrl,
       });
+
+      if (cardImageFile) {
+        void uploadCardImage(user.uid, formData.name, cardImageFile)
+          .then(async (uploadedImageUrl) => {
+            if (!uploadedImageUrl || uploadedImageUrl === PLACEHOLDER_IMAGE_URL) {
+              return;
+            }
+
+            await updateDoc(doc(db, "cards", createdCardId), {
+              imageUrl: uploadedImageUrl,
+              photoUrl: uploadedImageUrl,
+            });
+          })
+          .catch((uploadError) => {
+            console.error(`Deferred manual image upload failed for card ${createdCardId}:`, uploadError);
+          });
+      }
 
       router.push("/dashboard/collection");
     } catch (err) {
