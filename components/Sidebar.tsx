@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useCurrentUser } from "@/lib/useCurrentUser";
+import { isAdminEmail } from "@/lib/adminAccess";
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -12,12 +14,18 @@ const navItems = [
   { href: "/dashboard", label: "🏠 Dashboard", icon: null },
   { href: "/scan",       label: "📷 Scan Card",  icon: null },
   { href: "/collection", label: "📦 Collection", icon: null },
+  { href: "/dashboard/inbox", label: "💬 Inbox", icon: null },
   { href: "/marketplace",label: "🛒 Marketplace",icon: null },
   { href: "/auctions",   label: "⚡ Auctions",   icon: null },
 ];
 
 export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const { user } = useCurrentUser();
+
+  const sidebarItems = isAdminEmail(user?.email)
+    ? [...navItems, { href: "/dashboard/admin", label: "🛡️ Admin", icon: null }]
+    : navItems;
 
   return (
     <>
@@ -50,7 +58,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
         {/* Nav */}
         <nav className="flex flex-col gap-1 px-3 py-4 flex-1">
-          {navItems.map((item) => {
+          {sidebarItems.map((item) => {
             const isActive =
               item.href === "/dashboard"
                 ? pathname === "/dashboard"

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function InboxPage() {
+export default function ChatAliasPage() {
   redirect("/dashboard/inbox");
 }

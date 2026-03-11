@@ -8,7 +8,6 @@ import {
   collection, 
   query, 
   where, 
-  orderBy, 
   onSnapshot,
   Timestamp,
   doc,
@@ -75,8 +74,7 @@ export default function LiveAuctionsPage() {
   useEffect(() => {
     const q = query(
       collection(db, FLAT_COLLECTIONS.auctions),
-      where('status', 'in', ['live', 'active']),
-      orderBy('endTime', 'asc')
+      where('status', 'in', ['live', 'active'])
     )
 
     const unsubscribe = onSnapshot(
@@ -99,6 +97,7 @@ export default function LiveAuctionsPage() {
             timeLeft: calculateTimeLeft(data.endTime),
           })
         })
+        auctionsList.sort((a, b) => a.endTime.toMillis() - b.endTime.toMillis())
         setAuctions(auctionsList)
         setLoading(false)
       },

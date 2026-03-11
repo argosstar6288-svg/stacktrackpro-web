@@ -458,6 +458,18 @@ export default function InboxPage() {
     void handleStartChat();
   };
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const tabParam = new URLSearchParams(window.location.search).get("tab");
+    if (tabParam === "groups") {
+      setActiveTab("groups");
+      return;
+    }
+    if (tabParam === "direct") {
+      setActiveTab("direct");
+    }
+  }, []);
+
   return (
     <div className={styles.wrapper}>
       {notification && (

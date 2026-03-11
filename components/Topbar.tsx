@@ -2,6 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useCurrentUser } from "@/lib/useCurrentUser";
+import { auth } from "@/lib/firebase";
+import { signOut } from "firebase/auth";
+import { isAdminEmail } from "@/lib/adminAccess";
 
 interface TopbarProps {
   onMenuToggle?: () => void;
@@ -10,6 +13,11 @@ interface TopbarProps {
 export default function Topbar({ onMenuToggle }: TopbarProps) {
   const router = useRouter();
   const { user } = useCurrentUser();
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push("/login");
+  };
 
   const initials = user?.displayName
     ? user.displayName
@@ -41,6 +49,16 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
 
       {/* Right: action buttons + avatar */}
       <div className="flex items-center gap-3 shrink-0">
+        {isAdminEmail(user?.email) && (
+          <button
+            type="button"
+            className="btn-secondary text-sm"
+            onClick={() => router.push("/dashboard/admin")}
+          >
+            Admin
+          </button>
+        )}
+
         <button
           type="button"
           className="btn-primary text-sm"
@@ -55,6 +73,14 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
           onClick={() => router.push("/dashboard/marketplace/create")}
         >
           Sell Card
+        </button>
+
+        <button
+          type="button"
+          className="btn-secondary text-sm"
+          onClick={handleLogout}
+        >
+          Log Out
         </button>
 
         {/* Profile avatar */}
