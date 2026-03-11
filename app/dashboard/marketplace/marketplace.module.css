@@ -33,9 +33,9 @@
 
 .createButton {
   padding: 12px 24px;
-  background: linear-gradient(135deg, #0052CC, #1E90FF);
-  color: #0b0915;
-  border-radius: 8px;
+  background: linear-gradient(135deg, #ff8f00, #ffb300);
+  color: white;
+  border-radius: 10px;
   font-weight: 600;
   text-decoration: none;
   transition: all 0.2s;
@@ -43,7 +43,7 @@
 
 .createButton:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(255, 122, 71, 0.4);
+  box-shadow: 0 6px 16px rgba(255, 143, 0, 0.4);
 }
 
 .stats {
@@ -53,26 +53,22 @@
 }
 
 .statCard {
-  background: linear-gradient(145deg, rgba(30, 144, 255, 0.95), rgba(30, 144, 255, 0.85));
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(20, 28, 44, 0.92), rgba(13, 19, 31, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
   padding: 24px;
   text-align: center;
   color: white;
   backdrop-filter: blur(20px);
   box-shadow: 
-    0 8px 32px rgba(30, 144, 255, 0.25),
+    0 8px 32px rgba(0, 0, 0, 0.35),
     0 2px 8px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .statCard:nth-child(even) {
-  background: linear-gradient(145deg, rgba(255, 140, 0, 0.95), rgba(255, 140, 0, 0.85));
-  box-shadow: 
-    0 8px 32px rgba(255, 140, 0, 0.25),
-    0 2px 8px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 143, 0, 0.25);
 }
 
 .statCard:hover {
@@ -124,7 +120,7 @@
 
 .searchInput:focus {
   outline: none;
-  border-color: rgba(255, 122, 71, 0.5);
+  border-color: rgba(255, 143, 0, 0.6);
   background: rgba(255, 255, 255, 0.1);
 }
 
@@ -148,7 +144,7 @@
 
 .filterSelect:focus {
   outline: none;
-  border-color: rgba(255, 122, 71, 0.5);
+  border-color: rgba(255, 143, 0, 0.6);
 }
 
 .listingsGrid {
@@ -168,15 +164,15 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-decoration: none;
   color: inherit;
-  background: linear-gradient(145deg, rgba(30, 144, 255, 0.95), rgba(30, 144, 255, 0.85));
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(20, 28, 44, 0.92), rgba(13, 19, 31, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
   cursor: pointer;
   backdrop-filter: blur(20px);
   box-shadow: 
-    0 8px 32px rgba(30, 144, 255, 0.25),
+    0 8px 32px rgba(0, 0, 0, 0.35),
     0 2px 8px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   position: relative;
 }
 
@@ -221,17 +217,13 @@
 }
 
 .listingCard:nth-child(even) {
-  background: linear-gradient(145deg, rgba(255, 140, 0, 0.95), rgba(255, 140, 0, 0.85));
-  box-shadow: 
-    0 8px 32px rgba(255, 140, 0, 0.25),
-    0 2px 8px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 143, 0, 0.25);
 }
 
 .listingCard:hover {
   transform: translateY(-6px) scale(1.02);
   box-shadow: 
-    0 12px 40px rgba(30, 144, 255, 0.35),
+    0 12px 40px rgba(255, 143, 0, 0.22),
     0 4px 12px rgba(0, 0, 0, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
@@ -242,7 +234,7 @@
 
 .listingCard:nth-child(even):hover {
   box-shadow: 
-    0 12px 40px rgba(255, 140, 0, 0.35),
+    0 12px 40px rgba(255, 143, 0, 0.22),
     0 4px 12px rgba(0, 0, 0, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
@@ -274,8 +266,8 @@
   top: 12px;
   right: 12px;
   padding: 6px 12px;
-  background: linear-gradient(135deg, #0052CC, #1E90FF);
-  color: #0b0915;
+  background: linear-gradient(135deg, #ff8f00, #ffb300);
+  color: white;
   border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
@@ -305,7 +297,7 @@
 
 .listingCondition {
   font-size: 13px;
-  color: #6a7bff;
+  color: #4fc3f7;
   font-weight: 500;
 }
 

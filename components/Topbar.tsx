@@ -29,7 +29,7 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
     : user?.email?.[0]?.toUpperCase() ?? "?";
 
   return (
-    <div className="flex justify-between items-center p-4 border-b border-white/10 bg-black gap-3">
+    <div className="flex justify-between items-center px-4 py-3 border-b border-white/10 bg-[#070d19] gap-3">
       {/* Left: hamburger + search */}
       <div className="flex items-center gap-3 flex-1">
         <button
@@ -43,7 +43,7 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
 
         <input
           placeholder="Search cards..."
-          className="bg-white/10 px-3 py-2 rounded-lg outline-none w-full max-w-xl text-sm"
+          className="bg-white/5 border border-white/10 px-3 py-2 rounded-md outline-none w-full max-w-xl text-sm"
         />
       </div>
 
@@ -61,7 +61,7 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
 
         <button
           type="button"
-          className="btn-primary text-sm"
+          className="btn-primary text-sm px-3 py-1.5"
           onClick={() => router.push("/scan")}
         >
           Scan
@@ -69,7 +69,7 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
 
         <button
           type="button"
-          className="btn-secondary text-sm"
+          className="btn-secondary text-sm px-3 py-1.5"
           onClick={() => router.push("/dashboard/marketplace/create")}
         >
           Sell Card
@@ -77,7 +77,7 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
 
         <button
           type="button"
-          className="btn-secondary text-sm"
+          className="btn-secondary text-sm px-3 py-1.5"
           onClick={handleLogout}
         >
           Log Out

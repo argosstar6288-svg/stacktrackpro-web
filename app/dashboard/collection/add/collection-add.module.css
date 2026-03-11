@@ -36,24 +36,24 @@
   flex-direction: column;
   gap: 20px;
   padding: 24px;
-  background: linear-gradient(145deg, rgba(30, 144, 255, 0.95), rgba(30, 144, 255, 0.85));
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(20, 28, 44, 0.92), rgba(13, 19, 31, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
   backdrop-filter: blur(20px);
   box-shadow: 
-    0 8px 32px rgba(30, 144, 255, 0.25),
+    0 8px 32px rgba(0, 0, 0, 0.35),
     0 2px 8px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   color: white;
 }
 
 .panel:nth-child(even) {
-  background: linear-gradient(145deg, rgba(255, 140, 0, 0.95), rgba(255, 140, 0, 0.85));
+  background: linear-gradient(180deg, rgba(20, 28, 44, 0.92), rgba(13, 19, 31, 0.92));
   box-shadow: 
-    0 8px 32px rgba(255, 140, 0, 0.25),
+    0 8px 32px rgba(0, 0, 0, 0.35),
     0 2px 8px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 /* Method Selection Grid */
@@ -71,14 +71,14 @@
   justify-content: center;
   gap: 16px;
   padding: 40px 32px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 24px;
-  background: linear-gradient(145deg, rgba(30, 144, 255, 0.95), rgba(30, 144, 255, 0.85));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(17, 25, 40, 0.95), rgba(11, 16, 27, 0.95));
   color: white;
   cursor: pointer;
   backdrop-filter: blur(20px);
   box-shadow: 
-    0 8px 32px rgba(30, 144, 255, 0.3),
+    0 8px 32px rgba(0, 0, 0, 0.35),
     0 2px 8px rgba(0, 0, 0, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -102,17 +102,13 @@
 }
 
 .methodBox:nth-child(even) {
-  background: linear-gradient(145deg, rgba(255, 140, 0, 0.95), rgba(255, 140, 0, 0.85));
-  box-shadow: 
-    0 8px 32px rgba(255, 140, 0, 0.3),
-    0 2px 8px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 143, 0, 0.2);
 }
 
 .methodBox:hover {
   transform: translateY(-10px) scale(1.02);
   box-shadow: 
-    0 16px 48px rgba(30, 144, 255, 0.4),
+    0 16px 48px rgba(0, 0, 0, 0.45),
     0 4px 16px rgba(0, 0, 0, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
@@ -124,7 +120,7 @@
 .methodBox:nth-child(even):hover {
   transform: translateY(-10px) scale(1.02);
   box-shadow: 
-    0 16px 48px rgba(255, 140, 0, 0.4),
+    0 16px 48px rgba(255, 143, 0, 0.22),
     0 4px 16px rgba(0, 0, 0, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
@@ -163,22 +159,19 @@
   color: white;
   padding: 18px;
   border-radius: 14px;
-  background: linear-gradient(145deg, rgba(30, 144, 255, 0.95), rgba(30, 144, 255, 0.85));
+  background: linear-gradient(180deg, rgba(16, 24, 39, 0.95), rgba(10, 15, 27, 0.95));
   border: 1px solid rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(10px);
   box-shadow: 
-    0 4px 16px rgba(30, 144, 255, 0.2),
+    0 4px 16px rgba(0, 0, 0, 0.25),
     0 2px 8px rgba(0, 0, 0, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .field:nth-child(even) {
-  background: linear-gradient(145deg, rgba(255, 140, 0, 0.95), rgba(255, 140, 0, 0.85));
-  box-shadow: 
-    0 4px 16px rgba(255, 140, 0, 0.2),
-    0 2px 8px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, rgba(16, 24, 39, 0.95), rgba(10, 15, 27, 0.95));
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .field label {
@@ -205,7 +198,7 @@
 .field select:focus {
   outline: none;
   background: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.5);
+  border-color: rgba(255, 143, 0, 0.6);
 }
 
 .imageSection {
@@ -215,8 +208,8 @@
   align-items: start;
   padding: 16px;
   border-radius: 12px;
-  background: #1E90FF;
-  border: 2px solid #1E90FF;
+  background: rgba(9, 14, 25, 0.9);
+  border: 2px solid rgba(255, 143, 0, 0.45);
 }
 
 .imageSectionLabel {
@@ -261,9 +254,9 @@
 .primaryButton {
   border: none;
   padding: 10px 18px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #0052CC, #1E90FF);
-  color: #0b0915;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ff8f00, #ffb300);
+  color: white;
   font-weight: 600;
   cursor: pointer;
 }

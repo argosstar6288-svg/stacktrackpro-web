@@ -11,12 +11,12 @@ interface SidebarProps {
 }
 
 const navItems = [
-  { href: "/dashboard", label: "🏠 Dashboard", icon: null },
-  { href: "/scan",       label: "📷 Scan Card",  icon: null },
-  { href: "/collection", label: "📦 Collection", icon: null },
-  { href: "/dashboard/inbox", label: "💬 Inbox", icon: null },
-  { href: "/marketplace",label: "🛒 Marketplace",icon: null },
-  { href: "/auctions",   label: "⚡ Auctions",   icon: null },
+  { href: "/dashboard", label: "Dashboard", icon: "◈" },
+  { href: "/scan", label: "Scan Card", icon: "◇" },
+  { href: "/collection", label: "Collection", icon: "◇" },
+  { href: "/dashboard/inbox", label: "Inbox", icon: "◇" },
+  { href: "/marketplace", label: "Marketplace", icon: "◇" },
+  { href: "/auctions", label: "Auctions", icon: "◇" },
 ];
 
 export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
@@ -24,7 +24,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const { user } = useCurrentUser();
 
   const sidebarItems = isAdminEmail(user?.email)
-    ? [...navItems, { href: "/dashboard/admin", label: "🛡️ Admin", icon: null }]
+    ? [...navItems, { href: "/dashboard/admin", label: "Admin", icon: "◇" }]
     : navItems;
 
   return (
@@ -39,7 +39,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       )}
 
       <aside
-        className={`fixed left-0 top-0 z-50 h-screen w-64 bg-black text-white flex flex-col border-r border-white/10 transform transition-transform duration-200 md:static md:translate-x-0 ${
+        className={`fixed left-0 top-0 z-50 h-screen w-64 bg-gradient-to-b from-[#060b16] via-[#0b1324] to-[#050912] text-white flex flex-col border-r border-white/10 transform transition-transform duration-200 md:static md:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -73,7 +73,8 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                   isActive ? "sidebar-active" : "text-white/70"
                 }`}
               >
-                {item.label}
+                <span className="text-[11px] opacity-80">{item.icon}</span>
+                <span>{item.label}</span>
               </Link>
             );
           })}

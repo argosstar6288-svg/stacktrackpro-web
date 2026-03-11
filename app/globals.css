@@ -17,7 +17,7 @@ body {
 }
 
 body {
-  background: #0b0f1a;
+  background: radial-gradient(circle at 20% 0%, #17223b 0%, #0b0f1a 45%, #080b12 100%);
   color: white;
   font-family: Inter, sans-serif;
 }
@@ -59,6 +59,224 @@ body {
 /* Card hover glow */
 .card:hover {
   box-shadow: 0 8px 32px rgba(255, 143, 0, 0.25);
+}
+
+.dashboard-card {
+  background: linear-gradient(180deg, rgba(20, 28, 44, 0.92), rgba(13, 19, 31, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(3, 7, 18, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.section-head h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.portfolio-value {
+  font-size: 2rem;
+  line-height: 1.1;
+  font-weight: 800;
+  color: #ff8f00;
+}
+
+.portfolio-change {
+  margin-top: 4px;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.portfolio-graph {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+  height: 110px;
+  align-items: end;
+}
+
+.graph-point-wrap {
+  position: relative;
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.graph-point {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 6px;
+}
+
+.scan-grid,
+.mini-card-grid,
+.collection-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.scan-card,
+.mini-card,
+.collection-card {
+  background: linear-gradient(180deg, rgba(19, 27, 41, 0.95), rgba(11, 16, 28, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.scan-image,
+.mini-card-image,
+.collection-card-image {
+  width: 100%;
+  min-height: 72px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 6px;
+}
+
+.scan-name,
+.mini-card-title,
+.market-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.scan-set,
+.card-subtle {
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 0.75rem;
+}
+
+.scan-value,
+.mini-card-price,
+.market-price {
+  margin-top: 3px;
+  color: #ff8f00;
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
+.mini-card-change {
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-top: 3px;
+}
+
+.mini-card-change.up {
+  color: #22c55e;
+}
+
+.mini-card-change.down {
+  color: #ef4444;
+}
+
+.market-list,
+.watchlist-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.market-row,
+.watch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.buy-btn,
+.bid-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #ff8f00, #e97500);
+  color: white;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.auction-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.auction-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.auction-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.auction-meta span {
+  display: block;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.7rem;
+}
+
+.auction-meta strong {
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 0.9rem;
+}
+
+.auction-time {
+  color: #ff8f00 !important;
+}
+
+.collection-layout {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 12px;
+}
+
+.collection-folders {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.folder-chip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.74rem;
+  text-align: left;
+  padding: 8px;
+}
+
+.folder-chip:hover {
+  border-color: rgba(255, 143, 0, 0.45);
+  color: #ffb75e;
 }
 
 /* Sidebar active indicator (legacy link-based approach) */

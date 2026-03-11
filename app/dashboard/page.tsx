@@ -434,20 +434,24 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="card">
-          <h3 className="text-gray-400 text-sm">Collection Value</h3>
-          <p className="text-2xl font-bold text-stackPrimary">${Math.round(totalValue).toLocaleString()}</p>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="card" style={{ background: "linear-gradient(140deg, rgba(28, 55, 104, 0.85), rgba(12, 28, 56, 0.92))" }}>
+          <h3 className="text-gray-300 text-xs uppercase tracking-wide">Collection Value</h3>
+          <p className="text-3xl font-extrabold text-white">${Math.round(totalValue).toLocaleString()}</p>
         </div>
 
-        <div className="card">
-          <h3 className="text-gray-400 text-sm">Cards Owned</h3>
-          <p className="text-2xl font-bold">{cards.length}</p>
+        <div className="card" style={{ background: "linear-gradient(140deg, rgba(24, 32, 52, 0.9), rgba(11, 16, 28, 0.94))" }}>
+          <h3 className="text-gray-300 text-xs uppercase tracking-wide">Cards Owned</h3>
+          <p className="text-3xl font-extrabold">{cards.length}</p>
         </div>
 
-        <div className="card">
-          <h3 className="text-gray-400 text-sm">Market Trend</h3>
-          <p className={`text-2xl font-bold ${changePercent >= 0 ? "text-green-400" : "text-red-400"}`}>
+        <div className="card" style={{ background: "linear-gradient(145deg, rgba(63, 30, 7, 0.95), rgba(28, 16, 7, 0.98))", borderColor: "rgba(255,143,0,0.35)" }}>
+          <h3 className="text-orange-200 text-xs uppercase tracking-wide">Market Trend</h3>
+          <p className={`text-3xl font-extrabold ${changePercent >= 0 ? "text-orange-300" : "text-red-400"}`}>
             {marketTrendLabel}
           </p>
         </div>

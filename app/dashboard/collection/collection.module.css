@@ -68,10 +68,10 @@
 }
 
 .search {
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 999px;
-  padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .search input {
@@ -84,45 +84,45 @@
 
 .addButton {
   padding: 10px 20px;
-  background: linear-gradient(135deg, #1E90FF, #0052CC);
+  background: linear-gradient(135deg, #ff8f00, #ffb300);
   color: white;
   border: none;
-  border-radius: 999px;
+  border-radius: 10px;
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s;
-  box-shadow: 0 2px 8px rgba(30, 144, 255, 0.3);
+  box-shadow: 0 2px 12px rgba(255, 143, 0, 0.35);
 }
 
 .addButton:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(30, 144, 255, 0.4);
+  box-shadow: 0 6px 16px rgba(255, 143, 0, 0.45);
 }
 
 .panel {
   padding: 24px;
-  background: linear-gradient(145deg, rgba(30, 144, 255, 0.95), rgba(30, 144, 255, 0.85));
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(20, 28, 44, 0.92), rgba(13, 19, 31, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
   color: white;
   backdrop-filter: blur(20px);
   box-shadow: 
-    0 8px 32px rgba(30, 144, 255, 0.25),
+    0 8px 32px rgba(0, 0, 0, 0.35),
     0 2px 8px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   min-width: 0;
   overflow: hidden;
 }
 
 .panel:nth-child(even) {
-  background: linear-gradient(145deg, rgba(255, 140, 0, 0.95), rgba(255, 140, 0, 0.85));
+  background: linear-gradient(180deg, rgba(20, 28, 44, 0.92), rgba(13, 19, 31, 0.92));
   box-shadow: 
-    0 8px 32px rgba(255, 140, 0, 0.25),
+    0 8px 32px rgba(0, 0, 0, 0.35),
     0 2px 8px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 /* Layout with sidebar */
@@ -134,9 +134,9 @@
 
 /* Sidebar */
 .sidebar {
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(14, 21, 34, 0.9), rgba(8, 13, 24, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
   padding: 1rem;
   height: fit-content;
 }
@@ -158,16 +158,16 @@
   width: 28px;
   height: 28px;
   border-radius: 6px;
-  background: rgba(30, 144, 255, 0.2);
-  border: 1px solid rgba(30, 144, 255, 0.4);
-  color: #1E90FF;
+  background: rgba(255, 143, 0, 0.15);
+  border: 1px solid rgba(255, 143, 0, 0.5);
+  color: #ff8f00;
   font-size: 1.2rem;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .newFolderBtn:hover {
-  background: rgba(30, 144, 255, 0.3);
+  background: rgba(255, 143, 0, 0.25);
 }
 
 /* New Folder Input */
@@ -239,9 +239,9 @@
 }
 
 .folderItem.active {
-  background: rgba(30, 144, 255, 0.15);
-  border-color: rgba(30, 144, 255, 0.3);
-  color: #1E90FF;
+  background: rgba(255, 143, 0, 0.15);
+  border-color: rgba(255, 143, 0, 0.38);
+  color: #ffb75e;
 }
 
 .folderItem span {

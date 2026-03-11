@@ -57,11 +57,11 @@
 .imageBox {
   width: 100%;
   aspect-ratio: 2.5 / 3.5;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
+  background: rgba(9, 14, 25, 0.92);
+  border: 1px solid rgba(255, 143, 0, 0.38);
+  border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 18px 54px rgba(0, 0, 0, 0.52), 0 0 22px rgba(255, 143, 0, 0.16);
 }
 
 .cardImg {
@@ -131,9 +131,9 @@
 
 /* ── Market value panel ───────────────────────────────────── */
 .marketPanel {
-  background: rgba(255, 255, 255, 0.04);
+  background: linear-gradient(180deg, rgba(20, 28, 44, 0.92), rgba(13, 19, 31, 0.92));
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
+  border-radius: 14px;
   padding: 20px 24px;
   display: flex;
   align-items: center;
@@ -195,9 +195,9 @@
 
 /* ── Section wrapper ──────────────────────────────────────── */
 .section {
-  background: rgba(255, 255, 255, 0.04);
+  background: linear-gradient(180deg, rgba(20, 28, 44, 0.92), rgba(13, 19, 31, 0.92));
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
+  border-radius: 14px;
   padding: 24px;
   margin-top: 32px;
 }
@@ -238,7 +238,7 @@
 }
 
 .rangeTabActive {
-  background: rgba(255, 143, 0, 0.15);
+  background: rgba(255, 143, 0, 0.22);
   border-color: #ff8f00;
   color: #ff8f00;
 }

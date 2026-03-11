@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { addCard, type Card } from "../../../../lib/cards";
@@ -71,6 +71,8 @@ const chunkArray = <T,>(items: T[], chunkSize: number): T[][] => {
 
 export default function CollectionAddPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const isScanRoute = pathname?.endsWith("/scan");
   const { user, loading } = useCurrentUser();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -177,6 +179,15 @@ export default function CollectionAddPage() {
       router.replace("/login");
     }
   }, [loading, user, router]);
+
+  useEffect(() => {
+    if (!isScanRoute || addMethod || showScanner) {
+      return;
+    }
+
+    setAddMethod("scan");
+    setShowScanner(true);
+  }, [isScanRoute, addMethod, showScanner]);
 
   if (loading) {
     return <div className={styles.loading}>Loading...</div>;
@@ -876,7 +887,7 @@ export default function CollectionAddPage() {
       <div className={styles.pageHeader}>
         <div>
           <p className={styles.eyebrow}>Collection</p>
-          <h1 className={styles.title}>Add Card</h1>
+          <h1 className={styles.title}>{isScanRoute ? "Scan Card" : "Add Card"}</h1>
         </div>
         <Link className={styles.secondaryButton} href="/dashboard/collection">
           Back to Collection
