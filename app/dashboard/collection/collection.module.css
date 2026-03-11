@@ -113,6 +113,8 @@
     0 2px 8px rgba(0, 0, 0, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .panel:nth-child(even) {
@@ -126,13 +128,13 @@
 /* Layout with sidebar */
 .layout {
   display: grid;
-  grid-template-columns: 250px 1fr;
+  grid-template-columns: 250px minmax(0, 1fr);
   gap: 24px;
 }
 
 /* Sidebar */
 .sidebar {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px;
   padding: 1rem;
@@ -177,7 +179,7 @@
 
 .newFolderInput input {
   flex: 1;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 6px;
   padding: 0.5rem;
@@ -194,7 +196,7 @@
   width: 32px;
   height: 32px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: #fff;
   cursor: pointer;
@@ -202,7 +204,7 @@
 }
 
 .newFolderInput button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.7);
 }
 
 .newFolderInput button:disabled {
@@ -233,7 +235,7 @@
 }
 
 .folderItem:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.4);
 }
 
 .folderItem.active {
@@ -302,7 +304,7 @@
 }
 
 .cardItem {
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+  background: linear-gradient(145deg, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.5));
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 16px;
   overflow: hidden;
@@ -327,7 +329,7 @@
   width: 100%;
   aspect-ratio: 2.5 / 3.5;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .cardImage {

@@ -123,15 +123,17 @@
 /* Cards Table */
 
 .cards-table-container {
-  overflow-x: auto;
+  overflow-x: hidden;
   border: 1px solid #333;
   border-radius: 8px;
+  width: 100%;
 }
 
 .cards-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
+  table-layout: fixed;
 }
 
 .cards-table thead {
@@ -147,17 +149,39 @@
   text-transform: uppercase;
   font-size: 12px;
   letter-spacing: 0.5px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  vertical-align: top;
 }
 
 .cards-table td {
   padding: 16px;
   border-bottom: 1px solid #222;
   color: #fff;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  vertical-align: top;
+}
+
+.cards-table th:nth-child(1),
+.cards-table td:nth-child(1) {
+  width: 36px;
+}
+
+.cards-table th:nth-child(2),
+.cards-table td:nth-child(2) {
+  width: 98px;
+}
+
+.cards-table th:nth-child(11),
+.cards-table td:nth-child(11) {
+  width: 210px;
 }
 
 .collection-card-thumb {
-  width: 160px;
-  height: 224px;
+  width: 88px;
+  height: 124px;
   object-fit: contain;
   border-radius: 8px;
   border: 1px solid #3a3a3a;
@@ -182,8 +206,8 @@
   border: none;
   background: none;
   cursor: pointer;
-  font-size: 16px;
-  padding: 6px 10px;
+  font-size: 14px;
+  padding: 4px 8px;
   border-radius: 4px;
   transition: background 0.2s;
 }
@@ -241,12 +265,22 @@
 
   .cards-table th,
   .cards-table td {
-    padding: 12px 8px;
+    padding: 10px 6px;
   }
 
   .collection-card-thumb {
-    width: 90px;
-    height: 126px;
+    width: 72px;
+    height: 100px;
+  }
+
+  .cards-table th:nth-child(2),
+  .cards-table td:nth-child(2) {
+    width: 78px;
+  }
+
+  .cards-table th:nth-child(11),
+  .cards-table td:nth-child(11) {
+    width: 160px;
   }
 
   .add-card-btn {

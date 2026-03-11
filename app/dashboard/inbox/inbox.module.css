@@ -97,9 +97,9 @@
 }
 
 .threadCard:nth-child(even) {
-  background: linear-gradient(145deg, rgba(255, 140, 0, 0.95), rgba(255, 140, 0, 0.85));
+  background: linear-gradient(145deg, rgba(0, 41, 102, 0.95), rgba(0, 41, 102, 0.85));
   box-shadow: 
-    0 4px 16px rgba(255, 140, 0, 0.2),
+    0 4px 16px rgba(0, 41, 102, 0.2),
     0 2px 8px rgba(0, 0, 0, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
@@ -114,7 +114,7 @@
 
 .threadCard:nth-child(even):hover {
   box-shadow: 
-    0 8px 24px rgba(255, 140, 0, 0.3),
+    0 8px 24px rgba(0, 41, 102, 0.3),
     0 4px 12px rgba(0, 0, 0, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
@@ -130,9 +130,9 @@
 }
 
 .threadUnread {
-  background: linear-gradient(145deg, rgba(255, 140, 0, 1), rgba(255, 140, 0, 0.9));
+  background: linear-gradient(145deg, rgba(0, 41, 102, 1), rgba(0, 41, 102, 0.9));
   box-shadow: 
-    0 4px 16px rgba(255, 140, 0, 0.3),
+    0 4px 16px rgba(0, 41, 102, 0.3),
     0 2px 8px rgba(0, 0, 0, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
@@ -274,8 +274,8 @@
 }
 
 .messageMine .messageBubble {
-  background: linear-gradient(135deg, rgba(255, 122, 71, 0.6), rgba(255, 47, 146, 0.6));
-  color: #0b0915;
+  background: linear-gradient(135deg, rgba(0, 41, 102, 0.8), rgba(30, 144, 255, 0.6));
+  color: white;
 }
 
 .messageText {
@@ -284,9 +284,31 @@
   line-height: 1.4;
 }
 
+.messageMetaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .messageTime {
   font-size: 11px;
   opacity: 0.7;
+}
+
+.messageDeleteButton {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(0, 0, 0, 0.22);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 11px;
+  line-height: 1;
+  border-radius: 999px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.messageDeleteButton:hover {
+  background: rgba(0, 0, 0, 0.35);
 }
 
 .composer {
@@ -709,6 +731,12 @@
   margin-bottom: 4px;
 }
 
+:global(.group-msg-actions) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 :global(.group-msg-user) {
   font-weight: 600;
   font-size: 14px;
@@ -717,6 +745,21 @@
 :global(.group-msg-time) {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.5);
+}
+
+:global(.group-msg-delete-btn) {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.2);
+  color: rgba(255, 255, 255, 0.85);
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+:global(.group-msg-delete-btn:hover) {
+  background: rgba(0, 0, 0, 0.35);
 }
 
 :global(.group-msg-text) {
@@ -792,4 +835,127 @@
   margin: 0;
   color: rgba(255, 255, 255, 0.6);
   font-size: 14px;
+}
+
+/* Notification Toast */
+.notificationToast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, rgba(30, 144, 255, 0.95), rgba(0, 41, 102, 0.9));
+  border: 1px solid rgba(30, 144, 255, 0.5);
+  border-radius: 14px;
+  padding: 16px 20px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(30, 144, 255, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  animation: slideIn 0.3s ease-out;
+  max-width: 340px;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(400px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.notificationContent {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.notificationIcon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.notificationTitle {
+  font-weight: 600;
+  font-size: 14px;
+  color: white;
+  margin-bottom: 4px;
+}
+
+.notificationBody {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+@media (max-width: 600px) {
+  .notificationToast {
+    left: 12px;
+    right: 12px;
+    max-width: none;
+  }
+}
+/* User Search Styles */
+.searchContainer {
+  position: relative;
+}
+
+.searchDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: rgba(12, 15, 32, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  border-top: none;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 10;
+  margin-top: -1px;
+}
+
+.searchResultItem {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.searchResultItem:last-child {
+  border-bottom: none;
+}
+
+.searchResultItem:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.searchResultName {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.searchResultEmail {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.searchLoading {
+  padding: 12px 14px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+}
+
+.searchEmpty {
+  padding: 12px 14px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
 }

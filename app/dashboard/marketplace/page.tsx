@@ -11,11 +11,13 @@ import {
   query, 
   where, 
   getDocs, 
+  getDoc,
   orderBy, 
   limit,
-  addDoc,
-  serverTimestamp 
+  deleteDoc,
+  doc
 } from "firebase/firestore";
+import { FLAT_COLLECTIONS } from "@/lib/flatCollections";
 import styles from "./marketplace.module.css";
 
 interface Listing {
@@ -23,6 +25,7 @@ interface Listing {
   userId: string;
   userName: string;
   cardName: string;
+  cardNumber?: string;
   player: string;
   year: number;
   brand: string;
@@ -36,11 +39,54 @@ interface Listing {
   status: "active" | "sold" | "traded" | "cancelled";
   createdAt: any;
   views: number;
+  cards?: Array<{
+    cardId: string;
+    cardName: string;
+    cardNumber?: string;
+  }>;
 }
+
+const normalizeListingType = (value: string | undefined): "sell" | "trade" | "both" => {
+  if (value === "trade") return "trade";
+  if (value === "both") return "both";
+  if (value === "sale") return "sell";
+  return "sell";
+};
+
+const normalizeListing = (id: string, data: any): Listing => {
+  return {
+    id,
+    userId: data.userId || data.userID || data.sellerID || "",
+    userName: data.userName || data.sellerName || "Unknown Seller",
+    cardName: data.cardName || data.name || data.cardID || "Card",
+    cardNumber: data.cardNumber || data.number || "",
+    player: data.player || "",
+    year: Number(data.year || new Date().getFullYear()),
+    brand: data.brand || data.set || "",
+    sport: data.sport || "Other",
+    condition: data.condition || "Unknown",
+    listingType: normalizeListingType(data.listingType),
+    price: Number(data.price || 0),
+    tradeFor: data.tradeFor || "",
+    description: data.description || "",
+    imageUrl: data.imageUrl || data.image || "",
+    status: data.status || "active",
+    createdAt: data.createdAt || data.created || data.timestamp,
+    views: Number(data.views || 0),
+    cards: Array.isArray(data.cards)
+      ? data.cards.map((card: any) => ({
+          cardId: card.cardId || card.cardID || "",
+          cardName: card.cardName || card.name || card.cardID || "Card",
+          cardNumber: card.cardNumber || card.number || "",
+        }))
+      : [],
+  };
+};
 
 export default function MarketplacePage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
   const [listings, setListings] = useState<Listing[]>([]);
   const [filteredListings, setFilteredListings] = useState<Listing[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -53,6 +99,7 @@ export default function MarketplacePage() {
       if (!user) {
         router.replace("/login");
       } else {
+        setUserId(user.uid);
         setIsLoading(false);
         loadListings();
       }
@@ -63,24 +110,78 @@ export default function MarketplacePage() {
 
   const loadListings = async () => {
     try {
-      const listingsRef = collection(db, "marketplace");
-      const q = query(
-        listingsRef,
-        where("status", "==", "active"),
-        orderBy("createdAt", "desc"),
-        limit(100)
-      );
+      let loadedListings: Listing[] = [];
 
-      const snapshot = await getDocs(q);
-      const loadedListings: Listing[] = [];
-      snapshot.forEach((doc) => {
-        loadedListings.push({ id: doc.id, ...doc.data() } as Listing);
-      });
+      try {
+        const flatQuery = query(
+          collection(db, FLAT_COLLECTIONS.marketListings),
+          where("status", "==", "active"),
+          orderBy("created", "desc"),
+          limit(100)
+        );
+
+        const flatSnapshot = await getDocs(flatQuery);
+        loadedListings = flatSnapshot.docs.map((snapshot) =>
+          normalizeListing(snapshot.id, snapshot.data())
+        );
+      } catch (flatError) {
+        console.warn("Falling back to legacy marketplace collection:", flatError);
+      }
+
+      if (loadedListings.length === 0) {
+        const legacyQuery = query(
+          collection(db, "marketplace"),
+          where("status", "==", "active"),
+          orderBy("createdAt", "desc"),
+          limit(100)
+        );
+
+        const legacySnapshot = await getDocs(legacyQuery);
+        loadedListings = legacySnapshot.docs.map((snapshot) =>
+          normalizeListing(snapshot.id, snapshot.data())
+        );
+      }
 
       setListings(loadedListings);
       setFilteredListings(loadedListings);
     } catch (error) {
       console.error("Error loading listings:", error);
+    }
+  };
+
+  const handleDeleteListing = async (listingId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!window.confirm("Are you sure you want to delete this listing?")) {
+      return;
+    }
+
+    try {
+      const flatRef = doc(db, FLAT_COLLECTIONS.marketListings, listingId);
+      const legacyRef = doc(db, "marketplace", listingId);
+
+      const [flatSnap, legacySnap] = await Promise.all([
+        getDoc(flatRef),
+        getDoc(legacyRef),
+      ]);
+
+      const deleteOps: Promise<void>[] = [];
+      if (flatSnap.exists()) deleteOps.push(deleteDoc(flatRef));
+      if (legacySnap.exists()) deleteOps.push(deleteDoc(legacyRef));
+
+      if (deleteOps.length === 0) {
+        deleteOps.push(deleteDoc(flatRef));
+      }
+
+      await Promise.all(deleteOps);
+      
+      // Remove from local state
+      setListings(prev => prev.filter(l => l.id !== listingId));
+      setFilteredListings(prev => prev.filter(l => l.id !== listingId));
+    } catch (error) {
+      console.error("Error deleting listing:", error);
+      alert("Failed to delete listing. Please try again.");
     }
   };
 
@@ -90,11 +191,23 @@ export default function MarketplacePage() {
 
     // Search filter
     if (searchQuery) {
+      const queryText = searchQuery.toLowerCase();
       filtered = filtered.filter(
-        (listing) =>
-          listing.cardName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          listing.player.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          listing.brand.toLowerCase().includes(searchQuery.toLowerCase())
+        (listing) => {
+          const multiCardMatch = (listing.cards || []).some((card) => {
+            const cardNameMatch = (card.cardName || "").toLowerCase().includes(queryText);
+            const cardNumberMatch = (card.cardNumber || "").toLowerCase().includes(queryText);
+            return cardNameMatch || cardNumberMatch;
+          });
+
+          return (
+            listing.cardName.toLowerCase().includes(queryText) ||
+            listing.player.toLowerCase().includes(queryText) ||
+            listing.brand.toLowerCase().includes(queryText) ||
+            (listing.cardNumber || "").toLowerCase().includes(queryText) ||
+            multiCardMatch
+          );
+        }
       );
     }
 
@@ -220,40 +333,62 @@ export default function MarketplacePage() {
       <div className={styles.listingsGrid}>
         {filteredListings.length > 0 ? (
           filteredListings.map((listing) => (
-            <Link
-              key={listing.id}
-              href={`/dashboard/marketplace/${listing.id}`}
-              className={`panel ${styles.listingCard}`}
-            >
-              <CardItem
-                card={{
-                  cardName: listing.cardName,
-                  imageUrl: listing.imageUrl,
-                  player: listing.player,
-                  year: listing.year,
-                  sport: listing.sport,
-                  condition: listing.condition,
-                  price: listing.price
-                }}
-                badge={
-                  listing.listingType === "sell" ? "For Sale" :
-                  listing.listingType === "trade" ? "For Trade" :
-                  "Sale/Trade"
-                }
-              />
+            <div key={listing.id} className={styles.listingCardWrapper}>
+              <Link
+                href={`/dashboard/marketplace/${listing.id}`}
+                className={`panel ${styles.listingCard}`}
+              >
+                <CardItem
+                  card={{
+                    cardName: listing.cardName,
+                    imageUrl: listing.imageUrl,
+                    player: listing.player,
+                    year: listing.year,
+                    sport: listing.sport,
+                    condition: listing.condition,
+                    price: listing.price
+                  }}
+                  badge={
+                    listing.listingType === "sell" ? "For Sale" :
+                    listing.listingType === "trade" ? "For Trade" :
+                    "Sale/Trade"
+                  }
+                />
 
-              {listing.tradeFor && (
-                <div className={styles.listingTrade}>
-                  <span className={styles.tradeLabel}>Trade for:</span>
-                  <span className={styles.tradeText}>{listing.tradeFor}</span>
+                <div className={styles.listingIdentifier}>
+                  {listing.cards && listing.cards.length > 1
+                    ? `IDs: ${listing.cards
+                        .slice(0, 3)
+                        .map((card) => (card.cardNumber ? `#${card.cardNumber}` : card.cardName))
+                        .join(", ")}${listing.cards.length > 3 ? "..." : ""}`
+                    : listing.cardNumber
+                    ? `Card #${listing.cardNumber}`
+                    : `Card: ${listing.cardName}`}
                 </div>
-              )}
 
-              <div className={styles.listingFooter}>
-                <span className={styles.listingSeller}>by {listing.userName}</span>
-                <span className={styles.listingViews}>👁 {listing.views}</span>
-              </div>
-            </Link>
+                {listing.tradeFor && (
+                  <div className={styles.listingTrade}>
+                    <span className={styles.tradeLabel}>Trade for:</span>
+                    <span className={styles.tradeText}>{listing.tradeFor}</span>
+                  </div>
+                )}
+
+                <div className={styles.listingFooter}>
+                  <span className={styles.listingSeller}>by {listing.userName}</span>
+                  <span className={styles.listingViews}>👁 {listing.views}</span>
+                </div>
+              </Link>
+              
+              {userId && listing.userId === userId && (
+                <button
+                  onClick={(e) => handleDeleteListing(listing.id, e)}
+                  className={styles.deleteButton}
+                  title="Delete listing"
+                >
+                  ×
+                </button>
+              )}
+            </div>
           ))
         ) : (
           <div className={styles.emptyState}>

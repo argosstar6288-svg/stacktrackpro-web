@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/firebase";
@@ -30,14 +30,29 @@ export default function MarketPage() {
   const [dealAlerts, setDealAlerts] = useState<DealAlert[]>([]);
   const { cards, loading: cardsLoading } = useUserCards();
   
-  // Generate market trend from real card data
-  const marketData = Array.from({ length: 30 }).map((_, idx) => ({
-    name: `Day ${idx + 1}`,
-    avgPrice: (cards || []).length > 0 
-      ? Math.floor((cards.reduce((sum, c) => sum + c.value, 0) / (cards.length || 1)) * (0.9 + Math.random() * 0.2))
-      : 0,
-    volume: Math.floor(Math.random() * 50 + 10)
-  }));
+  const marketData = useMemo(() => {
+    const safeValues = (cards || [])
+      .map((card) => Number(card.value))
+      .filter((value) => Number.isFinite(value) && value >= 0);
+
+    const baseAverage =
+      safeValues.length > 0
+        ? safeValues.reduce((sum, value) => sum + value, 0) / safeValues.length
+        : 100;
+
+    return Array.from({ length: 30 }).map((_, idx) => {
+      const trend = 1 + idx * 0.0025;
+      const seasonality = 1 + Math.sin(idx / 4) * 0.05;
+      const avgPrice = Math.max(1, Math.round(baseAverage * trend * seasonality));
+      const volume = 18 + ((idx * 7) % 31);
+
+      return {
+        name: `Day ${idx + 1}`,
+        avgPrice,
+        volume,
+      };
+    });
+  }, [cards]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {

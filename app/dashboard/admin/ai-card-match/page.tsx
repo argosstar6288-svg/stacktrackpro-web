@@ -27,6 +27,64 @@ export default function AICardMatchPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
 
+  const getHoloFinishLabel = (value: unknown): 'Holo' | 'Reverse Holo' | undefined => {
+    if (typeof value !== 'string') return undefined;
+
+    const normalized = value.toLowerCase();
+    if (normalized.includes('reverse') && (normalized.includes('holo') || normalized.includes('foil'))) {
+      return 'Reverse Holo';
+    }
+
+    if (normalized.includes('holo') || normalized.includes('foil')) {
+      return 'Holo';
+    }
+
+    return undefined;
+  };
+
+  const resolveCardFinish = (cardData: any): 'Holo' | 'Reverse Holo' | undefined => {
+    const directVariant =
+      getHoloFinishLabel(cardData?.variant) ||
+      getHoloFinishLabel(cardData?.dna?.variant);
+
+    if (directVariant) {
+      return directVariant;
+    }
+
+    const variantPricing = cardData?.pricing?.variants;
+    if (variantPricing && typeof variantPricing === 'object') {
+      if ((variantPricing as any).reverseHolofoil != null) {
+        return 'Reverse Holo';
+      }
+      if ((variantPricing as any).holofoil != null) {
+        return 'Holo';
+      }
+    }
+
+    const tcgPrices = cardData?.tcgplayer?.prices;
+    if (tcgPrices && typeof tcgPrices === 'object') {
+      if ((tcgPrices as any).reverseHolofoil) {
+        return 'Reverse Holo';
+      }
+      if ((tcgPrices as any).holofoil) {
+        return 'Holo';
+      }
+    }
+
+    return undefined;
+  };
+
+  const resolveCardId = (cardData: any): string | undefined => {
+    const value = cardData?.stacktrackId || cardData?.catalogId || cardData?.id;
+    return typeof value === 'string' && value.trim().length > 0 ? value : undefined;
+  };
+
+  const formatCardIdForDisplay = (cardId?: string): string => {
+    if (!cardId) return '—';
+    if (cardId.length <= 24) return cardId;
+    return `${cardId.slice(0, 16)}…${cardId.slice(-6)}`;
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -45,6 +103,12 @@ export default function AICardMatchPage() {
   const [loading, setLoading] = useState(false);
   const [savedCards, setSavedCards] = useState<string[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<MatchedCard | null>(null);
+  const bestMatchFinish = matchResult?.match
+    ? resolveCardFinish(matchResult.match.cardData as any)
+    : undefined;
+  const bestMatchCardId = matchResult?.match
+    ? resolveCardId(matchResult.match.cardData as any)
+    : undefined;
 
   // Handle AI scan input
   const handleScanDataChange = (field: keyof AIScanResult, value: any) => {
@@ -222,6 +286,14 @@ export default function AICardMatchPage() {
                           </span>
                         )}
                       </div>
+                      {bestMatchCardId && (
+                        <span className={styles.cardIdBadge} title={bestMatchCardId}>
+                          {formatCardIdForDisplay(bestMatchCardId)}
+                        </span>
+                      )}
+                      {bestMatchFinish && (
+                        <span className={styles.finishBadge}>{bestMatchFinish}</span>
+                      )}
                       <div className={styles.matchReason}>
                         {matchResult.match.matchReason}
                       </div>
@@ -249,16 +321,33 @@ export default function AICardMatchPage() {
                     <div className={styles.candidates}>
                       <h3>Other Candidates ({matchResult.candidates.length})</h3>
                       <div className={styles.candidatesList}>
-                        {matchResult.candidates.slice(1).map((candidate, idx) => (
-                          <div key={idx} className={styles.candidateCard}>
-                            <div className={styles.candidateName}>
-                              {candidate.cardData.name}
+                        {matchResult.candidates.slice(1).map((candidate, idx) => {
+                          const candidateFinish = resolveCardFinish(candidate.cardData as any);
+                          const candidateCardId = resolveCardId(candidate.cardData as any);
+
+                          return (
+                            <div key={idx} className={styles.candidateCard}>
+                              <div className={styles.candidateName}>
+                                {candidate.cardData.name}
+                              </div>
+                              {candidateCardId && (
+                                <div className={styles.candidateMeta}>
+                                  <span className={styles.cardIdBadge} title={candidateCardId}>
+                                    {formatCardIdForDisplay(candidateCardId)}
+                                  </span>
+                                </div>
+                              )}
+                              {candidateFinish && (
+                                <div className={styles.candidateMeta}>
+                                  <span className={styles.finishBadge}>{candidateFinish}</span>
+                                </div>
+                              )}
+                              <div className={styles.candidateScore}>
+                                {candidate.matchScore}%
+                              </div>
                             </div>
-                            <div className={styles.candidateScore}>
-                              {candidate.matchScore}%
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}

@@ -1,0 +1,286 @@
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.toggleContainer {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 3rem;
+}
+
+.toggle {
+  display: inline-flex;
+  background: #f0f0f0;
+  border-radius: 8px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.toggleButton {
+  padding: 12px 24px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #666;
+  position: relative;
+}
+
+.toggleButton:hover {
+  background: rgba(16, 179, 240, 0.1);
+}
+
+.toggleButton.active {
+  background: white;
+  color: #10b3f0;
+  box-shadow: 0 2px 8px rgba(16, 179, 240, 0.15);
+}
+
+.saveBadge {
+  display: inline-block;
+  background: #10b3f0;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 8px;
+}
+
+.planGrid {
+  display: grid;
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.planGrid.grid {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.planGrid.list {
+  grid-template-columns: 1fr;
+}
+
+.card {
+  position: relative;
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 2rem;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.card:hover {
+  border-color: #10b3f0;
+  box-shadow: 0 8px 24px rgba(16, 179, 240, 0.15);
+  transform: translateY(-4px);
+}
+
+.card.popular {
+  border-color: #10b3f0;
+  box-shadow: 0 8px 32px rgba(16, 179, 240, 0.2);
+  transform: scale(1.05);
+}
+
+.card.selected {
+  border-color: #4caf50;
+  background: rgba(76, 175, 80, 0.05);
+}
+
+@media (max-width: 768px) {
+  .card.popular {
+    transform: scale(1.02);
+  }
+}
+
+.popularBadge {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(-50%);
+  background: #10b3f0;
+  color: white;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.header {
+  margin-bottom: 1.5rem;
+  padding-top: 0.5rem;
+}
+
+.planName {
+  margin: 0 0 0.5rem 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #333;
+}
+
+.pricing {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.price {
+  font-size: 32px;
+  font-weight: 700;
+  color: #10b3f0;
+}
+
+.period {
+  font-size: 14px;
+  color: #999;
+  font-weight: 500;
+}
+
+.lifetimeNote {
+  font-size: 12px;
+  color: #666;
+  margin: 0.5rem 0 0 0;
+  font-style: italic;
+}
+
+.featuresList {
+  list-style: none;
+  margin: 0 0 2rem 0;
+  padding: 0;
+  flex-grow: 1;
+}
+
+.feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  font-size: 14px;
+  color: #555;
+  line-height: 1.4;
+}
+
+.checkmark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  background: rgba(16, 179, 240, 0.1);
+  border-radius: 4px;
+  color: #10b3f0;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.ctaButton {
+  width: 100%;
+  padding: 14px 24px;
+  background: #10b3f0;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ctaButton:hover:not(:disabled) {
+  background: #0a9ecf;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 179, 240, 0.3);
+}
+
+.ctaButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ctaButton.selected {
+  background: #4caf50;
+  cursor: default;
+}
+
+.ctaButton.selected:hover {
+  background: #4caf50;
+  transform: none;
+}
+
+.limitedNote {
+  text-align: center;
+  font-size: 12px;
+  color: #f44336;
+  margin: 0.75rem 0 0 0;
+  font-weight: 600;
+}
+
+.freeInfo {
+  text-align: center;
+  padding: 1.5rem;
+  background: #f5f5f5;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #666;
+}
+
+.link {
+  color: #10b3f0;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.link:hover {
+  color: #0a9ecf;
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .toggleContainer {
+    margin-bottom: 2rem;
+  }
+
+  .toggle {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .toggleButton {
+    flex: 1;
+    min-width: 100px;
+  }
+
+  .planGrid {
+    gap: 1rem;
+  }
+
+  .card {
+    padding: 1.5rem;
+  }
+
+  .price {
+    font-size: 24px;
+  }
+
+  .planName {
+    font-size: 20px;
+  }
+}

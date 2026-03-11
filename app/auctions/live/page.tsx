@@ -15,6 +15,7 @@ import {
   getDoc 
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { FLAT_COLLECTIONS } from '@/lib/flatCollections'
 import { useCurrentUser } from '@/lib/useCurrentUser'
 import { useCurrency } from '@/hooks/useCurrency'
 import { formatCurrency } from '@/lib/currency'
@@ -28,6 +29,8 @@ interface LiveAuction {
   currentBid: number
   bidCount: number
   endTime: Timestamp
+  status?: 'live' | 'active' | 'ended'
+  ended?: boolean
 }
 
 interface AuctionDisplay {
@@ -71,8 +74,8 @@ export default function LiveAuctionsPage() {
   // Real-time auctions listener
   useEffect(() => {
     const q = query(
-      collection(db, 'auctions'),
-      where('ended', '==', false),
+      collection(db, FLAT_COLLECTIONS.auctions),
+      where('status', 'in', ['live', 'active']),
       orderBy('endTime', 'asc')
     )
 
@@ -82,6 +85,10 @@ export default function LiveAuctionsPage() {
         const auctionsList: AuctionDisplay[] = []
         querySnap.forEach((doc) => {
           const data = doc.data() as LiveAuction
+          if (data.ended || data.status === 'ended') {
+            return
+          }
+
           auctionsList.push({
             id: doc.id,
             cardName: data.cardName,

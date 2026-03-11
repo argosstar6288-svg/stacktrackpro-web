@@ -1,10 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useRef,
+  type KeyboardEvent,
+} from "react";
 import {
   addDoc,
   collection,
   collectionGroup,
+  deleteDoc,
+  doc,
   getDocs,
   onSnapshot,
   query,
@@ -75,6 +84,92 @@ export default function InboxPage() {
   const [composeMessage, setComposeMessage] = useState("");
   const [composeError, setComposeError] = useState("");
   const [sendingCompose, setSendingCompose] = useState(false);
+  const [searchResults, setSearchResults] = useState<Array<{ uid: string; displayName: string; email: string }>>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{ message: string; sender?: string } | null>(null);
+  const previousMessagesLengthRef = useRef(0);
+
+  const searchUsers = useCallback(
+    async (query: string) => {
+      if (!user || query.length < 2) {
+        setSearchResults([]);
+        return;
+      }
+
+      setSearchLoading(true);
+      try {
+        const response = await fetch(
+          `/api/search-users?q=${encodeURIComponent(query)}&currentUserId=${user.uid}`
+        );
+        const data = await response.json();
+        setSearchResults(data.results || []);
+      } catch (error) {
+        console.error("Error searching users:", error);
+        setSearchResults([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    },
+    [user]
+  );
+
+  const loadRecommendedUsers = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const response = await fetch(
+        `/api/search-users?recommendations=true&currentUserId=${user.uid}`
+      );
+      const data = await response.json();
+      setSearchResults(data.results || []);
+    } catch (error) {
+      console.error("Error loading recommended users:", error);
+      setSearchResults([]);
+    }
+  }, [user]);
+
+  const handleOpenCompose = () => {
+    setComposeOpen(true);
+    loadRecommendedUsers();
+  };
+
+  const handleSelectUser = (userId: string, displayName: string) => {
+    setComposeRecipient(userId);
+    setSelectedUserId(userId);
+    setSearchResults([]);
+  };
+
+  const showNotification = useCallback(
+    (message: string, sender?: string) => {
+      // Show in-app notification
+      setNotification({ message, sender });
+      setTimeout(() => setNotification(null), 5000);
+
+      // Request browser notification permission and show desktop notification
+      if (
+        typeof window !== "undefined" &&
+        "Notification" in window &&
+        Notification.permission === "granted"
+      ) {
+        new Notification(sender ? `Message from ${sender}` : "New Message", {
+          body: message.substring(0, 50) + (message.length > 50 ? "..." : ""),
+          icon: "/stacktrack-logo.png",
+          tag: "stacktrack-message",
+        });
+      }
+    },
+    []
+  );
+
+  // Request notification permission on mount
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "default") {
+        Notification.requestPermission();
+      }
+    }
+  }, []);
 
   const loadThreads = useCallback(async () => {
     if (!user) return;
@@ -163,10 +258,22 @@ export default function InboxPage() {
               time: timestamp ? formatTime(timestamp) : "",
               mine,
               timestamp,
+              senderId: data.senderId,
             };
           })
           .sort((a, b) => a.timestamp - b.timestamp)
-          .map(({ timestamp, ...rest }) => rest);
+          .map(({ timestamp, senderId, ...rest }) => rest);
+
+        // Check for new messages
+        if (nextMessages.length > previousMessagesLengthRef.current) {
+          const lastMessage = nextMessages[nextMessages.length - 1];
+          if (lastMessage && !lastMessage.mine) {
+            const senderThread = threads.find((t) => t.id === activeThreadId);
+            const senderName = senderThread?.name || "Someone";
+            showNotification(lastMessage.body, senderName);
+          }
+        }
+        previousMessagesLengthRef.current = nextMessages.length;
 
         setMessages(nextMessages);
         setThreads((current) =>
@@ -181,7 +288,7 @@ export default function InboxPage() {
     );
 
     return () => unsubscribe();
-  }, [user, activeThreadId]);
+  }, [user, activeThreadId, showNotification, threads]);
 
   const activeThread = useMemo(() => {
     return threads.find((thread) => thread.id === activeThreadId) ?? null;
@@ -261,6 +368,19 @@ export default function InboxPage() {
     }
   };
 
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!activeThreadId || !messageId) return;
+
+    try {
+      await deleteDoc(doc(db, "directChats", activeThreadId, "messages", messageId));
+      setMessages((current) => current.filter((message) => message.id !== messageId));
+      loadThreads();
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      alert("Failed to delete message");
+    }
+  };
+
   const handleStartChat = async () => {
     if (!user) return;
     const recipientId = normalizeRecipientId(composeRecipient);
@@ -324,8 +444,35 @@ export default function InboxPage() {
     }
   };
 
+  const handleComposerKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    if (!draft.trim() || !activeRecipientId) return;
+    void handleSend();
+  };
+
+  const handleStartChatKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== "Enter" || event.shiftKey) return;
+    event.preventDefault();
+    if (sendingCompose) return;
+    void handleStartChat();
+  };
+
   return (
     <div className={styles.wrapper}>
+      {notification && (
+        <div className={styles.notificationToast}>
+          <div className={styles.notificationContent}>
+            <span className={styles.notificationIcon}>💬</span>
+            <div>
+              <div className={styles.notificationTitle}>
+                {notification.sender || "New Message"}
+              </div>
+              <div className={styles.notificationBody}>{notification.message}</div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className={`panel ${styles.listPanel}`}>
         <div className={styles.listHeader}>
           <div>
@@ -335,7 +482,7 @@ export default function InboxPage() {
           <button
             className={styles.primaryButton}
             type="button"
-            onClick={() => setComposeOpen(true)}
+            onClick={handleOpenCompose}
           >
             New Message
           </button>
@@ -457,7 +604,18 @@ export default function InboxPage() {
               >
                 <div className={styles.messageBubble}>
                   <p className={styles.messageText}>{message.body}</p>
-                  <span className={styles.messageTime}>{message.time}</span>
+                  <div className={styles.messageMetaRow}>
+                    <span className={styles.messageTime}>{message.time}</span>
+                    {message.mine && (
+                      <button
+                        className={styles.messageDeleteButton}
+                        type="button"
+                        onClick={() => handleDeleteMessage(message.id)}
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))
@@ -472,6 +630,7 @@ export default function InboxPage() {
             aria-label="Write a message"
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={handleComposerKeyDown}
           />
           <button
             className={styles.primaryButton}
@@ -496,21 +655,57 @@ export default function InboxPage() {
               <button
                 className={styles.closeButton}
                 type="button"
-                onClick={() => setComposeOpen(false)}
+                onClick={() => {
+                  setComposeOpen(false);
+                  setSearchResults([]);
+                  setSelectedUserId(null);
+                }}
               >
                 Close
               </button>
             </div>
             <div className={styles.modalBody}>
               <label className={styles.modalField}>
-                <span className={styles.modalLabel}>Recipient user id</span>
-                <input
-                  className={styles.modalInput}
-                  type="text"
-                  placeholder="Enter user id"
-                  value={composeRecipient}
-                  onChange={(event) => setComposeRecipient(event.target.value)}
-                />
+                <span className={styles.modalLabel}>Find a user to chat with</span>
+                <div className={styles.searchContainer}>
+                  <input
+                    className={styles.modalInput}
+                    type="text"
+                    placeholder="Search by name or email"
+                    value={composeRecipient}
+                    onChange={(event) => {
+                      setComposeRecipient(event.target.value);
+                      setSelectedUserId(null);
+                      searchUsers(event.target.value);
+                    }}
+                  />
+                  {searchResults.length > 0 || searchLoading ? (
+                    <div className={styles.searchDropdown}>
+                      {!composeRecipient && (
+                        <div style={{ padding: "12px 14px", fontSize: "12px", color: "rgba(255, 255, 255, 0.5)", fontWeight: 600 }}>
+                          ✨ Recommended Users
+                        </div>
+                      )}
+                      {searchLoading ? (
+                        <div className={styles.searchLoading}>Searching...</div>
+                      ) : searchResults.length > 0 ? (
+                        searchResults.map((result) => (
+                          <button
+                            key={result.uid}
+                            className={styles.searchResultItem}
+                            type="button"
+                            onClick={() => handleSelectUser(result.uid, result.displayName)}
+                          >
+                            <span className={styles.searchResultName}>{result.displayName}</span>
+                            <span className={styles.searchResultEmail}>{result.email}</span>
+                          </button>
+                        ))
+                      ) : (
+                        <div className={styles.searchEmpty}>No users found</div>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
               </label>
               <label className={styles.modalField}>
                 <span className={styles.modalLabel}>Message</span>
@@ -520,6 +715,7 @@ export default function InboxPage() {
                   rows={4}
                   value={composeMessage}
                   onChange={(event) => setComposeMessage(event.target.value)}
+                  onKeyDown={handleStartChatKeyDown}
                 />
               </label>
               {composeError && (
@@ -530,7 +726,11 @@ export default function InboxPage() {
               <button
                 className={styles.ghostButton}
                 type="button"
-                onClick={() => setComposeOpen(false)}
+                onClick={() => {
+                  setComposeOpen(false);
+                  setSearchResults([]);
+                  setSelectedUserId(null);
+                }}
               >
                 Cancel
               </button>

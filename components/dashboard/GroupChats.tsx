@@ -89,8 +89,7 @@ export default function GroupChats() {
   const selectedGroup = chatGroups.find((g) => g.id === selectedGroupId);
   const messages = selectedGroupId ? groupMessages[selectedGroupId] || [] : [];
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
+  const sendMessage = () => {
     if (!newMessage.trim() || !selectedGroupId) return;
 
     const message = {
@@ -106,6 +105,25 @@ export default function GroupChats() {
       [selectedGroupId]: [message, ...messages],
     });
     setNewMessage("");
+  };
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    sendMessage();
+  };
+
+  const handleGroupInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    sendMessage();
+  };
+
+  const handleDeleteGroupMessage = (messageId: number) => {
+    if (!selectedGroupId) return;
+    setGroupMessages((current) => ({
+      ...current,
+      [selectedGroupId]: (current[selectedGroupId] || []).filter((msg) => msg.id !== messageId),
+    }));
   };
 
   const addEmoji = (emoji: string) => {
@@ -166,7 +184,18 @@ export default function GroupChats() {
                   <div className="group-msg-content">
                     <div className="group-msg-header">
                       <span className="group-msg-user">{msg.user}</span>
-                      <span className="group-msg-time">{msg.time}</span>
+                      <div className="group-msg-actions">
+                        <span className="group-msg-time">{msg.time}</span>
+                        {msg.user === "You" && (
+                          <button
+                            type="button"
+                            className="group-msg-delete-btn"
+                            onClick={() => handleDeleteGroupMessage(msg.id)}
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <p className="group-msg-text">{msg.message}</p>
                   </div>
@@ -196,6 +225,7 @@ export default function GroupChats() {
                   placeholder="Type a message..."
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyDown={handleGroupInputKeyDown}
                 />
                 <button
                   type="button"

@@ -196,7 +196,7 @@ export default function HelpPage() {
               <h2 className={styles.panelTitle}>Quick Links</h2>
             </div>
             <div className={styles.quickLinks}>
-              <Link href="/dashboard/collection/add" className={styles.quickLink}>
+              <Link href="/dashboard/scan" className={styles.quickLink}>
                 <span className={styles.quickLinkIcon}>📷</span>
                 <span>Scan a Card</span>
               </Link>

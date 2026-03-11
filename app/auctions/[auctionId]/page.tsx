@@ -10,11 +10,13 @@ import {
   Timestamp, 
   collection,
   query,
+  where,
   orderBy,
   increment,
   serverTimestamp 
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { FLAT_COLLECTIONS } from '@/lib/flatCollections'
 import { useCurrentUser } from '@/lib/useCurrentUser'
 import styles from './auction.module.css'
 
@@ -29,13 +31,14 @@ interface Auction {
   currentBid: number
   minimumNextBid: number
   bidCount: number
-  sellerId: string
+  sellerId?: string
+  sellerID?: string
   sellerName: string
   highestBidderId?: string | null
   highestBidder?: string | null
   endTime: Timestamp
   ended?: boolean
-  status?: 'active' | 'ended'
+  status?: 'live' | 'active' | 'ended'
 }
 
 interface BidHistory {
@@ -66,7 +69,7 @@ export default function AuctionDetailPage() {
     if (!auctionId) return
 
     const unsubscribe = onSnapshot(
-      doc(db, 'auctions', auctionId),
+      doc(db, FLAT_COLLECTIONS.auctions, auctionId),
       (docSnap) => {
         if (docSnap.exists()) {
           setAuction({ id: docSnap.id, ...docSnap.data() } as Auction)
@@ -81,25 +84,50 @@ export default function AuctionDetailPage() {
     return () => unsubscribe()
   }, [auctionId])
 
-  // Real-time bid history listener
+  // Real-time bid history listener (flat collection first, legacy fallback)
   useEffect(() => {
     if (!auctionId) return
 
-    const unsubscribe = onSnapshot(
-      query(collection(db, 'auctions', auctionId, 'bids'), orderBy('timestamp', 'desc')),
-      (querySnap) => {
-        const bids: BidHistory[] = []
-        querySnap.forEach((doc) => {
-          bids.push({ ...doc.data() } as BidHistory)
+    let fallbackUnsubscribe: (() => void) | null = null
+
+    const readSnapshot = (querySnap: any) => {
+      const bids: BidHistory[] = []
+      querySnap.forEach((snapshot: any) => {
+        const data = snapshot.data()
+        bids.push({
+          userId: data.userId || data.bidderID || '',
+          userName: data.userName || data.bidderName || 'Anonymous',
+          amount: Number(data.amount || 0),
+          timestamp: data.timestamp,
         })
-        setBidHistory(bids)
-      },
+      })
+      setBidHistory(bids)
+    }
+
+    const flatUnsubscribe = onSnapshot(
+      query(
+        collection(db, FLAT_COLLECTIONS.auctionBids),
+        where('auctionID', '==', auctionId),
+        orderBy('timestamp', 'desc')
+      ),
+      readSnapshot,
       (error) => {
-        console.error('Failed to load bid history:', error)
+        console.error('Flat bid history query failed, falling back:', error)
+
+        fallbackUnsubscribe = onSnapshot(
+          query(collection(db, FLAT_COLLECTIONS.auctions, auctionId, 'bids'), orderBy('timestamp', 'desc')),
+          readSnapshot,
+          (fallbackError) => {
+            console.error('Failed to load bid history:', fallbackError)
+          }
+        )
       }
     )
 
-    return () => unsubscribe()
+    return () => {
+      flatUnsubscribe()
+      if (fallbackUnsubscribe) fallbackUnsubscribe()
+    }
   }, [auctionId])
 
   // Countdown timer logic - server-time based
@@ -128,7 +156,8 @@ export default function AuctionDetailPage() {
   const formatTime = (num: number) => String(num).padStart(2, '0')
   const isTimeWarning = timeLeft.hours === 0 && timeLeft.minutes < 5
   const auctionEnded = Boolean(auction?.ended) || auction?.status === 'ended' || (auction?.endTime ? auction.endTime.toMillis() <= Date.now() : false)
-  const canBid = user && auction && !auctionEnded && auction.sellerId !== user.uid && Number.isFinite(parseFloat(maxBid)) && parseFloat(maxBid) > auction.currentBid
+  const auctionSellerId = auction?.sellerID || auction?.sellerId || ''
+  const canBid = user && auction && !auctionEnded && auctionSellerId !== user.uid && Number.isFinite(parseFloat(maxBid)) && parseFloat(maxBid) > auction.currentBid
   
   const handlePlaceAutoBid = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -156,7 +185,7 @@ export default function AuctionDetailPage() {
 
     try {
       await runTransaction(db, async (transaction) => {
-        const auctionRef = doc(db, 'auctions', auctionId)
+        const auctionRef = doc(db, FLAT_COLLECTIONS.auctions, auctionId)
         const auctionDoc = await transaction.get(auctionRef)
 
         if (!auctionDoc.exists()) {
@@ -194,13 +223,16 @@ export default function AuctionDetailPage() {
           lastBidTime: serverTimestamp()
         })
 
-        // Record bid in subcollection
-        const bidRef = doc(collection(db, 'auctions', auctionId, 'bids'))
+        // Record bid in flat collection
+        const bidRef = doc(collection(db, FLAT_COLLECTIONS.auctionBids))
         transaction.set(bidRef, {
+          auctionID: auctionId,
+          bidderID: user.uid,
+          bidderName: user.displayName || 'Anonymous',
           userId: user.uid,
+          userName: user.displayName || 'Anonymous',
           amount: bidAmount,
           timestamp: serverTimestamp(),
-          userName: user.displayName || 'Anonymous'
         })
       })
 

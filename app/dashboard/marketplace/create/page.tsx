@@ -6,8 +6,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { auth, db } from "../../../../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore";
 import { useUserCards } from "../../../../lib/cards";
+import { FLAT_COLLECTIONS } from "@/lib/flatCollections";
 import styles from "./create.module.css";
 
 export default function CreateListingPage() {
@@ -16,7 +17,9 @@ export default function CreateListingPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const { cards } = useUserCards();
+  const [listedCardIds, setListedCardIds] = useState<Set<string>>(new Set());
   
+  const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     selectedCard: "",
     selectedCardImageUrl: "",
@@ -50,11 +53,59 @@ export default function CreateListingPage() {
     return found || "";
   };
 
+  const resolveCardNumber = (card: any): string => {
+    if (!card) return "";
+
+    const candidates = [card.cardNumber, card.number, card.cardNo, card.no];
+    const found = candidates.find((value) => typeof value === "string" && value.trim().length > 0);
+    return found || "";
+  };
+
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         router.replace("/login");
       } else {
+        // Fetch all active listings to get listed card IDs (flat first, legacy fallback)
+        try {
+          const listedIds = new Set<string>();
+
+          const collectListedIds = (docs: any[]) => {
+            docs.forEach((snapshot) => {
+              const data = snapshot.data();
+
+              if (data.cardId) listedIds.add(data.cardId);
+              if (data.cardID) listedIds.add(data.cardID);
+
+              if (data.cards && Array.isArray(data.cards)) {
+                data.cards.forEach((card: any) => {
+                  if (card.cardId) listedIds.add(card.cardId);
+                  if (card.cardID) listedIds.add(card.cardID);
+                });
+              }
+            });
+          };
+
+          try {
+            const flatQuery = query(
+              collection(db, FLAT_COLLECTIONS.marketListings),
+              where("status", "==", "active")
+            );
+            const flatSnapshot = await getDocs(flatQuery);
+            collectListedIds(flatSnapshot.docs);
+          } catch (flatError) {
+            console.warn("Flat marketListings query failed:", flatError);
+          }
+
+          const legacyQuery = query(collection(db, "marketplace"), where("status", "==", "active"));
+          const legacySnapshot = await getDocs(legacyQuery);
+          collectListedIds(legacySnapshot.docs);
+
+          setListedCardIds(listedIds);
+        } catch (error) {
+          console.error("Error fetching marketplace listings:", error);
+        }
+
         setIsLoading(false);
       }
     });
@@ -121,6 +172,25 @@ export default function CreateListingPage() {
     }
   };
 
+  const toggleCardSelection = (cardId: string) => {
+    setSelectedCardIds((prev) => {
+      if (prev.includes(cardId)) {
+        return prev.filter((id) => id !== cardId);
+      } else {
+        return [...prev, cardId];
+      }
+    });
+  };
+
+  const getSelectedCards = () => {
+    if (!cards) return [];
+    return cards.filter((card) => selectedCardIds.includes(card.id));
+  };
+
+  const getTotalValue = () => {
+    return getSelectedCards().reduce((sum, card) => sum + (card.value || 0), 0);
+  };
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
@@ -135,13 +205,8 @@ export default function CreateListingPage() {
     e.preventDefault();
     setError("");
 
-    if (!formData.selectedCard) {
-      setError("Select a card from your collection first.");
-      return;
-    }
-
-    if (!formData.cardName) {
-      setError("Card name is required");
+    if (selectedCardIds.length === 0) {
+      setError("Select at least one card from your collection.");
       return;
     }
 
@@ -166,23 +231,49 @@ export default function CreateListingPage() {
     try {
       setSaving(true);
 
-      await addDoc(collection(db, "marketplace"), {
-        cardId: formData.selectedCard || null,
+      const selectedCards = getSelectedCards();
+      const cardDetails = selectedCards.map((card) => ({
+        cardId: card.id,
+        cardName: card.name,
+        cardNumber: resolveCardNumber(card),
+        player: (card as any).player || "",
+        year: card.year || new Date().getFullYear(),
+        brand: (card as any).brand || "",
+        sport: (card as any).sport || "Baseball",
+        condition: (card as any).condition || "Mint",
+        imageUrl: resolveCardImageUrl(card) || null,
+        value: card.value || 0,
+      }));
+
+      await addDoc(collection(db, FLAT_COLLECTIONS.marketListings), {
+        cards: cardDetails.map((card) => ({
+          ...card,
+          cardID: card.cardId,
+        })),
+        cardCount: selectedCards.length,
+        sellerID: user.uid,
         userId: user.uid,
+        userID: user.uid,
+        sellerName: user.displayName || user.email?.split("@")[0] || "Anonymous",
         userName: user.displayName || user.email?.split("@")[0] || "Anonymous",
-        cardName: formData.cardName,
-        player: formData.player,
-        year: formData.year,
-        brand: formData.brand,
-        sport: formData.sport,
-        condition: formData.condition,
+        // Keep first card as primary for quick lookups
+        cardID: selectedCards[0].id || null,
+        cardId: selectedCards[0].id || null,
+        cardName: selectedCards[0].name,
+        cardNumber: resolveCardNumber(selectedCards[0]) || null,
+        player: (selectedCards[0] as any).player || "",
+        year: selectedCards[0].year || new Date().getFullYear(),
+        brand: (selectedCards[0] as any).brand || "",
+        sport: (selectedCards[0] as any).sport || "Baseball",
+        condition: (selectedCards[0] as any).condition || "Mint",
+        imageUrl: resolveCardImageUrl(selectedCards[0]) || null,
         listingType: formData.listingType,
         price: formData.price ? Number(formData.price) : null,
         tradeFor: formData.tradeFor || null,
         description: formData.description,
-        imageUrl: formData.selectedCardImageUrl || null,
         status: "active",
         views: 0,
+        created: serverTimestamp(),
         createdAt: serverTimestamp(),
       });
 
@@ -215,120 +306,143 @@ export default function CreateListingPage() {
         {/* Select from collection */}
         {cards && cards.length > 0 && (
           <div className={styles.section}>
-            <h3 className={styles.sectionTitle}>Quick Select from Collection</h3>
-            <p className={styles.selectedCardPreviewText}>Choose a saved card to auto-fill listing info and photo.</p>
-            <select
-              value={formData.selectedCard}
-              onChange={handleCardSelect}
-              className={styles.select}
-            >
-              <option value="">-- Or enter manually --</option>
-              {cards.map((card) => (
-                <option key={card.id} value={card.id}>
-                  {card.name} - ${card.value}
-                </option>
-              ))}
-            </select>
-
-            {formData.selectedCardImageUrl ? (
-              <div className={styles.selectedCardPreview}>
-                <Image
-                  src={formData.selectedCardImageUrl}
-                  alt={formData.cardName || "Selected card"}
-                  width={300}
-                  height={420}
-                  sizes="(max-width: 768px) 100vw, 400px"
-                  className={styles.selectedCardPreviewImage}
-                  unoptimized
-                />
-                <p className={styles.selectedCardPreviewText}>Photo pulled from your Collection</p>
+            <h3 className={styles.sectionTitle}>Select Cards from Collection</h3>
+            <p className={styles.selectedCardPreviewText}>
+              Select one or more cards to include in this listing. Total value: ${getTotalValue().toLocaleString()}
+              <br />
+              <span style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.6)' }}>
+                {cards.filter(card => !listedCardIds.has(card.id)).length} of {cards.length} cards available 
+                {listedCardIds.size > 0 && ` (${listedCardIds.size} already listed)`}
+              </span>
+            </p>
+            
+            {cards.filter(card => !listedCardIds.has(card.id)).length === 0 ? (
+              <div style={{
+                padding: '2rem',
+                textAlign: 'center',
+                background: 'rgba(255,140,0,0.1)',
+                border: '1px solid rgba(255,140,0,0.3)',
+                borderRadius: '12px',
+                marginTop: '1rem'
+              }}>
+                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📦</div>
+                <h3 style={{ marginBottom: '0.5rem' }}>All cards are already listed</h3>
+                <p style={{ color: 'rgba(255,255,255,0.7)', margin: 0 }}>
+                  All your cards are currently in active marketplace listings. Delete existing listings to create new ones.
+                </p>
               </div>
-            ) : formData.selectedCard ? (
-              <p className={styles.selectedCardMissingPhoto}>
-                No saved card photo found in Collection. Listing will use placeholder.
-              </p>
-            ) : null}
+            ) : (
+              <>
+                <div style={{ 
+              display: "grid", 
+              gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", 
+              gap: "1rem",
+              marginTop: "1rem",
+              maxHeight: "500px",
+              overflowY: "auto",
+              padding: "0.5rem",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "12px",
+              background: "rgba(0,0,0,0.3)"
+            }}>
+              {cards.filter(card => !listedCardIds.has(card.id)).map((card) => {
+                const imageUrl = resolveCardImageUrl(card);
+                const cardNumber = resolveCardNumber(card);
+                const isSelected = selectedCardIds.includes(card.id);
+                return (
+                  <div
+                    key={card.id}
+                    onClick={() => toggleCardSelection(card.id)}
+                    style={{
+                      cursor: "pointer",
+                      border: isSelected ? "3px solid #1E90FF" : "2px solid rgba(255,255,255,0.1)",
+                      borderRadius: "8px",
+                      padding: "0.75rem",
+                      background: isSelected ? "rgba(30,144,255,0.15)" : "rgba(0,0,0,0.4)",
+                      transition: "all 0.2s",
+                      position: "relative"
+                    }}
+                  >
+                    {isSelected && (
+                      <div style={{
+                        position: "absolute",
+                        top: "0.5rem",
+                        right: "0.5rem",
+                        width: "32px",
+                        height: "32px",
+                        borderRadius: "50%",
+                        background: "#1E90FF",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 10,
+                        boxShadow: "0 2px 8px rgba(30,144,255,0.6)",
+                        border: "2px solid white"
+                      }}>
+                        <svg 
+                          width="20" 
+                          height="20" 
+                          viewBox="0 0 24 24" 
+                          fill="none" 
+                          stroke="white" 
+                          strokeWidth="3" 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </div>
+                    )}
+                    {imageUrl && (
+                      <Image
+                        src={imageUrl}
+                        alt={card.name}
+                        width={160}
+                        height={224}
+                        sizes="160px"
+                        style={{
+                          width: "100%",
+                          height: "auto",
+                          borderRadius: "4px",
+                          marginBottom: "0.5rem",
+                          opacity: isSelected ? 0.9 : 1,
+                          transition: "opacity 0.2s"
+                        }}
+                        unoptimized
+                      />
+                    )}
+                    <div style={{ fontSize: "0.875rem", fontWeight: "600", marginBottom: "0.25rem" }}>
+                      {card.name}
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.7)", marginBottom: "0.25rem" }}>
+                      {cardNumber ? `Card #${cardNumber}` : `Card ID: ${card.id}`}
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.6)" }}>
+                      ${card.value?.toLocaleString() || 0}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {selectedCardIds.length > 0 && (
+              <div style={{ 
+                marginTop: "1rem", 
+                padding: "1rem", 
+                background: "rgba(30,144,255,0.1)", 
+                borderRadius: "8px",
+                border: "1px solid rgba(30,144,255,0.3)"
+              }}>
+                <strong>{selectedCardIds.length} card{selectedCardIds.length > 1 ? 's' : ''} selected</strong>
+                <div style={{ marginTop: "0.5rem", fontSize: "0.875rem" }}>
+                  {getSelectedCards().map((card) => card.name).join(", ")}
+                </div>
+              </div>
+            )}
+              </>
+            )}
           </div>
         )}
-
-        {/* Card Details */}
-        <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>Card Details</h3>
-          <div className={styles.formGrid}>
-            <label className={styles.field}>
-              <span>Card Name *</span>
-              <input
-                type="text"
-                name="cardName"
-                value={formData.cardName}
-                onChange={handleChange}
-                placeholder="e.g., 2023 Topps Chrome Shohei Ohtani"
-                required
-              />
-            </label>
-
-            <label className={styles.field}>
-              <span>Player</span>
-              <input
-                type="text"
-                name="player"
-                value={formData.player}
-                onChange={handleChange}
-                placeholder="Player name"
-              />
-            </label>
-
-            <label className={styles.field}>
-              <span>Brand</span>
-              <input
-                type="text"
-                name="brand"
-                value={formData.brand}
-                onChange={handleChange}
-                placeholder="Topps, Panini, etc."
-              />
-            </label>
-
-            <label className={styles.field}>
-              <span>Year</span>
-              <input
-                type="number"
-                name="year"
-                value={formData.year}
-                onChange={handleChange}
-                min="1800"
-                max={new Date().getFullYear()}
-              />
-            </label>
-
-            <label className={styles.field}>
-              <span>Sport</span>
-              <select name="sport" value={formData.sport} onChange={handleChange}>
-                <option value="Baseball">Baseball</option>
-                <option value="Basketball">Basketball</option>
-                <option value="Football">Football</option>
-                <option value="Hockey">Hockey</option>
-                <option value="Soccer">Soccer</option>
-                <option value="Other">Other</option>
-              </select>
-            </label>
-
-            <label className={styles.field}>
-              <span>Condition</span>
-              <select name="condition" value={formData.condition} onChange={handleChange}>
-                <option value="Poor">Poor</option>
-                <option value="Fair">Fair</option>
-                <option value="Good">Good</option>
-                <option value="Excellent">Excellent</option>
-                <option value="Mint">Mint</option>
-                <option value="PSA 10">PSA 10</option>
-                <option value="PSA 9">PSA 9</option>
-                <option value="BGS 10">BGS 10</option>
-                <option value="BGS 9.5">BGS 9.5</option>
-              </select>
-            </label>
-          </div>
-        </div>
 
         {/* Listing Type */}
         <div className={styles.section}>

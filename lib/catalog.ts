@@ -1,6 +1,7 @@
 "use client";
 
 import { db } from "./firebase";
+import { buildCardLookup, buildSetID, type StackTrackGameID } from "./cardSchema";
 import { collection, doc, getDoc, getDocs, query, where, orderBy, limit } from "firebase/firestore";
 import type { CardDNA } from "./card-dna";
 import { cleanText } from "./card-dna";
@@ -8,6 +9,10 @@ import { cleanText } from "./card-dna";
 export interface CatalogCard {
   // Universal StackTrack ID (primary identifier)
   stacktrackId: string;
+  cardID: string;
+  gameID: StackTrackGameID;
+  setID: string;
+  lookup: string;
   
   // External IDs for API mapping
   catalogId: string; // Pokemon TCG ID, Scryfall ID, etc.
@@ -38,6 +43,14 @@ export interface CatalogCard {
   pricing?: {
     market: number;
     lastUpdated: string;
+     // Variant-specific pricing (for TCG cards)
+     variants?: {
+       normal?: number;
+       holofoil?: number;
+       reverseHolofoil?: number;
+       firstEdition?: number;
+       shadowless?: number;
+     };
   };
   
   // Search optimization
@@ -90,6 +103,10 @@ export async function searchCatalog(
 
         results.push({
           stacktrackId: data.stacktrackId || "",
+          cardID: data.cardID || data.stacktrackId || docSnap.id,
+          gameID: (data.gameID || data.game || game) as StackTrackGameID,
+          setID: data.setID || buildSetID(data.set?.id || data.set?.code || data.set?.name),
+          lookup: data.lookup || buildCardLookup({ name: data.name, cardNumber: data.cardNumber, setName: data.set?.name || data.brand }),
           catalogId: data.catalogId || docSnap.id,
           tcgplayerId: data.tcgplayerId,
           pricechartingId: data.pricechartingId,
@@ -139,6 +156,10 @@ export async function getCardFromCatalog(
     const data = cardSnap.data();
     return {
       stacktrackId: data.stacktrackId || "",
+      cardID: data.cardID || data.stacktrackId || cardSnap.id,
+      gameID: (data.gameID || data.game || game) as StackTrackGameID,
+      setID: data.setID || buildSetID(data.set?.id || data.set?.code || data.set?.name),
+      lookup: data.lookup || buildCardLookup({ name: data.name, cardNumber: data.cardNumber, setName: data.set?.name || data.brand }),
       catalogId: data.catalogId || cardSnap.id,
       tcgplayerId: data.tcgplayerId,
       pricechartingId: data.pricechartingId,

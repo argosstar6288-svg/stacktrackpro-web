@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { collectionGroup, onSnapshot, query, where } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { auth, db } from "../../lib/firebase";
@@ -10,20 +10,24 @@ import { useCurrentUser } from "../../lib/useCurrentUser";
 import { isAdminEmail } from "../../lib/adminAccess";
 
 const navItems = [
-  { label: "Overview", href: "/dashboard" },
-  { label: "Live Auctions", href: "/auctions/live" },
-  { label: "Collection", href: "/dashboard/collection" },
-  { label: "Market", href: "/dashboard/market" },
-  { label: "Marketplace", href: "/dashboard/marketplace" },
-  { label: "Pricing", href: "/dashboard/pricing" },
-  { label: "Inbox", href: "/dashboard/inbox" },
-  { label: "Watchlist", href: "/dashboard/watchlist" },
-  { label: "Help", href: "/dashboard/help" },
-  { label: "Settings", href: "/dashboard/settings" },
+  { icon: "🏠", label: "Dashboard", href: "/dashboard" },
+  { icon: "📷", label: "Scan Card", href: "/dashboard/scan" },
+  { icon: "📂", label: "Collection", href: "/dashboard/collection" },
+  { icon: "🛒", label: "Marketplace", href: "/dashboard/marketplace" },
+  { icon: "🔥", label: "Auctions", href: "/auctions/live" },
+  { icon: "📈", label: "Price Trends", href: "/dashboard/market" },
+  { icon: "⭐", label: "Watchlist", href: "/dashboard/watchlist" },
+  { icon: "⚙", label: "Settings", href: "/dashboard/settings" },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const { user } = useCurrentUser();
+  const pathname = usePathname();
   const router = useRouter();
   const [inboxUnread, setInboxUnread] = useState(0);
 
@@ -62,29 +66,52 @@ export default function Sidebar() {
     }
   };
 
+  const isActiveLink = (href: string) => {
+    if (href === "/dashboard") {
+      return pathname === "/dashboard";
+    }
+    if (href === "/dashboard/scan") {
+      return pathname === "/dashboard/scan" || pathname === "/dashboard/collection/add";
+    }
+    return pathname.startsWith(href);
+  };
+
   return (
-    <aside className="dashboard-sidebar">
+    <>
+      {isOpen && <button className="sidebar-backdrop" onClick={onClose} aria-label="Close navigation" />}
+      <aside className={`dashboard-sidebar ${isOpen ? "open" : ""}`}>
       <div className="sidebar-brand">
         <div className="brand-mark">
           <img src="/stacktrack-logo.png" alt="StackTrack" className="brand-logo" />
         </div>
         <div>
           <p className="brand-title">StackTrack</p>
-          <p className="brand-subtitle">Pro Dashboard</p>
+          <p className="brand-subtitle">Collector OS</p>
         </div>
+        <button className="sidebar-close" onClick={onClose} aria-label="Close menu">
+          ×
+        </button>
       </div>
       <nav className="sidebar-nav">
         {[
           ...navItems,
           ...(isAdminEmail(user?.email)
-            ? [{ label: "Admin", href: "/dashboard/admin" }]
+            ? [{ icon: "🛠", label: "Admin", href: "/dashboard/admin" }]
             : []),
         ].map((item) => {
           const showBadge = item.href === "/dashboard/inbox" && inboxUnread > 0;
           return (
-            <Link key={item.href} className="sidebar-link" href={item.href}>
+            <Link
+              key={item.href}
+              className={`sidebar-link ${isActiveLink(item.href) ? "active" : ""}`}
+              href={item.href}
+              onClick={onClose}
+            >
               <span className="sidebar-link-content">
-                {item.label}
+                <span className="sidebar-link-text">
+                  <span className="sidebar-link-icon" aria-hidden="true">{item.icon}</span>
+                  {item.label}
+                </span>
                 {showBadge && (
                   <span className="sidebar-link-badge">
                     {inboxUnread > 99 ? "99+" : inboxUnread}
@@ -96,33 +123,14 @@ export default function Sidebar() {
         })}
       </nav>
       <div className="sidebar-footer">
-        <button 
+        <button
           onClick={handleLogout}
           className="sidebar-logout-btn"
-          style={{
-            width: "100%",
-            padding: "12px 20px",
-            background: "rgba(255, 255, 255, 0.1)",
-            border: "1px solid rgba(255, 255, 255, 0.2)",
-            borderRadius: "8px",
-            color: "white",
-            cursor: "pointer",
-            fontSize: "14px",
-            fontWeight: "500",
-            transition: "all 0.2s",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)";
-            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.3)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
-            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.2)";
-          }}
         >
           Log Out
         </button>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

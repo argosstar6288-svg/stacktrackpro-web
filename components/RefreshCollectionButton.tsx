@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { auth } from "@/lib/firebase";
-import { getLastRefreshTime, needsRefresh, refreshUserCollectionValues } from "@/lib/cards";
 import styles from "./RefreshCollectionButton.module.css";
 
 export function RefreshCollectionButton() {
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [needsUpdate, setNeedsUpdate] = useState(false);
+  const [jobStatus, setJobStatus] = useState<"idle" | "queued" | "processing" | "completed">("idle");
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -17,11 +18,41 @@ export function RefreshCollectionButton() {
       if (!user) return;
 
       try {
-        const lastRefreshTime = await getLastRefreshTime(user.uid);
-        setLastRefresh(lastRefreshTime);
-        
-        const shouldRefresh = await needsRefresh(user.uid);
-        setNeedsUpdate(shouldRefresh);
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/background-price-updater?userId=${user.uid}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to load updater status");
+        }
+
+        const payload = await response.json();
+        const latestJob = payload?.latestJob || null;
+
+        setNeedsUpdate(Number(payload?.cardsNeedingUpdate || 0) > 0);
+
+        if (latestJob?.completedAt) {
+          setLastRefresh(new Date(latestJob.completedAt));
+        }
+
+        if (latestJob?.status === "queued") {
+          setJobStatus("queued");
+          setStatusMessage("Background update is queued");
+        } else if (latestJob?.status === "processing") {
+          setJobStatus("processing");
+          setStatusMessage("Background update is running");
+        } else if (latestJob?.status === "completed") {
+          setJobStatus("completed");
+          setStatusMessage(
+            `Last run updated ${Number(latestJob.updatedCards || 0)} card${Number(latestJob.updatedCards || 0) === 1 ? "" : "s"}`
+          );
+        } else {
+          setJobStatus("idle");
+          setStatusMessage(null);
+        }
       } catch (err) {
         console.error("Error checking refresh status:", err);
       }
@@ -38,24 +69,38 @@ export function RefreshCollectionButton() {
   const handleRefresh = async () => {
     const user = auth.currentUser;
     if (!user) {
-      setError("You must be logged in to refresh collection values");
+      setError("You must be logged in to queue updates");
       return;
     }
 
     setIsRefreshing(true);
     setError(null);
+    setStatusMessage(null);
 
     try {
-      await refreshUserCollectionValues(user.uid);
-      
-      setLastRefresh(new Date());
-      setNeedsUpdate(false);
-      
-      // Reload the page to show updated values
-      window.location.reload();
+      const token = await user.getIdToken();
+      const response = await fetch("/api/background-price-updater", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          mode: "enqueue",
+          userId: user.uid,
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload?.error || "Failed to queue update");
+      }
+
+      setJobStatus("queued");
+      setStatusMessage("Queued. Market prices will refresh in the background.");
     } catch (err) {
       console.error("Error refreshing collection:", err);
-      setError(err instanceof Error ? err.message : "Failed to refresh collection");
+      setError(err instanceof Error ? err.message : "Failed to queue background update");
     } finally {
       setIsRefreshing(false);
     }
@@ -92,24 +137,26 @@ export function RefreshCollectionButton() {
         onClick={handleRefresh}
         disabled={isRefreshing}
         className={`${styles.button} ${needsUpdate ? styles.needsUpdate : ''}`}
-        title="Refresh collection values with current market prices"
+        title="Queue background market price update"
       >
         {isRefreshing ? (
           <>
-            <span className={styles.spinner}>↻</span> Refreshing...
+            <span className={styles.spinner}>↻</span> Queueing...
           </>
         ) : (
           <>
-            🔄 {needsUpdate ? "Update Available" : "Refresh Values"}
+            🔄 {needsUpdate ? "Queue Price Update" : "Run Background Update"}
           </>
         )}
       </button>
       
       {error && <div className={styles.error}>{error}</div>}
+
+      {statusMessage && !error && <div className={styles.notification}>{statusMessage}</div>}
       
       {needsUpdate && !isRefreshing && (
         <div className={styles.notification}>
-          💡 Your collection values are over 24 hours old. Click to update!
+          💡 Prices are read from stored card records. Queue a background update to refresh market data.
         </div>
       )}
     </div>

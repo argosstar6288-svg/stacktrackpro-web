@@ -7,8 +7,20 @@ import Image from "next/image";
 import { addCard, type Card } from "../../../../lib/cards";
 import { db, storage } from "../../../../lib/firebase";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { collection, doc, serverTimestamp, updateDoc, writeBatch } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  documentId,
+  getDocs,
+  query,
+  serverTimestamp,
+  updateDoc,
+  where,
+  writeBatch,
+} from "firebase/firestore";
 import { useCurrentUser } from "../../../../lib/useCurrentUser";
+import { FLAT_COLLECTIONS, type FlatMasterCard } from "../../../../lib/flatCollections";
+import { buildCardLookup, buildSetID, inferGameID } from "../../../../lib/cardSchema";
 import { generateStackTrackId } from "../../../../lib/universal-card-id";
 import AICardScanner from "../../../../components/AICardScanner";
 import styles from "./collection-add.module.css";
@@ -19,6 +31,7 @@ interface PossibleMatch {
   id: string;
   cardId: string;
   name: string;
+  finish?: "Holo" | "Reverse Holo";
   player?: string;
   year?: number;
   brand?: string;
@@ -34,6 +47,28 @@ interface PendingScanMatch {
   selectedMatchId: string;
 }
 
+interface SavedScanRecord {
+  userCardID: string;
+  cardID: string;
+  gameID: string;
+  setID: string;
+  lookup: string;
+  cardName: string;
+  cardBrand: string;
+  cardNumber: string;
+  selectedMatch: PossibleMatch;
+  scanResult: any;
+  scannedImage: string;
+}
+
+const chunkArray = <T,>(items: T[], chunkSize: number): T[][] => {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += chunkSize) {
+    chunks.push(items.slice(i, i + chunkSize));
+  }
+  return chunks;
+};
+
 export default function CollectionAddPage() {
   const router = useRouter();
   const { user, loading } = useCurrentUser();
@@ -44,7 +79,6 @@ export default function CollectionAddPage() {
   const [cardImageFile, setCardImageFile] = useState<File | null>(null);
   const [cardImagePreview, setCardImagePreview] = useState("");
   const [addMethod, setAddMethod] = useState<"scan" | "manual" | null>(null);
-  const [fetchingPrice, setFetchingPrice] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     value: "",
@@ -64,6 +98,71 @@ export default function CollectionAddPage() {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "")
       .slice(0, 50);
+
+  const cacheCardMetadata = async (
+    cardId: string,
+    cardName: string,
+    cardData: any
+  ): Promise<void> => {
+    try {
+      await fetch("/api/cache-card", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cardID: cardId,
+          gameID: inferGameID({ sport: cardData.sport, name: cardName, brand: cardData.brand }),
+          setID: buildSetID(cardData.setName || cardData.brand),
+          lookup: buildCardLookup({
+            name: cardName,
+            cardNumber: cardData.cardNumber || "",
+            setName: cardData.setName || cardData.brand || "",
+          }),
+          stacktrackId: cardId,
+          name: cardName,
+          player: cardData.player || "",
+          year: Number(cardData.year) || new Date().getFullYear(),
+          brand: cardData.brand || "",
+          sport: cardData.sport || "Other",
+          condition: cardData.condition || "Good",
+          cardNumber: cardData.cardNumber || "",
+          setName: cardData.setName || cardData.brand || "",
+          isGraded: cardData.isGraded || false,
+          gradingCompany: cardData.gradingCompany,
+          grade: cardData.grade,
+          estimatedValue: Number(cardData.estimatedValue || 0),
+          imageUrl: cardData.imageUrl,
+        }),
+      });
+      console.log(`[Collection Add] Cached metadata for ${cardId}`);
+    } catch (e) {
+      console.warn(`[Collection Add] Failed to cache card metadata for ${cardId}:`, e);
+      // Don't fail the add operation if caching fails
+    }
+  };
+
+  const queueBackgroundPriceUpdate = async (uid: string, cardIds: string[]): Promise<void> => {
+    if (!uid) return;
+
+    try {
+      const idToken = await user?.getIdToken();
+      if (!idToken) return;
+
+      await fetch("/api/background-price-updater", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          mode: "enqueue",
+          userId: uid,
+          cardIds,
+        }),
+      });
+    } catch (queueError) {
+      console.warn("[Collection Add] Failed to queue background price update:", queueError);
+    }
+  };
 
   const uploadCardImage = async (userId: string, name: string, file: File) => {
     const extension = (file.name.split(".").pop() || "jpg").toLowerCase();
@@ -95,51 +194,6 @@ export default function CollectionAddPage() {
       ...prev,
       [name]: name === "value" ? (value ? Number(value) : "") : value,
     }));
-  };
-
-  const handleFetchPrice = async () => {
-    if (!formData.name) {
-      setError("Please enter a card name first");
-      return;
-    }
-
-    setFetchingPrice(true);
-    setError("");
-
-    try {
-      const response = await fetch("/api/price-lookup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cardName: formData.name,
-          player: formData.player || undefined,
-          year: formData.year ? Number(formData.year) : undefined,
-          brand: formData.brand || undefined,
-          sport: formData.sport || undefined,
-          condition: formData.condition || undefined,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch price");
-      }
-
-      const data = await response.json();
-
-      if (data.found && data.suggestedPrice) {
-        setFormData((prev) => ({
-          ...prev,
-          value: String(data.suggestedPrice),
-        }));
-        setError(`✓ Found market price: $${data.suggestedPrice} (${data.productName})`);
-      } else {
-        setError("⚠ Card not found in price database. Using estimated value.");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch market price");
-    } finally {
-      setFetchingPrice(false);
-    }
   };
 
   const dataUrlToBlob = (dataUrl: string): Blob => {
@@ -193,6 +247,70 @@ export default function CollectionAddPage() {
       sport: result?.sport || "other",
     });
 
+  const getHoloFinishLabel = (value: unknown): "Holo" | "Reverse Holo" | undefined => {
+    if (typeof value !== "string") return undefined;
+
+    const normalized = value.toLowerCase();
+    if (normalized.includes("reverse") && (normalized.includes("holo") || normalized.includes("foil"))) {
+      return "Reverse Holo";
+    }
+
+    if (normalized.includes("holo") || normalized.includes("foil")) {
+      return "Holo";
+    }
+
+    return undefined;
+  };
+
+  const resolveMatchFinish = (match: any, result: any): "Holo" | "Reverse Holo" | undefined => {
+    const directVariantLabel =
+      getHoloFinishLabel(match?.variant) ||
+      getHoloFinishLabel(match?.cardData?.variant) ||
+      getHoloFinishLabel(match?.cardData?.dna?.variant) ||
+      getHoloFinishLabel(result?.variant);
+
+    if (directVariantLabel) {
+      return directVariantLabel;
+    }
+
+    const variantPricing = match?.cardData?.pricing?.variants || match?.pricing?.variants;
+    if (variantPricing && typeof variantPricing === "object") {
+      if (variantPricing.reverseHolofoil != null) {
+        return "Reverse Holo";
+      }
+      if (variantPricing.holofoil != null) {
+        return "Holo";
+      }
+    }
+
+    const tcgPrices = match?.cardData?.tcgplayer?.prices || match?.tcgplayer?.prices;
+    if (tcgPrices && typeof tcgPrices === "object") {
+      if ((tcgPrices as any).reverseHolofoil) {
+        return "Reverse Holo";
+      }
+      if ((tcgPrices as any).holofoil) {
+        return "Holo";
+      }
+    }
+
+    return undefined;
+  };
+
+  const formatCardIdForDisplay = (cardId?: string): string => {
+    if (!cardId) return "—";
+    if (cardId.length <= 24) return cardId;
+    return `${cardId.slice(0, 16)}…${cardId.slice(-6)}`;
+  };
+
+  const toConfidencePercent = (value: unknown): number => {
+    if (typeof value !== "number" || Number.isNaN(value)) return 0;
+    if (value <= 1) {
+      return Math.max(0, Math.min(100, Math.round(value * 100)));
+    }
+
+    return Math.max(0, Math.min(100, Math.round(value)));
+  };
+
   const handleSelectMatch = (scanIndex: number, selectedMatchId: string) => {
     setPendingScanMatches((previous) =>
       previous.map((entry, index) =>
@@ -203,18 +321,243 @@ export default function CollectionAddPage() {
     );
   };
 
-  const handleSaveSelectedMatches = async () => {
-    if (!pendingScanMatches.length) return;
+  const loadMasterCards = async (cardIds: string[]) => {
+    const uniqueCardIds = Array.from(new Set(cardIds.filter(Boolean)));
+    const masterByCardId = new Map<string, FlatMasterCard>();
+    const chunkedIds = chunkArray(uniqueCardIds, 10);
+
+    for (const chunk of chunkedIds) {
+      const byDocIdQuery = query(
+        collection(db, FLAT_COLLECTIONS.cards),
+        where(documentId(), "in", chunk)
+      );
+      const snapshot = await getDocs(byDocIdQuery);
+
+      snapshot.docs.forEach((docSnapshot) => {
+        const data = { id: docSnapshot.id, ...docSnapshot.data() } as FlatMasterCard;
+        const resolvedCardID = String(data.cardID || docSnapshot.id);
+        masterByCardId.set(resolvedCardID, data);
+      });
+    }
+
+    const unresolved = uniqueCardIds.filter((cardId) => !masterByCardId.has(cardId));
+    const unresolvedChunks = chunkArray(unresolved, 10);
+
+    for (const chunk of unresolvedChunks) {
+      const byCardIdQuery = query(
+        collection(db, FLAT_COLLECTIONS.cards),
+        where("cardID", "in", chunk)
+      );
+      const snapshot = await getDocs(byCardIdQuery);
+
+      snapshot.docs.forEach((docSnapshot) => {
+        const data = { id: docSnapshot.id, ...docSnapshot.data() } as FlatMasterCard;
+        const resolvedCardID = String(data.cardID || docSnapshot.id);
+        masterByCardId.set(resolvedCardID, data);
+      });
+    }
+
+    return masterByCardId;
+  };
+
+  const loadGlobalIndexCards = async (cardIds: string[]) => {
+    const uniqueCardIds = Array.from(new Set(cardIds.filter(Boolean)));
+    const indexByCardId = new Map<string, any>();
+    const chunkedIds = chunkArray(uniqueCardIds, 10);
+
+    for (const chunk of chunkedIds) {
+      const byDocIdQuery = query(
+        collection(db, FLAT_COLLECTIONS.globalCardIndex),
+        where(documentId(), "in", chunk)
+      );
+      const snapshot = await getDocs(byDocIdQuery);
+
+      snapshot.docs.forEach((docSnapshot) => {
+        const data = docSnapshot.data() || {};
+        const resolvedCardID = String(data.cardID || docSnapshot.id);
+        indexByCardId.set(resolvedCardID, data);
+      });
+    }
+
+    return indexByCardId;
+  };
+
+  const hydrateSavedScanRecords = async (uid: string, records: SavedScanRecord[]) => {
+    if (!records.length) return;
+
+    try {
+      const cardIds = records.map((record) => record.cardID);
+      const [masterByCardID, indexByCardID] = await Promise.all([
+        loadMasterCards(cardIds),
+        loadGlobalIndexCards(cardIds),
+      ]);
+
+      const batch = writeBatch(db);
+      const pendingImageUploads: Array<{ cardDocId: string; userCardID: string; cardName: string; dataUrl: string }> = [];
+      const createdCardDocIds: string[] = [];
+
+      for (const record of records) {
+        const master = masterByCardID.get(record.cardID);
+        const indexed = indexByCardID.get(record.cardID);
+
+        const resolvedName = master?.name || indexed?.name || record.cardName;
+        const resolvedSet = master?.set || indexed?.set || record.cardBrand;
+        const resolvedNumber = master?.number || indexed?.number || record.cardNumber;
+        const resolvedLookup = master?.lookup || indexed?.lookup || record.lookup;
+
+        let imageUrl =
+          master?.image ||
+          indexed?.image ||
+          record.selectedMatch.imageUrl ||
+          record.scanResult?.imageUrl ||
+          record.scanResult?.photoUrl ||
+          PLACEHOLDER_IMAGE_URL;
+
+        if (record.scannedImage && !record.scannedImage.startsWith("data:") && imageUrl === PLACEHOLDER_IMAGE_URL) {
+          imageUrl = record.scannedImage;
+        }
+
+        const cardRef = doc(collection(db, "cards"));
+        createdCardDocIds.push(cardRef.id);
+
+        if (record.scannedImage && record.scannedImage.startsWith("data:")) {
+          pendingImageUploads.push({
+            cardDocId: cardRef.id,
+            userCardID: record.userCardID,
+            cardName: resolvedName,
+            dataUrl: record.scannedImage,
+          });
+        }
+
+        batch.set(cardRef, {
+          userId: uid,
+          cardID: record.cardID,
+          gameID: record.gameID,
+          setID: record.setID,
+          lookup: resolvedLookup,
+          name: resolvedName,
+          value: Number(record.scanResult?.estimatedValue || master?.avgPrice || 0),
+          marketPrice: Number(master?.avgPrice || record.scanResult?.estimatedValue || 0),
+          priceLastUpdated: new Date().toISOString(),
+          rarity: "Uncommon",
+          player: record.selectedMatch.player || record.scanResult?.player || "",
+          cardNumber: resolvedNumber,
+          brand: resolvedSet,
+          year: Number(record.selectedMatch.year || record.scanResult?.year || master?.year) || new Date().getFullYear(),
+          sport: getSafeSport(record.selectedMatch.sport || record.scanResult?.sport),
+          condition: (record.scanResult?.condition || "Good") as Card["condition"],
+          imageUrl,
+          photoUrl: imageUrl,
+          addedAt: serverTimestamp(),
+        });
+
+        batch.set(
+          doc(db, FLAT_COLLECTIONS.userCards, record.userCardID),
+          {
+            gameID: record.gameID,
+            setID: record.setID,
+            lookup: resolvedLookup,
+            cardName: resolvedName,
+            cardNumber: resolvedNumber,
+            brand: resolvedSet,
+            condition: record.scanResult?.condition || "Good",
+            value: Number(record.scanResult?.estimatedValue || master?.avgPrice || 0),
+            imageUrl,
+            photoUrl: imageUrl,
+            legacyCardDocID: cardRef.id,
+            hydratedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+
+        const scanRef = doc(collection(db, FLAT_COLLECTIONS.scans));
+        batch.set(scanRef, {
+          userID: uid,
+          cardID: record.cardID,
+          gameID: record.gameID,
+          setID: record.setID,
+          lookup: resolvedLookup,
+          image: record.scannedImage || imageUrl || PLACEHOLDER_IMAGE_URL,
+          detectedCard: record.cardID,
+          confidence: Number(record.scanResult?.confidence || 0),
+          timestamp: serverTimestamp(),
+        });
+
+        void cacheCardMetadata(record.cardID, resolvedName, {
+          player: record.selectedMatch.player || record.scanResult?.player,
+          year: record.selectedMatch.year || record.scanResult?.year,
+          brand: resolvedSet,
+          sport: record.selectedMatch.sport || record.scanResult?.sport,
+          condition: record.scanResult?.condition,
+          cardNumber: resolvedNumber,
+          setName: resolvedSet,
+          isGraded: record.scanResult?.isGraded,
+          gradingCompany: record.scanResult?.gradingCompany,
+          grade: record.scanResult?.grade,
+          estimatedValue: record.scanResult?.estimatedValue,
+          imageUrl: imageUrl !== PLACEHOLDER_IMAGE_URL ? imageUrl : undefined,
+        });
+      }
+
+      await batch.commit();
+
+      if (createdCardDocIds.length > 0) {
+        void queueBackgroundPriceUpdate(uid, createdCardDocIds);
+      }
+
+      if (pendingImageUploads.length > 0) {
+        void Promise.allSettled(
+          pendingImageUploads.map(async (pendingUpload) => {
+            try {
+              const uploadedImageUrl = await uploadScannedImage(
+                uid,
+                pendingUpload.cardName,
+                pendingUpload.dataUrl
+              );
+
+              if (!uploadedImageUrl || uploadedImageUrl === PLACEHOLDER_IMAGE_URL) {
+                return;
+              }
+
+              await Promise.all([
+                updateDoc(doc(db, "cards", pendingUpload.cardDocId), {
+                  imageUrl: uploadedImageUrl,
+                  photoUrl: uploadedImageUrl,
+                }),
+                updateDoc(doc(db, FLAT_COLLECTIONS.userCards, pendingUpload.userCardID), {
+                  imageUrl: uploadedImageUrl,
+                  photoUrl: uploadedImageUrl,
+                }),
+              ]);
+            } catch (uploadError) {
+              console.error(
+                `Failed deferred image upload for card ${pendingUpload.cardDocId}:`,
+                uploadError
+              );
+            }
+          })
+        );
+      }
+    } catch (hydrationError) {
+      console.error("[Collection Add] Deferred scan hydration failed:", hydrationError);
+    }
+  };
+
+  const saveScanMatches = async (
+    matches: PendingScanMatch[],
+    options?: { instantMode?: boolean; avgLatencyMs?: number }
+  ) => {
+    if (!matches.length) return;
 
     try {
       setSaving(true);
-      setError("Saving selected cards to your collection...");
+      setError(options?.instantMode ? "Auto-adding scanned card to your collection..." : "Saving selected cards to your collection...");
 
       const batch = writeBatch(db);
-      const pendingImageUploads: Array<{ cardDocId: string; cardName: string; dataUrl: string }> = [];
+      const savedScanRecords: SavedScanRecord[] = [];
 
-      for (let i = 0; i < pendingScanMatches.length; i++) {
-        const entry = pendingScanMatches[i];
+      for (let i = 0; i < matches.length; i++) {
+        const entry = matches[i];
         const selectedMatch =
           entry.possibleMatches.find((match) => match.id === entry.selectedMatchId) ||
           entry.possibleMatches[0];
@@ -224,6 +567,20 @@ export default function CollectionAddPage() {
         }
 
         const result = entry.scanResult;
+        const cardName = selectedMatch.name || result.name || "Scanned Card";
+        const cardBrand = selectedMatch.brand || result.setName || result.brand || "";
+        const cardNumber = selectedMatch.cardNumber || result.cardNumber || "";
+        const gameID = inferGameID({
+          sport: selectedMatch.sport || result.sport,
+          name: cardName,
+          brand: cardBrand,
+        });
+        const setID = buildSetID(cardBrand);
+        const lookup = buildCardLookup({
+          name: cardName,
+          cardNumber,
+          setName: cardBrand,
+        });
         const scannedImage =
           (typeof result?.imageUrl === "string" && result.imageUrl) ||
           (typeof result?.photoUrl === "string" && result.photoUrl) ||
@@ -239,78 +596,43 @@ export default function CollectionAddPage() {
           throw new Error(`cardId is undefined for selected card ${selectedMatch.name}`);
         }
 
-        const cardRef = doc(collection(db, "cards"));
-
-        if (scannedImage && scannedImage.startsWith("data:")) {
-          pendingImageUploads.push({
-            cardDocId: cardRef.id,
-            cardName: selectedMatch.name || "scanned-card",
-            dataUrl: scannedImage,
-          });
-        }
-
-        batch.set(cardRef, {
-          userId: user.uid,
-          name: selectedMatch.name || result.name || "Scanned Card",
-          value: Number(result.estimatedValue || 0),
-          marketPrice: Number(result.estimatedValue || 0),
-          priceLastUpdated: new Date().toISOString(),
-          rarity: "Uncommon",
-          player: selectedMatch.player || result.player || "",
-          cardNumber: selectedMatch.cardNumber || result.cardNumber || "",
-          brand: selectedMatch.brand || result.brand || "",
-          year: Number(selectedMatch.year || result.year) || new Date().getFullYear(),
-          sport: getSafeSport(selectedMatch.sport || result.sport),
-          condition: (result.condition || "Good") as Card["condition"],
-          imageUrl,
-          photoUrl: imageUrl,
-          addedAt: serverTimestamp(),
+        const userCardRef = doc(collection(db, FLAT_COLLECTIONS.userCards));
+        batch.set(userCardRef, {
+          userCardID: userCardRef.id,
+          userID: user.uid,
+          cardID: cardId,
+          added: serverTimestamp(),
+          folder: "",
+          folderID: "",
         });
 
-        const userCollectionRef = doc(collection(db, "userCollections"));
-        batch.set(userCollectionRef, {
-          userId: user.uid,
-          cardId,
-          quantity: 1,
-          condition: "raw",
-          created: Date.now(),
+        savedScanRecords.push({
+          userCardID: userCardRef.id,
+          cardID: cardId,
+          gameID,
+          setID,
+          lookup,
+          cardName,
+          cardBrand,
+          cardNumber,
+          selectedMatch,
+          scanResult: result,
+          scannedImage,
         });
       }
 
       await batch.commit();
 
-      if (pendingImageUploads.length > 0) {
-        void Promise.allSettled(
-          pendingImageUploads.map(async (pendingUpload) => {
-            try {
-              const uploadedImageUrl = await uploadScannedImage(
-                user.uid,
-                pendingUpload.cardName,
-                pendingUpload.dataUrl
-              );
+      void hydrateSavedScanRecords(user.uid, savedScanRecords);
 
-              if (!uploadedImageUrl || uploadedImageUrl === PLACEHOLDER_IMAGE_URL) {
-                return;
-              }
-
-              await updateDoc(doc(db, "cards", pendingUpload.cardDocId), {
-                imageUrl: uploadedImageUrl,
-                photoUrl: uploadedImageUrl,
-              });
-            } catch (uploadError) {
-              console.error(
-                `Failed deferred image upload for card ${pendingUpload.cardDocId}:`,
-                uploadError
-              );
-            }
-          })
-        );
-      }
-
-      const savedCount = pendingScanMatches.length;
+      const savedCount = matches.length;
       setPendingScanMatches([]);
       setError("");
-      router.push(`/dashboard/collection?savedFromScan=1&savedCount=${savedCount}`);
+
+      const latencyParam =
+        typeof options?.avgLatencyMs === "number" ? `&scanLatencyMs=${options.avgLatencyMs}` : "";
+
+      router.push(`/dashboard/collection?savedFromScan=1&savedCount=${savedCount}${latencyParam}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save selected cards");
     } finally {
@@ -318,10 +640,50 @@ export default function CollectionAddPage() {
     }
   };
 
-  const handleScanComplete = async (results: any[]) => {
+  const handleSaveSelectedMatches = async () => {
+    if (!pendingScanMatches.length) return;
+    await saveScanMatches(pendingScanMatches);
+  };
+
+  const handleScanComplete = async (
+    results: any[],
+    options?: { instantMode?: boolean; autoAdd?: boolean; avgLatencyMs?: number }
+  ) => {
     if (!results.length) {
       setShowScanner(false);
       setError("No scan results were returned.");
+      return;
+    }
+
+    if (options?.autoAdd) {
+      setShowScanner(false);
+
+      const autoMatches: PendingScanMatch[] = results.map((result, index) => {
+        const fallbackMatch: PossibleMatch = {
+          id: `${index}-instant-auto`,
+          cardId: buildFallbackCardId(result),
+          name: result.name || "Scanned Card",
+          finish: getHoloFinishLabel(result.variant),
+          player: result.player || "",
+          year: Number(result.year) || new Date().getFullYear(),
+          brand: result.setName || result.brand || "",
+          sport: result.sport || "Other",
+          cardNumber: result.cardNumber || "",
+          imageUrl: result.imageUrl || result.photoUrl || PLACEHOLDER_IMAGE_URL,
+          confidence: typeof result.confidence === "number" ? Math.round(result.confidence * 100) : 0,
+        };
+
+        return {
+          scanResult: result,
+          possibleMatches: [fallbackMatch],
+          selectedMatchId: fallbackMatch.id,
+        };
+      });
+
+      await saveScanMatches(autoMatches, {
+        instantMode: true,
+        avgLatencyMs: options?.avgLatencyMs,
+      });
       return;
     }
 
@@ -356,6 +718,7 @@ export default function CollectionAddPage() {
               id: `${i}-${matchIndex}-${match.stacktrackId || match.catalogId || "candidate"}`,
               cardId: match.stacktrackId || match.catalogId || buildFallbackCardId(result),
               name: match.name || result.name || "Scanned Card",
+              finish: resolveMatchFinish(match, result),
               player: match.cardData?.player || result.player || "",
               year: Number(match.cardData?.year || result.year) || new Date().getFullYear(),
               brand: match.cardData?.brand || match.cardData?.set?.name || result.brand || "",
@@ -375,6 +738,7 @@ export default function CollectionAddPage() {
                 id: `${i}-manual`,
                 cardId: buildFallbackCardId(result),
                 name: result.name || "Scanned Card",
+                finish: getHoloFinishLabel(result.variant),
                 player: result.player || "",
                 year: Number(result.year) || new Date().getFullYear(),
                 brand: result.brand || "",
@@ -397,6 +761,7 @@ export default function CollectionAddPage() {
               id: `${i}-manual`,
               cardId: buildFallbackCardId(result),
               name: result.name || "Scanned Card",
+              finish: getHoloFinishLabel(result.variant),
               player: result.player || "",
               year: Number(result.year) || new Date().getFullYear(),
               brand: result.brand || "",
@@ -478,6 +843,8 @@ export default function CollectionAddPage() {
         imageUrl,
         photoUrl: imageUrl,
       });
+
+      void queueBackgroundPriceUpdate(user.uid, [createdCardId]);
 
       if (cardImageFile) {
         void uploadCardImage(user.uid, formData.name, cardImageFile)
@@ -637,16 +1004,10 @@ export default function CollectionAddPage() {
                 required
                 style={{ flex: 1 }}
               />
-              <button
-                type="button"
-                onClick={handleFetchPrice}
-                disabled={fetchingPrice || !formData.name}
-                className={styles.priceButton}
-                title="Fetch current market price"
-              >
-                {fetchingPrice ? "⏳" : "💰"}
-              </button>
             </div>
+            <small style={{ color: "#9fb3c8" }}>
+              Market values refresh in the background after save.
+            </small>
           </label>
 
           <label className={styles.field}>
@@ -728,6 +1089,18 @@ export default function CollectionAddPage() {
                   We found {entry.possibleMatches.length} possible card{entry.possibleMatches.length > 1 ? "s" : ""}
                 </h3>
 
+                <div className={styles.aiConfidencePanel}>
+                  <p className={styles.aiConfidenceTitle}>AI Confidence Score</p>
+                  <div className={styles.aiConfidenceRow}>
+                    <span>Card detected</span>
+                    <strong>{entry.scanResult?.name || "Unknown Card"}</strong>
+                  </div>
+                  <div className={styles.aiConfidenceRow}>
+                    <span>Confidence</span>
+                    <strong>{toConfidencePercent(entry.scanResult?.confidence)}%</strong>
+                  </div>
+                </div>
+
                 <div className={styles.matchCardsGrid}>
                   {entry.possibleMatches.map((candidate) => {
                     const isSelected = entry.selectedMatchId === candidate.id;
@@ -753,6 +1126,16 @@ export default function CollectionAddPage() {
                           <div className={styles.matchCardMeta}>
                             {candidate.year || "—"} • {candidate.brand || "Unknown Set"} • #{candidate.cardNumber || "—"}
                           </div>
+                          <div className={styles.matchCardMeta}>
+                            <span className={styles.cardIdBadge} title={candidate.cardId || "Unavailable"}>
+                              {formatCardIdForDisplay(candidate.cardId)}
+                            </span>
+                          </div>
+                          {candidate.finish && (
+                            <div>
+                              <span className={styles.finishBadge}>{candidate.finish}</span>
+                            </div>
+                          )}
                           {typeof candidate.confidence === "number" && (
                             <div className={styles.matchCardConfidence}>Confidence: {candidate.confidence}%</div>
                           )}

@@ -22,6 +22,88 @@ export default function DNAMatchingAdminPage() {
   const [matches, setMatches] = useState<any[]>([]);
   const [autoMatch, setAutoMatch] = useState<any>(null);
   const [error, setError] = useState("");
+  const finishBadgeStyle = {
+    display: "inline-flex",
+    alignItems: "center",
+    border: "1px solid #bee5eb",
+    background: "#d1ecf1",
+    color: "#666",
+    borderRadius: "999px",
+    padding: "2px 8px",
+    fontSize: "11px",
+    fontWeight: 700,
+    lineHeight: 1.3,
+  };
+  const idBadgeStyle = {
+    display: "inline-flex",
+    alignItems: "center",
+    border: "1px solid #d6d6d6",
+    background: "#f5f5f5",
+    color: "#555",
+    borderRadius: "999px",
+    padding: "2px 8px",
+    fontSize: "11px",
+    fontWeight: 600,
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+    lineHeight: 1.3,
+  };
+
+  const getHoloFinishLabel = (value: unknown): "Holo" | "Reverse Holo" | undefined => {
+    if (typeof value !== "string") return undefined;
+
+    const normalized = value.toLowerCase();
+    if (normalized.includes("reverse") && (normalized.includes("holo") || normalized.includes("foil"))) {
+      return "Reverse Holo";
+    }
+
+    if (normalized.includes("holo") || normalized.includes("foil")) {
+      return "Holo";
+    }
+
+    return undefined;
+  };
+
+  const resolveMatchFinish = (match: any): "Holo" | "Reverse Holo" | undefined => {
+    const cardData = match?.cardData;
+
+    const directVariantLabel =
+      getHoloFinishLabel(cardData?.variant) ||
+      getHoloFinishLabel(cardData?.dna?.variant) ||
+      getHoloFinishLabel(match?.variant);
+
+    if (directVariantLabel) {
+      return directVariantLabel;
+    }
+
+    const variantPricing = cardData?.pricing?.variants || match?.pricing?.variants;
+    if (variantPricing && typeof variantPricing === "object") {
+      if ((variantPricing as any).reverseHolofoil != null) {
+        return "Reverse Holo";
+      }
+      if ((variantPricing as any).holofoil != null) {
+        return "Holo";
+      }
+    }
+
+    const tcgPrices = cardData?.tcgplayer?.prices || match?.tcgplayer?.prices;
+    if (tcgPrices && typeof tcgPrices === "object") {
+      if ((tcgPrices as any).reverseHolofoil) {
+        return "Reverse Holo";
+      }
+      if ((tcgPrices as any).holofoil) {
+        return "Holo";
+      }
+    }
+
+    return undefined;
+  };
+
+  const formatCardIdForDisplay = (cardId?: string): string => {
+    if (!cardId) return "—";
+    if (cardId.length <= 24) return cardId;
+    return `${cardId.slice(0, 16)}…${cardId.slice(-6)}`;
+  };
+  const autoMatchFinish = autoMatch ? resolveMatchFinish(autoMatch) : undefined;
 
   // Update DNA preview when inputs change
   const handleInputChange = (field: string, value: string) => {
@@ -258,9 +340,16 @@ export default function DNAMatchingAdminPage() {
                 <h3 style={{ fontSize: "16px", fontWeight: "bold", marginBottom: "5px" }}>
                   {autoMatch.name}
                 </h3>
-                <p style={{ fontSize: "13px", color: "#666", margin: "0" }}>
-                  {autoMatch.stacktrackId}
-                </p>
+                <div style={{ marginTop: "4px" }}>
+                  <span style={idBadgeStyle} title={autoMatch.stacktrackId || "Unavailable"}>
+                    {formatCardIdForDisplay(autoMatch.stacktrackId)}
+                  </span>
+                </div>
+                {autoMatchFinish && (
+                  <div style={{ marginTop: "6px" }}>
+                    <span style={finishBadgeStyle}>{autoMatchFinish}</span>
+                  </div>
+                )}
               </div>
               <div style={{ textAlign: "right" }}>
                 <div style={{ fontSize: "24px", fontWeight: "bold", color: "#27ae60" }}>
@@ -300,6 +389,7 @@ export default function DNAMatchingAdminPage() {
                 bgColor = "#fff3cd";
                 borderColor = "#ffeeba";
               }
+              const matchFinish = resolveMatchFinish(match);
               
               return (
                 <div
@@ -321,9 +411,16 @@ export default function DNAMatchingAdminPage() {
                           {match.name}
                         </h3>
                       </div>
-                      <p style={{ fontSize: "12px", color: "#666", margin: "5px 0", fontFamily: "monospace" }}>
-                        {match.stacktrackId}
-                      </p>
+                      <div style={{ margin: "5px 0" }}>
+                        <span style={idBadgeStyle} title={match.stacktrackId || "Unavailable"}>
+                          {formatCardIdForDisplay(match.stacktrackId)}
+                        </span>
+                      </div>
+                      {matchFinish && (
+                        <div style={{ margin: "5px 0" }}>
+                          <span style={finishBadgeStyle}>{matchFinish}</span>
+                        </div>
+                      )}
                       <p style={{ fontSize: "12px", color: "#666", margin: "5px 0" }}>
                         <strong>Confidence:</strong> {match.confidence.toUpperCase()} • 
                         <strong> Breakdown:</strong> {formatDNABreakdown(match.breakdown)}

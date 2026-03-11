@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCachedCardMetadata, updateCachePricing, isPricingStale } from "@/lib/cardCache";
 
 interface PriceChartingProduct {
   status: "success" | "error";
@@ -41,10 +42,46 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { cardName, sport, year, player, brand, condition } = body;
+    const { cardName, sport, year, player, brand, condition, stacktrackId, skipCache } = body;
 
     if (!cardName) {
       return corsResponse({ error: "cardName is required" }, 400);
+    }
+
+    // Check cache first if stacktrackId provided and cache not skipped
+    if (stacktrackId && !skipCache) {
+      const cached = await getCachedCardMetadata(stacktrackId);
+      
+      // If we have cached pricing and it's fresh, return it
+      if (cached?.pricing?.pricecharting && !isPricingStale(cached.lastPricingFetch)) {
+        console.log(`[Price Lookup] Cache HIT for ${stacktrackId} - using cached PriceCharting data`);
+        
+        const prices = {
+          loose: cached.pricing.pricecharting.looseCents ? (cached.pricing.pricecharting.looseCents / 100) : null,
+          complete: cached.pricing.pricecharting.cibCents ? (cached.pricing.pricecharting.cibCents / 100) : null,
+          new: cached.pricing.pricecharting.newCents ? (cached.pricing.pricecharting.newCents / 100) : null,
+          graded: cached.pricing.pricecharting.gradedCents ? (cached.pricing.pricecharting.gradedCents / 100) : null,
+        };
+        
+        let suggestedPrice = prices.loose;
+        if (condition === "Mint" && prices.new) {
+          suggestedPrice = prices.new;
+        } else if (condition === "Poor" || condition === "Fair") {
+          suggestedPrice = prices.loose;
+        } else if (prices.complete) {
+          suggestedPrice = prices.complete;
+        }
+
+        return corsResponse({
+          found: true,
+          productName: cached.name,
+          prices,
+          suggestedPrice,
+          lastUpdated: cached.pricing.pricecharting.lastUpdate ? new Date(cached.pricing.pricecharting.lastUpdate).toISOString() : null,
+          fromCache: true,
+          cacheAge: cached.lastPricingFetch ? Math.round((Date.now() - ((cached.lastPricingFetch as any).toMillis?.() || 0)) / (1000 * 60 * 60)) : null,
+        });
+      }
     }
 
     // Build search query for PriceCharting
@@ -65,7 +102,7 @@ export async function POST(request: NextRequest) {
     // Common mappings: "Baseball Cards", "Basketball Cards", etc.
     const consoleName = sport ? `${sport} Cards` : "Baseball Cards";
 
-    console.log(`[Price Lookup] Query: "${searchQuery}" | Console: "${consoleName}"`);
+    console.log(`[Price Lookup] Cache MISS${stacktrackId ? ` for ${stacktrackId}` : ""} - Query: "${searchQuery}" | Console: "${consoleName}"`);
 
     // Call PriceCharting API
     const url = new URL("https://www.pricecharting.com/api/product");
@@ -121,6 +158,29 @@ export async function POST(request: NextRequest) {
       suggestedPrice = prices.complete;
     }
 
+    // Save to cache if stacktrackId provided
+    if (stacktrackId) {
+      try {
+        const timestamp = Date.now();
+        await updateCachePricing(stacktrackId, {
+          pricecharting: {
+            looseCents: data["loose-price"] || undefined,
+            cibCents: data["cib-price"] || undefined,
+            newCents: data["new-price"] || undefined,
+            gradedCents: data["graded-price"] || undefined,
+            lastUpdate: timestamp,
+            url: `https://www.pricecharting.com/product/${data.id}`,
+          },
+          estimatedValue: suggestedPrice || 0,
+          estimatedValueSource: "pricecharting",
+        });
+        console.log(`[Price Lookup] Cached pricing for ${stacktrackId}`);
+      } catch (cacheErr) {
+        console.warn(`[Price Lookup] Failed to cache pricing for ${stacktrackId}:`, cacheErr);
+        // Don't fail the response if caching fails
+      }
+    }
+
     console.log(`[Price Lookup] Found: ${data["product-name"]} | Price: $${suggestedPrice}`);
 
     return corsResponse({
@@ -131,6 +191,7 @@ export async function POST(request: NextRequest) {
       prices,
       suggestedPrice,
       lastUpdated: new Date().toISOString(),
+      fromCache: false,
     });
 
   } catch (error) {

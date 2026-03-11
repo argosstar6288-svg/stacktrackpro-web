@@ -174,9 +174,11 @@ export async function POST(request: NextRequest) {
             sport: cardData.sport,
             brand: cardData.brand,
             type: cardData.type,
+            variant: cardData.variant || cardData.dna?.variant || null,
             dna: cardData.dna,
             images: cardData.images || { small: null, large: null },
             pricing: cardData.pricing,
+            tcgplayer: cardData.tcgplayer || null,
           });
         });
       } catch (error) {

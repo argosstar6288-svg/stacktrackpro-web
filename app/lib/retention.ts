@@ -21,6 +21,7 @@ import {
   arrayRemove,
   increment,
 } from 'firebase/firestore';
+import { FLAT_COLLECTIONS } from '../../lib/flatCollections';
 
 /**
  * NOTIFICATION SYSTEM
@@ -216,7 +217,7 @@ export async function addToWatchlist(
   watchPrice?: number
 ): Promise<string> {
   try {
-    const watchRef = doc(collection(db, 'users', userId, 'watchlist'));
+    const watchRef = doc(collection(db, FLAT_COLLECTIONS.watchlists));
     const item: Omit<WatchlistItem, 'id'> = {
       userId,
       auctionId,
@@ -227,11 +228,29 @@ export async function addToWatchlist(
       addedAt: serverTimestamp() as Timestamp,
     };
 
-    await setDoc(watchRef, item);
+    await setDoc(watchRef, {
+      ...item,
+      userID: userId,
+      cardID: auctionId,
+    } as any);
     return watchRef.id;
   } catch (error) {
-    console.error('Error adding to watchlist:', error);
-    throw error;
+    try {
+      const fallbackRef = doc(collection(db, 'users', userId, 'watchlist'));
+      await setDoc(fallbackRef, {
+        userId,
+        auctionId,
+        auctionTitle,
+        category,
+        currentPrice,
+        watchPrice,
+        addedAt: serverTimestamp() as Timestamp,
+      });
+      return fallbackRef.id;
+    } catch (fallbackError) {
+      console.error('Error adding to watchlist:', fallbackError || error);
+      throw fallbackError;
+    }
   }
 }
 
@@ -240,12 +259,19 @@ export async function addToWatchlist(
  */
 export async function removeFromWatchlist(userId: string, watchlistId: string): Promise<void> {
   try {
-    await updateDoc(doc(db, 'users', userId, 'watchlist', watchlistId), {
+    await updateDoc(doc(db, FLAT_COLLECTIONS.watchlists, watchlistId), {
       deleted: true,
       deletedAt: serverTimestamp(),
     });
   } catch (error) {
-    console.error('Error removing from watchlist:', error);
+    try {
+      await updateDoc(doc(db, 'users', userId, 'watchlist', watchlistId), {
+        deleted: true,
+        deletedAt: serverTimestamp(),
+      });
+    } catch (fallbackError) {
+      console.error('Error removing from watchlist:', fallbackError || error);
+    }
   }
 }
 
@@ -254,11 +280,33 @@ export async function removeFromWatchlist(userId: string, watchlistId: string): 
  */
 export async function getWatchlist(userId: string): Promise<WatchlistItem[]> {
   try {
-    const watchlistRef = collection(db, 'users', userId, 'watchlist');
-    const q = query(watchlistRef, orderBy('addedAt', 'desc'));
-    const snapshot = await getDocs(q);
+    const flatRef = collection(db, FLAT_COLLECTIONS.watchlists);
+    const flatQuery = query(flatRef, where('userID', '==', userId), orderBy('addedAt', 'desc'));
+    const flatSnapshot = await getDocs(flatQuery);
 
-    return snapshot.docs
+    const flatItems = flatSnapshot.docs
+      .map(doc => {
+        const data = doc.data() as any;
+        return {
+          id: doc.id,
+          ...data,
+          userId: data.userId || data.userID,
+          auctionId: data.auctionId || data.cardID,
+          auctionTitle: data.auctionTitle || data.title || data.cardName || 'Watchlist Item',
+          addedAt: data.addedAt as Timestamp,
+        } as WatchlistItem;
+      })
+      .filter(item => !item.deleted);
+
+    if (flatItems.length > 0) {
+      return flatItems;
+    }
+
+    const watchlistRef = collection(db, 'users', userId, 'watchlist');
+    const legacyQuery = query(watchlistRef, orderBy('addedAt', 'desc'));
+    const legacySnapshot = await getDocs(legacyQuery);
+
+    return legacySnapshot.docs
       .map(doc => ({
         id: doc.id,
         ...doc.data(),

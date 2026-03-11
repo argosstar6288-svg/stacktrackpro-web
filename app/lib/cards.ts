@@ -9,6 +9,10 @@ import { useCurrentUser } from "./useCurrentUser";
 export interface Card {
   id: string;
   userId: string;
+  cardID?: string;
+  gameID?: string;
+  setID?: string;
+  lookup?: string;
   name: string;
   player: string;
   cardNumber?: string; // e.g., "054/112" or "001" for card identification
@@ -20,6 +24,11 @@ export interface Card {
   value: number;
   marketPrice?: number; // Current market price from PriceCharting
   priceLastUpdated?: string; // ISO date string of last price fetch
+  predicted30DayValue?: number;
+  rarityTier?: "Ultra Rare" | "Rare" | "Common";
+  populationCount?: number;
+  supplyCount?: number;
+   variant?: "normal" | "holofoil" | "reverse-holo" | "first-edition" | "shadowless"; // Card variant type
   imageUrl?: string;
   photoUrl?: string;
   frontImageUrl?: string;
@@ -324,19 +333,41 @@ export async function deleteFolder(folderId: string): Promise<void> {
 export async function addCardToFolder(cardId: string, folderId: string): Promise<void> {
   if (!cardId || !folderId) throw new Error("Card ID or Folder ID missing");
 
-  await updateDoc(doc(db, "cards", cardId), {
-    folderIds: arrayUnion(folderId),
-    updatedAt: serverTimestamp(),
-  });
+  const results = await Promise.allSettled([
+    updateDoc(doc(db, "cards", cardId), {
+      folderIds: arrayUnion(folderId),
+      updatedAt: serverTimestamp(),
+    }),
+    updateDoc(doc(db, "userCards", cardId), {
+      folder: folderId,
+      folderID: folderId,
+      updatedAt: serverTimestamp(),
+    }),
+  ]);
+
+  if (results.every((result) => result.status === "rejected")) {
+    throw new Error("Failed to add card to folder");
+  }
 }
 
 export async function removeCardFromFolder(cardId: string, folderId: string): Promise<void> {
   if (!cardId || !folderId) throw new Error("Card ID or Folder ID missing");
 
-  await updateDoc(doc(db, "cards", cardId), {
-    folderIds: arrayRemove(folderId),
-    updatedAt: serverTimestamp(),
-  });
+  const results = await Promise.allSettled([
+    updateDoc(doc(db, "cards", cardId), {
+      folderIds: arrayRemove(folderId),
+      updatedAt: serverTimestamp(),
+    }),
+    updateDoc(doc(db, "userCards", cardId), {
+      folder: "",
+      folderID: "",
+      updatedAt: serverTimestamp(),
+    }),
+  ]);
+
+  if (results.every((result) => result.status === "rejected")) {
+    throw new Error("Failed to remove card from folder");
+  }
 }
 
 export async function getCardsInFolder(folderId: string, userId: string): Promise<Card[]> {

@@ -99,10 +99,18 @@ async function updatePokemonPrices(stats: PriceUpdateStats) {
 
             if (marketPrice) {
               const cardRef = doc(db, "cardCatalog", "pokemon", "cards", cardDoc.id);
-              await updateDoc(cardRef, {
-                "pricing.market": marketPrice,
-                "pricing.lastUpdated": new Date().toISOString(),
-              });
+             
+               // Store variant-specific prices
+               const variantPrices: any = {};
+               if (prices.normal?.market) variantPrices.normal = prices.normal.market;
+               if (prices.holofoil?.market) variantPrices.holofoil = prices.holofoil.market;
+               if (prices.reverseHolofoil?.market) variantPrices.reverseHolofoil = prices.reverseHolofoil.market;
+             
+               await updateDoc(cardRef, {
+                 "pricing.market": marketPrice,
+                 "pricing.lastUpdated": new Date().toISOString(),
+                 "pricing.variants": variantPrices,
+               });
               stats.updated++;
             } else {
               stats.skipped++;

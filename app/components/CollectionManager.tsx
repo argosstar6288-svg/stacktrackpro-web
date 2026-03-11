@@ -409,6 +409,11 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
   const [filterSport, setFilterSport] = useState<string>("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [updatingImages, setUpdatingImages] = useState<Set<string>>(new Set());
+  const [selectedCardIds, setSelectedCardIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkAddingToFolder, setBulkAddingToFolder] = useState(false);
+  const [bulkFolderId, setBulkFolderId] = useState("");
+  const [alertCardIds, setAlertCardIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -422,13 +427,231 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
     return () => unsubscribe();
   }, [router]);
 
+  useEffect(() => {
+    const loadAlerts = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      try {
+        const idToken = await user.getIdToken();
+        const response = await fetch(`/api/card-alerts?userId=${user.uid}`, {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        });
+
+        if (!response.ok) return;
+        const payload = await response.json();
+        const alerts = Array.isArray(payload?.alerts) ? payload.alerts : [];
+        const activeCardIds = alerts
+          .filter((alert: any) => alert?.status === "active")
+          .map((alert: any) => String(alert.cardId || ""))
+          .filter(Boolean);
+        setAlertCardIds(new Set(activeCardIds));
+      } catch (error) {
+        console.warn("Failed to load card alerts", error);
+      }
+    };
+
+    void loadAlerts();
+  }, [cards.length]);
+
+  const handleSetPriceAlert = async (card: Card) => {
+    const user = auth.currentUser;
+    if (!user) {
+      alert("Please log in to create alerts.");
+      return;
+    }
+
+    const baseline = Number((card as any).marketPrice ?? card.value ?? 0);
+    const suggested = baseline > 0 ? Math.max(1, Math.round(baseline * 0.9)) : 1;
+    const input = window.prompt(`Alert me when ${card.name} drops below ($):`, String(suggested));
+    if (!input) return;
+
+    const targetPrice = Number(input);
+    if (!Number.isFinite(targetPrice) || targetPrice <= 0) {
+      alert("Please enter a valid dollar amount.");
+      return;
+    }
+
+    try {
+      const idToken = await user.getIdToken();
+      const response = await fetch("/api/card-alerts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          userId: user.uid,
+          cardId: card.id,
+          cardName: card.name,
+          operator: "below",
+          targetPrice,
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload?.error || "Failed to create alert");
+      }
+
+      setAlertCardIds((previous) => {
+        const next = new Set(previous);
+        next.add(card.id);
+        return next;
+      });
+
+      alert(`Alert set: ${card.name} below $${targetPrice}`);
+    } catch (error: any) {
+      alert(`Failed to set alert: ${error?.message || "Unknown error"}`);
+    }
+  };
+
   const handleDelete = async (cardId: string) => {
     if (window.confirm("Are you sure you want to delete this card?")) {
       try {
         await deleteCard(cardId);
+        setSelectedCardIds((prev) => {
+          const next = new Set(prev);
+          next.delete(cardId);
+          return next;
+        });
       } catch (err: any) {
         alert("Failed to delete card: " + err.message);
       }
+    }
+  };
+
+  const toggleCardSelection = (cardId: string) => {
+    setSelectedCardIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(cardId)) {
+        next.delete(cardId);
+      } else {
+        next.add(cardId);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAllVisible = () => {
+    setSelectedCardIds((prev) => {
+      const visibleIds = sortedCards.map((card) => card.id);
+      const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => prev.has(id));
+      const next = new Set(prev);
+
+      if (allVisibleSelected) {
+        visibleIds.forEach((id) => next.delete(id));
+      } else {
+        visibleIds.forEach((id) => next.add(id));
+      }
+
+      return next;
+    });
+  };
+
+  const handleSelectEntireCollection = () => {
+    setSelectedCardIds((prev) => {
+      const collectionIds = cards.map((card) => card.id);
+      const allCollectionSelected =
+        collectionIds.length > 0 && collectionIds.every((id) => prev.has(id));
+      const next = new Set(prev);
+
+      if (allCollectionSelected) {
+        collectionIds.forEach((id) => next.delete(id));
+      } else {
+        collectionIds.forEach((id) => next.add(id));
+      }
+
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedCardIds.size === 0 || bulkDeleting) return;
+
+    const confirmed = window.confirm(
+      `Delete ${selectedCardIds.size} selected card${selectedCardIds.size > 1 ? "s" : ""}? This cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    setBulkDeleting(true);
+
+    try {
+      const idsToDelete = Array.from(selectedCardIds);
+      const results = await Promise.allSettled(idsToDelete.map((cardId) => deleteCard(cardId)));
+
+      const failedIds: string[] = [];
+      let successCount = 0;
+
+      results.forEach((result, index) => {
+        if (result.status === "fulfilled") {
+          successCount++;
+        } else {
+          failedIds.push(idsToDelete[index]);
+        }
+      });
+
+      setSelectedCardIds(new Set(failedIds));
+
+      if (failedIds.length === 0) {
+        alert(`Deleted ${successCount} card${successCount > 1 ? "s" : ""}.`);
+      } else {
+        alert(
+          `Deleted ${successCount} card${successCount > 1 ? "s" : ""}. ` +
+          `${failedIds.length} failed and remain selected.`
+        );
+      }
+    } catch (err: any) {
+      alert("Failed to delete selected cards: " + err.message);
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const handleBulkAddToFolder = async () => {
+    if (selectedCardIds.size === 0 || bulkAddingToFolder) return;
+    if (!bulkFolderId) {
+      alert("Select a folder first.");
+      return;
+    }
+
+    setBulkAddingToFolder(true);
+
+    try {
+      const selectedIds = Array.from(selectedCardIds);
+      const results = await Promise.allSettled(
+        selectedIds.map((cardId) => addCardToFolder(cardId, bulkFolderId))
+      );
+
+      let successCount = 0;
+      let failCount = 0;
+
+      results.forEach((result) => {
+        if (result.status === "fulfilled") {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      });
+
+      const targetFolder = folders.find((folder) => folder.id === bulkFolderId);
+      const folderName = targetFolder?.name || "folder";
+
+      if (failCount === 0) {
+        alert(`Added ${successCount} selected card${successCount > 1 ? "s" : ""} to ${folderName}.`);
+      } else {
+        alert(
+          `Added ${successCount} selected card${successCount > 1 ? "s" : ""} to ${folderName}. ` +
+          `${failCount} failed.`
+        );
+      }
+    } catch (err: any) {
+      alert("Failed to add selected cards to folder: " + err.message);
+    } finally {
+      setBulkAddingToFolder(false);
     }
   };
 
@@ -569,6 +792,8 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
 
   const stats = calculatePortfolioStats(cards);
   const sports = Array.from(new Set(cards.map((c) => c.sport)));
+  const allVisibleSelected = sortedCards.length > 0 && sortedCards.every((card) => selectedCardIds.has(card.id));
+  const allCollectionSelected = cards.length > 0 && cards.every((card) => selectedCardIds.has(card.id));
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -636,6 +861,75 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
           </div>
         </div>
 
+        {selectedCardIds.size > 0 && (
+          <div
+            style={{
+              marginBottom: 12,
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              flexWrap: "wrap",
+            }}
+          >
+            <span style={{ fontSize: "0.9rem", color: "#bbb" }}>
+              {selectedCardIds.size} selected
+            </span>
+            <button
+              onClick={handleBulkDelete}
+              disabled={bulkDeleting || bulkAddingToFolder}
+              className="action-btn delete"
+              style={{ opacity: bulkDeleting ? 0.6 : 1 }}
+            >
+              {bulkDeleting ? "Deleting..." : `🗑️ Delete Selected (${selectedCardIds.size})`}
+            </button>
+            <select
+              value={bulkFolderId}
+              onChange={(e) => setBulkFolderId(e.target.value)}
+              disabled={bulkDeleting || bulkAddingToFolder}
+              style={{
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                color: "white",
+                borderRadius: 6,
+                padding: "6px 8px",
+                fontSize: "0.85rem",
+                minWidth: 180,
+              }}
+            >
+              <option value="">Select folder...</option>
+              {folders.map((folder) => (
+                <option key={folder.id} value={folder.id}>
+                  {folder.name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={handleBulkAddToFolder}
+              disabled={bulkDeleting || bulkAddingToFolder || !bulkFolderId}
+              className="action-btn"
+              style={{ opacity: bulkAddingToFolder ? 0.6 : 1 }}
+            >
+              {bulkAddingToFolder ? "Adding..." : `📁 Add Selected to Folder (${selectedCardIds.size})`}
+            </button>
+            <button
+              onClick={handleSelectEntireCollection}
+              disabled={bulkDeleting || bulkAddingToFolder || cards.length === 0}
+              className="action-btn"
+            >
+              {allCollectionSelected
+                ? `Unselect Entire Collection (${cards.length})`
+                : `Select Entire Collection (${cards.length})`}
+            </button>
+            <button
+              onClick={() => setSelectedCardIds(new Set())}
+              disabled={bulkDeleting || bulkAddingToFolder}
+              className="action-btn"
+            >
+              Clear Selection
+            </button>
+          </div>
+        )}
+
         {/* Cards Table */}
         <div className="cards-table-container">
           {cardsLoading ? (
@@ -644,6 +938,14 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
             <table className="cards-table">
               <thead>
                 <tr>
+                  <th>
+                    <input
+                      type="checkbox"
+                      checked={allVisibleSelected}
+                      onChange={handleSelectAllVisible}
+                      title={allVisibleSelected ? "Unselect all visible" : "Select all visible"}
+                    />
+                  </th>
                   <th>Photo</th>
                   <th>Card</th>
                   <th>Card #</th>
@@ -653,6 +955,8 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
                   <th>Brand</th>
                   <th>Condition</th>
                   <th>Value</th>
+                  <th>Predicted 30d</th>
+                  <th>Rarity Signal</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -678,6 +982,14 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
                       e.currentTarget.style.opacity = "1";
                     }}
                   >
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedCardIds.has(card.id)}
+                        onChange={() => toggleCardSelection(card.id)}
+                        aria-label={`Select ${card.name}`}
+                      />
+                    </td>
                     <td>
                       <img
                         src={resolveCardImageUrl(card) || "/placeholder-card.svg"}
@@ -706,7 +1018,15 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
                     <td>{card.year}</td>
                     <td>{card.brand}</td>
                     <td>{card.condition}</td>
-                    <td style={{ color: "#ff7a47", fontWeight: "bold" }}>${card.value.toLocaleString()}</td>
+                    <td style={{ color: "#ff7a47", fontWeight: "bold" }}>
+                      ${Number((card as any).marketPrice ?? card.value ?? 0).toLocaleString()}
+                    </td>
+                    <td style={{ color: "#9fd3ff", fontWeight: 600 }}>
+                      ${Number((card as any).predicted30DayValue ?? (card as any).marketPrice ?? card.value ?? 0).toLocaleString()}
+                    </td>
+                    <td>
+                      {(card as any).rarityTier || (card.rarity === "Legendary" ? "Ultra Rare" : card.rarity === "Rare" ? "Rare" : "Common")}
+                    </td>
                     <td>
                       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                         {resolveCardImageUrl(card) === "/placeholder-card.svg" && (
@@ -780,6 +1100,20 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
                           }}
                         >
                           🔨 Auction
+                        </button>
+                        <button
+                          onClick={() => handleSetPriceAlert(card)}
+                          className="action-btn"
+                          title="Set price drop alert"
+                          style={{
+                            background: "rgba(250, 204, 21, 0.2)",
+                            border: "1px solid rgba(250, 204, 21, 0.4)",
+                            color: "#facc15",
+                            padding: "4px 8px",
+                            fontSize: "0.75rem",
+                          }}
+                        >
+                          {alertCardIds.has(card.id) ? "🔔 Alerted" : "🔔 Alert"}
                         </button>
                         <button
                           onClick={() => handleEdit(card)}

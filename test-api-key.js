@@ -8,7 +8,14 @@
 
 const https = require('https');
 
-const apiKey = process.argv[2] || 'AIzaSyCN4I_INUKp1qyqLiATrH0HXFZU4Y5Iumg';
+const apiKey = process.argv[2] || process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+
+if (!apiKey) {
+  console.error('❌ Missing Firebase API key.');
+  console.error('Usage: node test-api-key.js YOUR_API_KEY');
+  console.error('Or set NEXT_PUBLIC_FIREBASE_API_KEY in your environment.');
+  process.exit(1);
+}
 
 console.log('🔍 Testing Firebase API Key...');
 console.log('API Key:', apiKey.substring(0, 10) + '...\n');

@@ -6,7 +6,18 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "catalog:import": "node scripts/import-card-catalog.js",
+    "catalog:import:pokemon": "node scripts/import-card-catalog.js --source=pokemon",
+    "catalog:import:magic": "node scripts/import-card-catalog.js --source=magic",
+    "catalog:import:sports": "node scripts/import-card-catalog.js --source=sports",
+    "catalog:index": "node scripts/build-global-card-index.js",
+    "catalog:index:pokemon": "node scripts/build-global-card-index.js --game=pokemon",
+    "catalog:index:dry": "node scripts/build-global-card-index.js --dry-run",
+    "stripe:list": "node scripts/list-stripe-prices.js",
+    "stripe:create-yearly": "node scripts/create-yearly-prices.js",
+    "openai:test": "node test-openai.js",
+    "firebase:test-key": "node test-api-key.js"
   },
   "dependencies": {
     "firebase": "^12.9.0",
@@ -15,14 +26,18 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "recharts": "^3.7.0",
-    "stripe": "^20.3.1"
+    "stripe": "^20.3.1",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.27",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^3.4.17",
     "typescript": "^5"
   }
 }

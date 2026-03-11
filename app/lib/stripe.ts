@@ -19,50 +19,29 @@ export interface PricingTier {
 }
 
 export const PRICING_TIERS: Record<string, PricingTier> = {
-  LIFETIME: {
-    id: "lifetime",
-    name: "Founding Member",
-    price: 29999,
-    currency: "usd",
-    interval: "once",
-    stripePrice: "price_1QvF5wABC123456789AB", // Replace with actual Stripe one-time price
-    lifetime: true,
-    features: [
-      "Unlimited cards forever",
-      "Unlimited auctions forever",
-      "Advanced analytics & export",
-      "REST API access",
-      "Bulk operations",
-      "Lifetime priority support",
-      "Ad-free experience",
-      "Early access to new features",
-      "Exclusive Founding Member badge",
-    ],
-    popular: true,
-  },
   PRO_MONTHLY: {
     id: "pro_monthly",
     name: "Pro",
-    price: 999,
-    currency: "usd",
+    price: 999, // $9.99 CAD
+    currency: "cad",
     interval: "month",
-    stripePrice: "price_1Pu0a1ABC123456789AB", // Replace with actual Stripe price ID
+    stripePrice: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_MONTHLY || "price_pro_monthly",
     features: [
       "1,000 card portfolio",
       "Create unlimited auctions",
       "Advanced portfolio analytics",
       "Card categorization (folders)",
-      "Ad-free experience",
+      "Bulk operations",
       "Priority support",
     ],
   },
   PRO_YEARLY: {
     id: "pro_yearly",
     name: "Pro Yearly",
-    price: 9999,
-    currency: "usd",
+    price: 9999, // $99.99 CAD
+    currency: "cad",
     interval: "year",
-    stripePrice: "price_1Pu0a2ABC123456789AB",
+    stripePrice: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_YEARLY || "price_pro_yearly",
     features: [
       "Everything in Pro",
       "Save 17% with annual billing",
@@ -71,10 +50,10 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
   PREMIUM_MONTHLY: {
     id: "premium_monthly",
     name: "Premium",
-    price: 2999,
-    currency: "usd",
+    price: 2999, // $29.99 CAD
+    currency: "cad",
     interval: "month",
-    stripePrice: "price_1Pu0a3ABC123456789AB",
+    stripePrice: process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM_MONTHLY || "price_premium_monthly",
     features: [
       "Unlimited cards",
       "Unlimited auctions",
@@ -82,21 +61,39 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
       "REST API access",
       "Bulk operations",
       "Priority support",
-      "Ad-free experience",
     ],
-    popular: false,
+    popular: true,
   },
   PREMIUM_YEARLY: {
     id: "premium_yearly",
     name: "Premium Yearly",
-    price: 29999,
-    currency: "usd",
+    price: 29999, // $299.99 CAD
+    currency: "cad",
     interval: "year",
-    stripePrice: "price_1Pu0a4ABC123456789AB",
+    stripePrice: process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM_YEARLY || "price_premium_yearly",
     features: [
       "Everything in Premium",
       "Save 17% with annual billing",
     ],
+  },
+  LIFETIME: {
+    id: "lifetime",
+    name: "Lifetime",
+    price: 29900, // $299 CAD
+    currency: "cad",
+    interval: "once",
+    stripePrice: process.env.NEXT_PUBLIC_STRIPE_PRICE_LIFETIME || "price_lifetime",
+    lifetime: true,
+    features: [
+      "Unlimited cards forever",
+      "Unlimited auctions forever",
+      "Advanced analytics & export",
+      "REST API access",
+      "Bulk operations",
+      "Lifetime priority support",
+      "Exclusive Founding Member badge",
+    ],
+    popular: false,
   },
 };
 

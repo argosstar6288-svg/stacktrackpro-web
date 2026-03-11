@@ -34,3 +34,23 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Script Environment Requirements
+
+Some local utility scripts require environment variables and will exit early if keys are missing.
+
+- `scripts/list-stripe-prices.js` and `scripts/create-yearly-prices.js`
+	- Required: `STRIPE_SECRET_KEY`
+	- Example (PowerShell):
+		- `$env:STRIPE_SECRET_KEY="your_stripe_secret"; npm run stripe:list`
+		- `$env:STRIPE_SECRET_KEY="your_stripe_secret"; npm run stripe:create-yearly`
+- `test-openai.js`
+	- Required: `OPENAI_API_KEY`
+	- Example (PowerShell):
+		- `$env:OPENAI_API_KEY="your_openai_key"; npm run openai:test`
+- `test-api-key.js`
+	- Uses CLI argument first, then `NEXT_PUBLIC_FIREBASE_API_KEY`
+	- Example:
+		- `npm run firebase:test-key -- YOUR_FIREBASE_API_KEY`
+
+Do not hardcode secrets in source files. Keep keys in your local env (`.env.local`) or shell session.

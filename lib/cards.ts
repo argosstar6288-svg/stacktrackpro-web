@@ -1,4 +1,5 @@
 import { db } from "./firebase";
+import { buildCardLookup, buildMasterCardID, buildSetID, inferGameID, type StackTrackGameID } from "./cardSchema";
 import {
   collection,
   query,
@@ -17,11 +18,20 @@ import {
 export interface Card {
   id?: string;
   userId: string;
+  cardID?: string;
+  gameID?: StackTrackGameID;
+  setID?: string;
+  lookup?: string;
   name: string;
   value: number;
   marketPrice?: number; // Current market price from PriceCharting
   priceLastUpdated?: string; // ISO date string of last price fetch
+  predicted30DayValue?: number;
+  rarityTier?: "Ultra Rare" | "Rare" | "Common";
+  populationCount?: number;
+  supplyCount?: number;
   rarity: "Common" | "Uncommon" | "Rare" | "Legendary";
+   variant?: "normal" | "holofoil" | "reverse-holo" | "first-edition" | "shadowless"; // Card variant type
   sport?: string;
   year?: number;
   player?: string;
@@ -79,9 +89,27 @@ export async function addCard(userId: string, card: Omit<Card, "userId" | "id">)
   if (!db || !userId) throw new Error("Database or user ID missing");
   
   try {
+    const gameID = card.gameID || inferGameID({ sport: card.sport, name: card.name, brand: card.brand });
+    const setID = card.setID || buildSetID(card.brand);
+    const cardID = card.cardID || buildMasterCardID({
+      gameID,
+      setID,
+      number: card.cardNumber,
+      name: card.name,
+    });
+    const lookup = card.lookup || buildCardLookup({
+      name: card.name,
+      cardNumber: card.cardNumber,
+      setName: card.brand,
+    });
+
     const docRef = await addDoc(collection(db, "cards"), {
       userId,
       ...card,
+      cardID,
+      gameID,
+      setID,
+      lookup,
       addedAt: serverTimestamp(),
     });
     return docRef.id;
@@ -103,18 +131,43 @@ export async function updateCard(cardId: string, updates: Partial<Card>): Promis
   }
 }
 
-// Delete card
+
+// Delete card and remove from marketplace/auctions
 export async function deleteCard(cardId: string): Promise<void> {
   if (!db || !cardId) throw new Error("Database or card ID missing");
   
   try {
-    await deleteDoc(doc(db, "cards", cardId));
+    // Delete marketplace listings with this card
+    const marketplaceQuery = query(
+      collection(db, "marketplace"),
+      where("cardId", "==", cardId)
+    );
+    const marketplaceDocs = await getDocs(marketplaceQuery);
+    const marketplaceDeletePromises = marketplaceDocs.docs.map((doc) =>
+      deleteDoc(doc.ref)
+    );
+
+    // Delete auctions with this card
+    const auctionsQuery = query(
+      collection(db, "auctions"),
+      where("cardId", "==", cardId)
+    );
+    const auctionDocs = await getDocs(auctionsQuery);
+    const auctionDeletePromises = auctionDocs.docs.map((doc) =>
+      deleteDoc(doc.ref)
+    );
+
+    // Execute all delete operations in parallel
+    await Promise.all([
+      ...marketplaceDeletePromises,
+      ...auctionDeletePromises,
+      deleteDoc(doc(db, "cards", cardId)),
+    ]);
   } catch (error) {
     console.error("Error deleting card:", error);
     throw error;
   }
 }
-
 // Calculate portfolio stats
 export async function calculatePortfolioStats(userId: string) {
   const cards = await getUserCards(userId);
@@ -262,12 +315,22 @@ export async function deleteFolder(folderId: string): Promise<void> {
 // Add a card to a folder
 export async function addCardToFolder(cardId: string, folderId: string): Promise<void> {
   if (!db || !cardId || !folderId) throw new Error("Card ID or Folder ID missing");
-  
+
   try {
-    const cardRef = doc(db, "cards", cardId);
-    await updateDoc(cardRef, {
-      folderIds: arrayUnion(folderId),
-    });
+    const results = await Promise.allSettled([
+      updateDoc(doc(db, "cards", cardId), {
+        folderIds: arrayUnion(folderId),
+      }),
+      updateDoc(doc(db, "userCards", cardId), {
+        folder: folderId,
+        folderID: folderId,
+        updatedAt: serverTimestamp(),
+      }),
+    ]);
+
+    if (results.every((result) => result.status === "rejected")) {
+      throw new Error("Failed to add card to folder");
+    }
   } catch (error) {
     console.error("Error adding card to folder:", error);
     throw error;
@@ -277,12 +340,22 @@ export async function addCardToFolder(cardId: string, folderId: string): Promise
 // Remove a card from a folder
 export async function removeCardFromFolder(cardId: string, folderId: string): Promise<void> {
   if (!db || !cardId || !folderId) throw new Error("Card ID or Folder ID missing");
-  
+
   try {
-    const cardRef = doc(db, "cards", cardId);
-    await updateDoc(cardRef, {
-      folderIds: arrayRemove(folderId),
-    });
+    const results = await Promise.allSettled([
+      updateDoc(doc(db, "cards", cardId), {
+        folderIds: arrayRemove(folderId),
+      }),
+      updateDoc(doc(db, "userCards", cardId), {
+        folder: "",
+        folderID: "",
+        updatedAt: serverTimestamp(),
+      }),
+    ]);
+
+    if (results.every((result) => result.status === "rejected")) {
+      throw new Error("Failed to remove card from folder");
+    }
   } catch (error) {
     console.error("Error removing card from folder:", error);
     throw error;

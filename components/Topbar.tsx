@@ -1,0 +1,81 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useCurrentUser } from "@/lib/useCurrentUser";
+
+interface TopbarProps {
+  onMenuToggle?: () => void;
+}
+
+export default function Topbar({ onMenuToggle }: TopbarProps) {
+  const router = useRouter();
+  const { user } = useCurrentUser();
+
+  const initials = user?.displayName
+    ? user.displayName
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : user?.email?.[0]?.toUpperCase() ?? "?";
+
+  return (
+    <div className="flex justify-between items-center p-4 border-b border-white/10 bg-black gap-3">
+      {/* Left: hamburger + search */}
+      <div className="flex items-center gap-3 flex-1">
+        <button
+          type="button"
+          className="md:hidden text-white text-xl leading-none"
+          onClick={onMenuToggle}
+          aria-label="Open menu"
+        >
+          ☰
+        </button>
+
+        <input
+          placeholder="Search cards..."
+          className="bg-white/10 px-3 py-2 rounded-lg outline-none w-full max-w-xl text-sm"
+        />
+      </div>
+
+      {/* Right: action buttons + avatar */}
+      <div className="flex items-center gap-3 shrink-0">
+        <button
+          type="button"
+          className="btn-primary text-sm"
+          onClick={() => router.push("/scan")}
+        >
+          Scan
+        </button>
+
+        <button
+          type="button"
+          className="btn-secondary text-sm"
+          onClick={() => router.push("/dashboard/marketplace/create")}
+        >
+          Sell Card
+        </button>
+
+        {/* Profile avatar */}
+        <button
+          type="button"
+          className="w-8 h-8 rounded-full bg-[#ff8f00] flex items-center justify-center text-xs font-bold text-white shrink-0"
+          onClick={() => router.push("/dashboard/settings")}
+          title="Settings"
+        >
+          {user?.photoURL ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={user.photoURL}
+              alt="avatar"
+              className="w-8 h-8 rounded-full object-cover"
+            />
+          ) : (
+            initials
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}

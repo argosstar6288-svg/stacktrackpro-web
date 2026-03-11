@@ -27,6 +27,27 @@ export default function BillingPage() {
   const [messageType, setMessageType] = useState<"success" | "error">("success");
 
   useEffect(() => {
+    // Check for checkout success/cancellation from URL
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const success = searchParams.get("success");
+      const canceled = searchParams.get("canceled");
+      
+      if (success) {
+        setMessage("✓ Payment successful! Your subscription has been updated. It may take a few moments to process.");
+        setMessageType("success");
+        // Clean up URL
+        window.history.replaceState({}, '', '/dashboard/billing');
+      } else if (canceled) {
+        setMessage("Payment was canceled. Please try again or contact support if you need help.");
+        setMessageType("error");
+        // Clean up URL
+        window.history.replaceState({}, '', '/dashboard/billing');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     if (!loading && user) {
       loadSubscription();
     } else if (!loading && !user) {

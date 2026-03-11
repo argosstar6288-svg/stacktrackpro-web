@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useFeatureAccess } from "../hooks/useFeatureAccess";
 import styles from "./AICardScanner.module.css";
 
 interface CardScanResult {
   name: string;
   player: string;
+  cardNumber?: string;
+  setName?: string;
   year: number;
   brand: string;
   sport: string;
@@ -18,15 +21,25 @@ interface CardScanResult {
   confidence: number;
   imageUrl?: string;
   photoUrl?: string;
+  processingMs?: number;
+  scanMode?: "instant" | "standard";
 }
 
 interface AICardScannerProps {
-  onScanComplete: (results: CardScanResult[]) => void;
+  onScanComplete: (
+    results: CardScanResult[],
+    options?: { instantMode?: boolean; autoAdd?: boolean; avgLatencyMs?: number }
+  ) => void;
   onCancel: () => void;
   userId?: string;
 }
 
+type ScannerView = "scanner" | "result" | "bulk";
+type DetectionPhase = "detecting" | "matching" | "identified";
+
 const TARGET_SCAN_IMAGE_SIZE = 800;
+
+const CONDITION_OPTIONS = ["Mint", "Excellent", "Good", "Fair", "Poor", "Near Mint"];
 
 function getScanErrorMessage(errorData: any): string {
   const errorMessage = String(errorData?.message || errorData?.error || "Failed to scan");
@@ -102,85 +115,123 @@ function normalizeErrorText(rawMessage: string): string {
   return rawMessage;
 }
 
+function toConfidencePercent(value: unknown): number {
+  if (typeof value !== "number" || Number.isNaN(value)) return 0;
+
+  if (value <= 1) {
+    return Math.max(0, Math.min(100, Math.round(value * 100)));
+  }
+
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function toBaseCardName(name: string): string {
+  if (!name) return "Charizard";
+  return name.split(" ")[0] || "Charizard";
+}
+
 export default function AICardScanner({ onScanComplete, onCancel, userId }: AICardScannerProps) {
+  const router = useRouter();
   const { canScan, scansRemaining, incrementScanCount, subscriptionPlan } = useFeatureAccess();
+
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [selectedFileLabels, setSelectedFileLabels] = useState<string[]>([]);
+  const [scanResults, setScanResults] = useState<CardScanResult[]>([]);
+  const [scannerView, setScannerView] = useState<ScannerView>("scanner");
   const [scanning, setScanning] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
-  const [error, setError] = useState<string>("");
+  const [bulkMode, setBulkMode] = useState(false);
+  const [autoScanEnabled, setAutoScanEnabled] = useState(true);
+  const [flashOn, setFlashOn] = useState(false);
+  const [selectedCondition, setSelectedCondition] = useState("Near Mint");
+  const [detectionPhase, setDetectionPhase] = useState<DetectionPhase>("detecting");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [lastScanLatencyMs, setLastScanLatencyMs] = useState<number | null>(null);
+  const [error, setError] = useState("");
   const [scanProgress, setScanProgress] = useState({ current: 0, total: 0 });
 
-  const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
+  const captureInputRef = useRef<HTMLInputElement | null>(null);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
+  const autoCaptureKeyRef = useRef("");
 
-    setEnhancing(true);
-    const validImages: string[] = [];
-    let hasError = false;
+  const primaryResult = scanResults[0];
+  const primaryPreviewImage = selectedImages[0] || "";
+  const hasSelectedImage = selectedImages.length > 0;
 
-    const fileList = Array.from(files);
-    const processedImages = await Promise.all(
-      fileList.map(async (file) => {
-        // Validate file type
-        if (!file.type.startsWith("image/")) {
-          setError(`File ${file.name} is not a valid image`);
-          hasError = true;
-          return null;
-        }
+  const confidencePercent = toConfidencePercent(primaryResult?.confidence);
 
-        // Validate file size (max 10MB)
-        if (file.size > 10 * 1024 * 1024) {
-          setError(`${file.name} exceeds 10MB limit`);
-          hasError = true;
-          return null;
-        }
-
-        // Read and enhance image
-        const reader = new FileReader();
-        return new Promise<string | null>((resolve) => {
-          reader.onloadend = async () => {
-            const originalImage = reader.result as string;
-
-            // Enhance image for better AI recognition
-            try {
-              const enhanced = await enhanceImage(originalImage);
-              resolve(enhanced);
-            } catch (err) {
-              console.error("Image enhancement failed, using original:", err);
-              resolve(originalImage);
-            }
-          };
-          reader.readAsDataURL(file);
-        });
-      })
-    );
-
-    processedImages.forEach((image) => {
-      if (typeof image === "string") {
-        validImages.push(image);
-      }
-    });
-
-    if (validImages.length > 0) {
-      setSelectedImages(validImages);
-      setError(hasError ? "Some files were skipped" : "");
+  const confidenceMeta = useMemo(() => {
+    if (confidencePercent >= 90) {
+      return { label: "High", icon: "✔", className: styles.confidenceHigh };
     }
-    setEnhancing(false);
+
+    if (confidencePercent >= 70) {
+      return { label: "Medium", icon: "⚠", className: styles.confidenceMedium };
+    }
+
+    return { label: "Low", icon: "❗", className: styles.confidenceLow };
+  }, [confidencePercent]);
+
+  const possibleMatches = useMemo(() => {
+    const base = toBaseCardName(primaryResult?.name || "Charizard");
+    return [
+      `${base} Base Set`,
+      `${base} Legendary Collection`,
+      `${base} XY Evolutions`,
+    ];
+  }, [primaryResult?.name]);
+
+  const liveDetectedName = primaryResult?.name || "Charizard";
+  const liveDetectedSet = primaryResult?.setName || primaryResult?.brand || "Base Set";
+  const liveDetectedNumber = primaryResult?.cardNumber || "4/102";
+
+  const playFeedbackTone = (mode: "capture" | "success") => {
+    if (typeof window === "undefined") return;
+
+    const AudioContextClass =
+      window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+
+    if (!AudioContextClass) return;
+
+    try {
+      const audioContext = new AudioContextClass();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.type = "sine";
+      oscillator.frequency.value = mode === "capture" ? 620 : 860;
+      gainNode.gain.value = 0.03;
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.start();
+      oscillator.frequency.exponentialRampToValueAtTime(
+        mode === "capture" ? 760 : 1060,
+        audioContext.currentTime + 0.1
+      );
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.14);
+      oscillator.stop(audioContext.currentTime + 0.14);
+
+      window.setTimeout(() => {
+        void audioContext.close();
+      }, 180);
+    } catch {
+      // Best effort only
+    }
   };
 
-  // Enhance image contrast, brightness, and sharpness for better AI recognition
   const enhanceImage = async (dataUrl: string): Promise<string> => {
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        if (!context) {
           resolve(dataUrl);
           return;
         }
 
-        // Downscale images to 800px max for faster AI processing
         const maxDimension = TARGET_SCAN_IMAGE_SIZE;
         const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
         const targetWidth = Math.round(img.width * scale);
@@ -188,48 +239,35 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
 
         canvas.width = targetWidth;
         canvas.height = targetHeight;
+        context.drawImage(img, 0, 0, targetWidth, targetHeight);
 
-        // Draw original image scaled down
-        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-
-        // Get image data
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
 
-        // Enhance: increase contrast and brightness
-        const contrast = 1.2; // 20% more contrast
-        const brightness = 10; // slight brightness increase
+        const contrast = 1.2;
+        const brightness = 10;
 
         for (let i = 0; i < data.length; i += 4) {
-          // Apply contrast and brightness to RGB channels
-          data[i] = Math.min(255, Math.max(0, contrast * (data[i] - 128) + 128 + brightness));     // R
-          data[i + 1] = Math.min(255, Math.max(0, contrast * (data[i + 1] - 128) + 128 + brightness)); // G
-          data[i + 2] = Math.min(255, Math.max(0, contrast * (data[i + 2] - 128) + 128 + brightness)); // B
+          data[i] = Math.min(255, Math.max(0, contrast * (data[i] - 128) + 128 + brightness));
+          data[i + 1] = Math.min(255, Math.max(0, contrast * (data[i + 1] - 128) + 128 + brightness));
+          data[i + 2] = Math.min(255, Math.max(0, contrast * (data[i + 2] - 128) + 128 + brightness));
         }
 
-        // Put enhanced image back
-        ctx.putImageData(imageData, 0, 0);
+        context.putImageData(imageData, 0, 0);
 
-        // Return enhanced image as data URL (adaptive compression)
-        const maxLength = 3_500_000; // ~3.5MB base64 string
+        const maxLength = 3_500_000;
         let quality = 0.85;
         let currentCanvas = canvas;
         let outputUrl = currentCanvas.toDataURL("image/jpeg", quality);
 
         while (outputUrl.length > maxLength && currentCanvas.width > 900) {
-          const shrink = 0.8;
-          const nextWidth = Math.round(currentCanvas.width * shrink);
-          const nextHeight = Math.round(currentCanvas.height * shrink);
           const nextCanvas = document.createElement("canvas");
-          const nextCtx = nextCanvas.getContext("2d");
+          const nextContext = nextCanvas.getContext("2d");
+          if (!nextContext) break;
 
-          if (!nextCtx) {
-            break;
-          }
-
-          nextCanvas.width = nextWidth;
-          nextCanvas.height = nextHeight;
-          nextCtx.drawImage(currentCanvas, 0, 0, nextWidth, nextHeight);
+          nextCanvas.width = Math.round(currentCanvas.width * 0.8);
+          nextCanvas.height = Math.round(currentCanvas.height * 0.8);
+          nextContext.drawImage(currentCanvas, 0, 0, nextCanvas.width, nextCanvas.height);
 
           currentCanvas = nextCanvas;
           quality = Math.max(0.6, quality - 0.1);
@@ -242,36 +280,170 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
     });
   };
 
-  const handleScan = async () => {
+  const processSelectedFiles = async (
+    files: File[],
+    options?: { forceBulk?: boolean; forceSingle?: boolean }
+  ) => {
+    if (!files.length) return;
+
+    setEnhancing(true);
+    setError("");
+
+    const validImages: string[] = [];
+    const labels: string[] = [];
+    let hasError = false;
+
+    const processedImages = await Promise.all(
+      files.map(async (file) => {
+        if (!file.type.startsWith("image/")) {
+          setError(`File ${file.name} is not a valid image`);
+          hasError = true;
+          return null;
+        }
+
+        if (file.size > 10 * 1024 * 1024) {
+          setError(`${file.name} exceeds 10MB limit`);
+          hasError = true;
+          return null;
+        }
+
+        const reader = new FileReader();
+        return new Promise<{ dataUrl: string; label: string } | null>((resolve) => {
+          reader.onloadend = async () => {
+            const originalImage = reader.result as string;
+            const label = file.name.replace(/\.[^/.]+$/, "") || "Scanned card";
+            try {
+              const enhanced = await enhanceImage(originalImage);
+              resolve({ dataUrl: enhanced, label });
+            } catch {
+              resolve({ dataUrl: originalImage, label });
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+      })
+    );
+
+    processedImages.forEach((item) => {
+      if (item) {
+        validImages.push(item.dataUrl);
+        labels.push(item.label);
+      }
+    });
+
+    if (validImages.length > 0) {
+      const useSingle = Boolean(options?.forceSingle);
+      const nextImages = useSingle ? [validImages[0]] : validImages;
+      const nextLabels = useSingle ? [labels[0]] : labels;
+
+      setSelectedImages(nextImages);
+      setSelectedFileLabels(nextLabels);
+      setBulkMode(options?.forceBulk ? true : useSingle ? false : validImages.length > 1);
+      setScannerView("scanner");
+      setScanResults([]);
+      setLastScanLatencyMs(null);
+      setSelectedCondition("Near Mint");
+      setFeedbackMessage(useSingle ? "Card centered. Preparing auto-detection…" : "Bulk cards ready for fast scan.");
+      autoCaptureKeyRef.current = "";
+      if (hasError) {
+        setError("Some files were skipped.");
+      }
+    }
+
+    setEnhancing(false);
+  };
+
+  const handleCaptureInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    await processSelectedFiles([files[0]], { forceSingle: true });
+    event.target.value = "";
+  };
+
+  const handleGalleryInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    if (bulkMode) {
+      await processSelectedFiles(Array.from(files), { forceBulk: true });
+    } else {
+      await processSelectedFiles([files[0]], { forceSingle: true });
+    }
+
+    event.target.value = "";
+  };
+
+  const resetForAnotherScan = () => {
+    setScannerView("scanner");
+    setSelectedImages([]);
+    setSelectedFileLabels([]);
+    setScanResults([]);
+    setError("");
+    setFeedbackMessage("");
+    setLastScanLatencyMs(null);
+    setSelectedCondition("Near Mint");
+    autoCaptureKeyRef.current = "";
+  };
+
+  const handleAddToCollection = () => {
+    if (!scanResults.length) return;
+
+    const output = scanResults.map((result, index) => {
+      if (index !== 0 || scannerView !== "result") return result;
+      return {
+        ...result,
+        condition: selectedCondition,
+      };
+    });
+
+    onScanComplete(output, {
+      instantMode: autoScanEnabled,
+      autoAdd: false,
+      avgLatencyMs: lastScanLatencyMs ?? undefined,
+    });
+  };
+
+  const handleViewCardDetails = () => {
+    if (!primaryResult?.name) return;
+    const query = encodeURIComponent(primaryResult.name);
+    router.push(`/dashboard/marketplace?search=${query}`);
+  };
+
+  async function handleScan() {
     if (selectedImages.length === 0) return;
 
-    // Check scan limits
     if (!canScan) {
       setError(
-        `You've reached your monthly scan limit (${scansRemaining} remaining). ` +
-        `Upgrade your plan to continue scanning. Current plan: ${subscriptionPlan}`
+        `You've reached your monthly scan limit (${scansRemaining} remaining). Upgrade your plan to continue scanning. Current plan: ${subscriptionPlan}`
       );
       return;
     }
 
+    playFeedbackTone("capture");
     setScanning(true);
     setError("");
+    setFeedbackMessage("Scanning...");
     setScanProgress({ current: 0, total: selectedImages.length });
 
     const results: CardScanResult[] = [];
     const skippedCards: string[] = [];
     let blockingError = "";
-    
+
     try {
       const scanOutcomes = await Promise.all(
         selectedImages.map(async (image, index) => {
           try {
+            const requestStartedAt = performance.now();
             const response = await fetch("/api/scan-card", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify({ image, userId }),
+              body: JSON.stringify({
+                image,
+                userId,
+                scanMode: autoScanEnabled ? "instant" : "standard",
+              }),
             });
 
             if (!response.ok) {
@@ -292,14 +464,12 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
                 ok: false,
                 index,
                 message,
-                blocking: Boolean(
-                  errorData?.quotaExceeded || errorData?.providerQuotaExceeded || isConfigurationError
-                ),
+                latencyMs: Math.round(performance.now() - requestStartedAt),
+                blocking: Boolean(errorData?.quotaExceeded || errorData?.providerQuotaExceeded || isConfigurationError),
               };
             }
 
             const result: CardScanResult = await response.json();
-
             result.imageUrl = image;
             result.photoUrl = image;
 
@@ -320,15 +490,20 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
             if (!result.brand) result.brand = "Unknown";
             if (!result.condition) result.condition = "Good";
             if (!result.year) result.year = new Date().getFullYear();
+            if (typeof result.cardNumber !== "string") result.cardNumber = "";
+            if (typeof result.setName !== "string") result.setName = result.brand;
 
-            return { ok: true, index, result };
+            const measuredLatencyMs = Math.round(performance.now() - requestStartedAt);
+            const latencyMs = typeof result.processingMs === "number" ? result.processingMs : measuredLatencyMs;
+
+            return { ok: true, index, result, latencyMs };
           } catch (cardError) {
-            console.error(`Error scanning card ${index + 1}:`, cardError);
             const rawMessage = cardError instanceof Error ? cardError.message : "Unknown error";
             return {
               ok: false,
               index,
               message: normalizeErrorText(rawMessage),
+              latencyMs: 0,
               blocking: false,
             };
           } finally {
@@ -361,141 +536,376 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
       }
 
       if (results.length === 0) {
-        const errorMsg = skippedCards.length > 0 
-          ? `Unable to process any cards. ${skippedCards.join('. ')}`
-          : "No cards could be processed from the uploaded images. Please try different photos.";
-        throw new Error(errorMsg);
+        const errorMessage =
+          skippedCards.length > 0
+            ? `Unable to process any cards. ${skippedCards.join(". ")}`
+            : "No cards could be processed from the uploaded images. Please try different photos.";
+        throw new Error(errorMessage);
       }
 
-      // Show warning if some cards were skipped
-      if (skippedCards.length > 0) {
-        setError(`Successfully scanned ${results.length} card(s). Skipped ${skippedCards.length}: ${skippedCards.join(', ')}`);
+      const successfulOutcomes = scanOutcomes.filter((outcome) => outcome.ok);
+      const avgLatencyMs =
+        successfulOutcomes.length > 0
+          ? Math.round(
+              successfulOutcomes.reduce((sum, outcome) => sum + outcome.latencyMs, 0) /
+                successfulOutcomes.length
+            )
+          : null;
+
+      if (avgLatencyMs != null) {
+        setLastScanLatencyMs(avgLatencyMs);
       }
 
-      // Increment scan count for successful scans
       await Promise.allSettled(results.map(() => incrementScanCount()));
 
-      // Reset scanning state before completing
-      setScanning(false);
-      setScanProgress({ current: 0, total: 0 });
-      
-      onScanComplete(results);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to scan cards");
+      playFeedbackTone("success");
+      setScanResults(results);
+      setSelectedCondition(results[0]?.condition || "Near Mint");
+      setFeedbackMessage("Scan successful ✓");
+      setScannerView(results.length > 1 || bulkMode ? "bulk" : "result");
+
+      if (skippedCards.length > 0) {
+        setError(`Successfully scanned ${results.length} card(s). Skipped ${skippedCards.length}: ${skippedCards.join(", ")}`);
+      }
+    } catch (scanError) {
+      setError(scanError instanceof Error ? scanError.message : "Failed to scan cards");
+      setFeedbackMessage("");
+    } finally {
       setScanning(false);
       setScanProgress({ current: 0, total: 0 });
     }
-  };
+  }
+
+  useEffect(() => {
+    if (scannerView !== "scanner" || scanning) return;
+
+    const phases: DetectionPhase[] = ["detecting", "matching", "identified"];
+    let currentIndex = hasSelectedImage ? 1 : 0;
+    setDetectionPhase(phases[currentIndex]);
+
+    const timer = window.setInterval(() => {
+      currentIndex = (currentIndex + 1) % phases.length;
+      setDetectionPhase(phases[currentIndex]);
+    }, 850);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [scannerView, scanning, hasSelectedImage]);
+
+  useEffect(() => {
+    if (scannerView !== "scanner") return;
+    if (!autoScanEnabled || scanning) return;
+    if (selectedImages.length !== 1) return;
+
+    const captureKey = selectedImages[0];
+    if (!captureKey || autoCaptureKeyRef.current === captureKey) return;
+
+    setFeedbackMessage("Card stable... auto capture");
+
+    const timer = window.setTimeout(() => {
+      autoCaptureKeyRef.current = captureKey;
+      void handleScan();
+    }, 950);
+
+    return () => window.clearTimeout(timer);
+  }, [scannerView, autoScanEnabled, scanning, selectedImages]);
+
+  const frameStateClass = scanning
+    ? styles.frameCapturing
+    : scannerView !== "scanner"
+    ? styles.frameSuccess
+    : hasSelectedImage
+    ? styles.frameDetected
+    : "";
+
+  const showPossibleMatches = scannerView === "result" && confidencePercent < 80;
 
   return (
-    <div className={styles.scanner}>
-      <div className={styles.header}>
-        <div>
-          <h2>Scan Cards with AI</h2>
-          {!canScan ? (
-            <p style={{ color: "#ef4444", fontSize: "0.875rem", marginTop: "0.25rem" }}>
-              ⚠️ Scan limit reached - Upgrade to continue
-            </p>
-          ) : (
-            <p style={{ color: "#6b7280", fontSize: "0.875rem", marginTop: "0.25rem" }}>
-              {scansRemaining === 999999 ? "Unlimited scans" : `${scansRemaining} scans remaining this month`}
-            </p>
-          )}
-        </div>
-        <button className={styles.closeButton} onClick={onCancel} type="button">
-          ×
-        </button>
+    <div className={styles.shell}>
+      <header className={styles.topBar}>
+        <button type="button" className={styles.menuLabel}>☰ Menu</button>
+        <h2 className={styles.scannerTitle}>StackTrack Scanner</h2>
+        <button className={styles.closeButton} onClick={onCancel} type="button">×</button>
+      </header>
+
+      <div className={styles.planPillWrap}>
+        {!canScan ? (
+          <span className={`${styles.planPill} ${styles.planPillAlert}`}>
+            Scan limit reached • Plan: {subscriptionPlan}
+          </span>
+        ) : (
+          <span className={styles.planPill}>
+            {scansRemaining === 999999 ? "Unlimited scans" : `${scansRemaining} scans remaining this month`}
+          </span>
+        )}
       </div>
 
-      <div className={styles.content}>
-        {selectedImages.length === 0 ? (
-          <div className={styles.uploadArea}>
-            <label className={styles.uploadLabel}>
-              <div className={styles.uploadIcon}>📷</div>
-              <div className={styles.uploadText}>
-                <p>Upload one or more photos</p>
-                <span>Works with any quality - even blurry photos! (max 10MB each)</span>
-              </div>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleImageSelect}
-                className={styles.fileInput}
-              />
-            </label>
-          </div>
-        ) : (
-          <div className={styles.preview}>
-            <div className={styles.imageGrid}>
-              {selectedImages.map((img, idx) => (
-                <div key={idx} className={styles.imagePreview}>
-                  <img src={img} alt={`Card ${idx + 1}`} className={styles.previewImage} />
-                  <span className={styles.imageNumber}>{idx + 1}</span>
-                </div>
-              ))}
-            </div>
-            <div className={styles.imageCount}>
-              {selectedImages.length} card{selectedImages.length > 1 ? 's' : ''} selected
-            </div>
+      {scannerView === "scanner" && (
+        <>
+          <div className={styles.modeRow}>
+            <span className={styles.modeLabel}>Scan Mode:</span>
             <button
-              className={styles.changeButton}
-              onClick={() => setSelectedImages([])}
               type="button"
-              disabled={scanning}
+              className={`${styles.modeToggle} ${!bulkMode ? styles.modeActive : ""}`}
+              onClick={() => {
+                setBulkMode(false);
+                setSelectedImages((prev) => (prev.length ? [prev[0]] : prev));
+                setSelectedFileLabels((prev) => (prev.length ? [prev[0]] : prev));
+              }}
             >
-              Change Photos
+              Single
+            </button>
+            <button
+              type="button"
+              className={`${styles.modeToggle} ${bulkMode ? styles.modeActive : ""}`}
+              onClick={() => setBulkMode(true)}
+            >
+              Bulk
             </button>
           </div>
-        )}
 
-        {enhancing && (
-          <div className={styles.progress}>
-            <p>🔧 Enhancing images for better AI recognition...</p>
-          </div>
-        )}
+          <section className={styles.cameraShell}>
+            <div className={styles.cameraView}>
+              {primaryPreviewImage ? (
+                <img src={primaryPreviewImage} alt="Card preview" className={styles.cameraImage} />
+              ) : (
+                <div className={styles.cameraPlaceholder}>Camera View</div>
+              )}
 
-        {scanning && (
-          <div className={styles.progress}>
-            <div className={styles.progressBar}>
-              <div 
-                className={styles.progressFill}
-                style={{ width: `${(scanProgress.current / scanProgress.total) * 100}%` }}
-              />
+              <div className={`${styles.detectionFrame} ${frameStateClass}`}>
+                <span className={styles.frameLabel}>Card detection frame</span>
+                <div className={styles.edgeCorners}>
+                  <span className={styles.cornerTl} />
+                  <span className={styles.cornerTr} />
+                  <span className={styles.cornerBl} />
+                  <span className={styles.cornerBr} />
+                </div>
+              </div>
             </div>
-            <p>Scanning card {scanProgress.current} of {scanProgress.total}...</p>
+          </section>
+
+          <div className={styles.detectedText}>✔ Card Detected: {liveDetectedName}</div>
+
+          <section className={styles.liveDetectionPanel}>
+            <p className={styles.liveDetectionTitle}>
+              {detectionPhase === "detecting"
+                ? "Detecting..."
+                : detectionPhase === "matching"
+                ? "Matching card..."
+                : "Card identified"}
+            </p>
+            <strong className={styles.liveCardName}>{liveDetectedName}</strong>
+            <span className={styles.liveCardMeta}>{liveDetectedSet}</span>
+            <span className={styles.liveCardMeta}>{liveDetectedNumber}</span>
+          </section>
+
+          <div className={styles.feedbackSteps}>
+            <span className={`${styles.feedbackStep} ${detectionPhase === "detecting" ? styles.feedbackActive : ""}`}>
+              Scanning...
+            </span>
+            <span className={`${styles.feedbackStep} ${detectionPhase === "matching" ? styles.feedbackActive : ""}`}>
+              Matching card...
+            </span>
+            <span className={`${styles.feedbackStep} ${detectionPhase === "identified" ? styles.feedbackActive : ""}`}>
+              Card identified
+            </span>
           </div>
-        )}
 
-        {error && <div className={styles.error}>{error}</div>}
+          {feedbackMessage && <div className={styles.feedbackMessage}>{feedbackMessage}</div>}
 
-        <div className={styles.info}>
-          <p>💡 <strong>AI Enhancement Active:</strong></p>
-          <ul>
-            <li>✅ Photos are automatically enhanced (contrast, brightness)</li>
-            <li>✅ AI scans every pixel top-to-bottom, left-to-right</li>
-            <li>✅ Zooms into text areas and card details</li>
-            <li>✅ Blurry or out-of-focus images</li>
-            <li>✅ Dark or poorly lit photos</li>
-            <li>✅ Partial card visibility or cards at angles</li>
-            <li><strong>Upload any card photo - AI will extract maximum info!</strong></li>
-          </ul>
+          <div className={styles.primaryActions}>
+            <button
+              type="button"
+              className={styles.captureButton}
+              onClick={() => captureInputRef.current?.click()}
+              disabled={scanning || !canScan}
+            >
+              Capture Card
+            </button>
+            <button
+              type="button"
+              className={`${styles.autoScanButton} ${autoScanEnabled ? styles.autoScanOn : ""}`}
+              onClick={() => setAutoScanEnabled((prev) => !prev)}
+            >
+              {autoScanEnabled ? "Auto Scan ON" : "Auto Scan OFF"}
+            </button>
+          </div>
+
+          <div className={styles.mobileControls}>
+            <button
+              type="button"
+              className={`${styles.mobileButton} ${flashOn ? styles.flashOn : ""}`}
+              onClick={() => setFlashOn((prev) => !prev)}
+            >
+              {flashOn ? "Flash On" : "Flash"}
+            </button>
+
+            <button
+              type="button"
+              className={`${styles.mobileButton} ${styles.mobileScanButton}`}
+              onClick={() => {
+                if (hasSelectedImage) {
+                  void handleScan();
+                } else {
+                  captureInputRef.current?.click();
+                }
+              }}
+              disabled={scanning || !canScan}
+            >
+              {scanning ? "Scanning..." : "Scan Button"}
+            </button>
+
+            <button
+              type="button"
+              className={styles.mobileButton}
+              onClick={() => galleryInputRef.current?.click()}
+              disabled={scanning}
+            >
+              Gallery Upload
+            </button>
+          </div>
+
+          {selectedFileLabels.length > 0 && (
+            <p className={styles.selectedHint}>
+              {selectedFileLabels.length} selected: {selectedFileLabels.slice(0, 3).join(", ")}
+              {selectedFileLabels.length > 3 ? "..." : ""}
+            </p>
+          )}
+        </>
+      )}
+
+      {scanning && (
+        <div className={styles.progress}>
+          <div className={styles.progressBar}>
+            <div
+              className={styles.progressFill}
+              style={{ width: `${(scanProgress.current / Math.max(1, scanProgress.total)) * 100}%` }}
+            />
+          </div>
+          <p className={styles.progressText}>
+            {scanProgress.current} / {scanProgress.total} scanned
+          </p>
         </div>
-      </div>
+      )}
 
-      <div className={styles.actions}>
-        <button className={styles.cancelButton} onClick={onCancel} type="button" disabled={scanning}>
-          Cancel
-        </button>
-        <button
-          className={styles.scanButton}
-          onClick={handleScan}
-          disabled={selectedImages.length === 0 || scanning}
-          type="button"
-        >
-          {scanning ? `Scanning ${scanProgress.current}/${scanProgress.total}...` : `Scan ${selectedImages.length} Card${selectedImages.length > 1 ? 's' : ''}`}
-        </button>
-      </div>
+      {enhancing && <p className={styles.feedbackMessage}>Enhancing image for faster recognition…</p>}
+      {error && <div className={styles.error}>{error}</div>}
+
+      {scannerView === "result" && primaryResult && (
+        <section className={styles.resultScreen}>
+          <h3 className={styles.resultHeader}>Card Identified</h3>
+
+          <div className={styles.resultImageWrap}>
+            <img
+              src={primaryResult.imageUrl || "/placeholder-card.svg"}
+              alt={primaryResult.name}
+              className={styles.resultImage}
+            />
+          </div>
+
+          <div className={styles.resultContent}>
+            <h4 className={styles.resultName}>{primaryResult.name}</h4>
+            <p className={styles.resultMeta}>{primaryResult.setName || primaryResult.brand}</p>
+            <p className={styles.resultMeta}>{primaryResult.year}</p>
+          </div>
+
+          <div className={styles.resultMetricGrid}>
+            <div className={styles.resultMetric}>
+              <span>Confidence</span>
+              <strong>{confidencePercent}%</strong>
+              <em className={`${styles.confidenceBadge} ${confidenceMeta.className}`}>
+                {confidenceMeta.icon} {confidenceMeta.label}
+              </em>
+            </div>
+            <div className={styles.resultMetric}>
+              <span>Market Value</span>
+              <strong>${Number(primaryResult.estimatedValue || 0).toFixed(0)}</strong>
+            </div>
+          </div>
+
+          <label className={styles.conditionRow}>
+            <span>Edit card condition (optional)</span>
+            <select
+              className={styles.conditionSelect}
+              value={selectedCondition}
+              onChange={(event) => setSelectedCondition(event.target.value)}
+            >
+              {CONDITION_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {showPossibleMatches && (
+            <div className={styles.possibleMatches}>
+              <p className={styles.possibleMatchesTitle}>Possible Matches</p>
+              {possibleMatches.map((match) => (
+                <button key={match} type="button" className={styles.matchItem}>
+                  {match}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className={styles.resultActions}>
+            <button type="button" className={styles.primaryCta} onClick={handleAddToCollection}>
+              Add to Collection
+            </button>
+            <button type="button" className={styles.secondaryCta} onClick={resetForAnotherScan}>
+              Scan Another
+            </button>
+            <button type="button" className={styles.secondaryCta} onClick={handleViewCardDetails}>
+              View Card Details
+            </button>
+          </div>
+        </section>
+      )}
+
+      {scannerView === "bulk" && (
+        <section className={styles.bulkScreen}>
+          <h3 className={styles.bulkTitle}>Recently Scanned</h3>
+          <p className={styles.bulkSubtitle}>{scanResults.length} cards detected in bulk mode</p>
+
+          <div className={styles.bulkList}>
+            {scanResults.map((card, index) => (
+              <div key={`${card.name}-${index}`} className={styles.bulkItem}>
+                <span>{card.name}</span>
+                <strong>{toConfidencePercent(card.confidence)}%</strong>
+              </div>
+            ))}
+          </div>
+
+          <div className={styles.bulkActions}>
+            <button type="button" className={styles.primaryCta} onClick={handleAddToCollection}>
+              Add All to Collection
+            </button>
+            <button type="button" className={styles.secondaryCta} onClick={resetForAnotherScan}>
+              Scan Another Batch
+            </button>
+          </div>
+        </section>
+      )}
+
+      <input
+        ref={captureInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className={styles.hiddenInput}
+        onChange={handleCaptureInput}
+      />
+
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
+        multiple={bulkMode}
+        className={styles.hiddenInput}
+        onChange={handleGalleryInput}
+      />
     </div>
   );
 }

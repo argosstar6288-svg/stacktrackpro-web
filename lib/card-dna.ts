@@ -18,6 +18,7 @@ export interface CardDNA {
   sport?: string;        // "basketball"
   name?: string;         // Card name (Pokemon, Magic, etc.)
   type?: string;         // Card type
+   variant?: string;      // "holo", "reverse holo", "normal", "first edition"
 }
 
 /**
@@ -98,6 +99,58 @@ function cleanCardNumber(text: string | undefined | null): string {
 }
 
 /**
+ * Detect and normalize card variant from text
+ * Returns standardized variant type
+ */
+export function detectCardVariant(text: string | undefined | null): string | undefined {
+  if (!text) return undefined;
+
+  const normalized = text.toLowerCase().trim();
+  
+  // Holo patterns
+  if (normalized.match(/\bholo\b/) && !normalized.match(/reverse/i)) {
+    return "holofoil";
+  }
+  
+  // Reverse holo patterns
+  if (normalized.match(/reverse\s*(holo|foil)/i)) {
+    return "reverse-holo";
+  }
+  
+  // First edition
+  if (normalized.match(/1st\s*ed(ition)?|first\s*ed(ition)?/i)) {
+    return "first-edition";
+  }
+  
+  // Shadowless (Pokemon specific)
+  if (normalized.match(/shadowless/i)) {
+    return "shadowless";
+  }
+  
+  // Normal/Non-holo
+  if (normalized.match(/\b(normal|non[\s-]*holo|regular)\b/i)) {
+    return "normal";
+  }
+  
+  return undefined;
+}
+
+/**
+ * Clean variant text for matching
+ */
+export function normalizeVariant(variant: string | undefined | null): string {
+  if (!variant) return "normal";
+  
+  const normalized = variant.toLowerCase().trim();
+  
+  if (normalized.includes("holo") && !normalized.includes("reverse")) return "holofoil";
+  if (normalized.includes("reverse")) return "reverse-holo";
+  if (normalized.includes("first") || normalized.includes("1st")) return "first-edition";
+  if (normalized.includes("shadowless")) return "shadowless";
+  
+  return "normal";
+}
+/**
  * Normalize text for DNA matching
  */
 export function normalizeText(text: string | undefined | null): string {
@@ -136,6 +189,7 @@ export function generateCardDNA(cardData: {
   sport?: string;
   name?: string;
   type?: string;
+   variant?: string;
 }): CardDNA {
   // Extract set name from object or string
   let setName: string | undefined;
@@ -155,6 +209,7 @@ export function generateCardDNA(cardData: {
     sport: normalizeText(cardData.sport),
     name: normalizeText(cardData.name),
     type: normalizeText(cardData.type),
+     variant: normalizeVariant(cardData.variant),
   };
 }
 

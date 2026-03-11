@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { collection, doc, getDoc, serverTimestamp, setDoc, Timestamp } from "firebase/firestore";
 import { getDownloadURL, ref, uploadString } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
+import { FLAT_COLLECTIONS } from "@/lib/flatCollections";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { useUserCards } from "@/lib/cards";
 import type { Card } from "@/lib/cards";
@@ -31,8 +32,9 @@ export default function CreateAuctionPage() {
   const { user, loading: userLoading } = useCurrentUser();
   const { cards, loading: cardsLoading } = useUserCards();
 
-  // Collection selection
+  // Collection selection - support multiple cards
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
+  const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
 
   // Form fields
   const [cardName, setCardName] = useState("");
@@ -63,12 +65,37 @@ export default function CreateAuctionPage() {
     }
   };
 
+  const toggleCardSelection = (cardId: string) => {
+    setSelectedCardIds((prev) => {
+      if (prev.includes(cardId)) {
+        return prev.filter((id) => id !== cardId);
+      } else {
+        return [...prev, cardId];
+      }
+    });
+  };
+
+  const getSelectedCards = () => {
+    if (!cards) return [];
+    return cards.filter((card) => selectedCardIds.includes(card.id));
+  };
+
+  const resolveCardImageUrl = (card: Card): string => {
+    const candidates = [
+      card.imageUrl,
+      card.photoUrl,
+      card.frontImageUrl,
+      card.thumbnailUrl,
+    ];
+    return candidates.find((url) => url && url.trim().length > 0) || "";
+  };
+
   const createDisabled = useMemo(() => {
     const validPrice = Number(startPrice) > 0;
-    // Allow either a new image OR a selected card with existing image
-    const hasImage = imageDataUrl || (selectedCard && (selectedCard.imageUrl || selectedCard.photoUrl || selectedCard.frontImageUrl));
+    // Allow either a new image OR selected cards with existing images
+    const hasImage = imageDataUrl || selectedCardIds.length > 0;
     return !hasImage || !cardName.trim() || !validPrice || !selectedDuration || submitting;
-  }, [cardName, imageDataUrl, selectedCard, selectedDuration, startPrice, submitting]);
+  }, [cardName, imageDataUrl, selectedCardIds.length, selectedDuration, startPrice, submitting]);
 
   useEffect(() => {
     const checkVerification = async () => {
@@ -170,11 +197,12 @@ export default function CreateAuctionPage() {
     if (imageDataUrl) {
       // New image upload
       imageUrl = ""; // Will be set after upload
-    } else if (selectedCard && (selectedCard.imageUrl || selectedCard.photoUrl || selectedCard.frontImageUrl)) {
-      // Use existing image from collection
-      imageUrl = selectedCard.imageUrl || selectedCard.photoUrl || selectedCard.frontImageUrl || "";
+    } else if (selectedCardIds.length > 0) {
+      // Use existing image from first selected card
+      const firstCard = getSelectedCards()[0];
+      imageUrl = firstCard?.imageUrl || firstCard?.photoUrl || firstCard?.frontImageUrl || "";
     } else {
-      setError("Please upload an image or select a card from your collection.");
+      setError("Please upload an image or select cards from your collection.");
       return;
     }
 
@@ -202,6 +230,19 @@ export default function CreateAuctionPage() {
 
       const auctionRef = doc(collection(db, "auctions"));
 
+      // Prepare card details array
+      const selectedCards = getSelectedCards();
+      const cardDetails = selectedCards.length > 0 ? selectedCards.map((card) => ({
+        cardId: card.id,
+        cardName: card.name,
+        year: card.year || new Date().getFullYear(),
+        brand: card.brand || "",
+        sport: (card as any).sport || "",
+        condition: card.condition || "Mint",
+        imageUrl: resolveCardImageUrl(card),
+        value: card.value || 0,
+      })) : [];
+
       await setDoc(auctionRef, {
         cardName: cardName.trim(),
         set: cardSet.trim(),
@@ -210,17 +251,26 @@ export default function CreateAuctionPage() {
         gradingCompany: gradingCompany.trim() || null,
         description: description.trim(),
         imageUrl,
-        linkedCardId: selectedCard?.id || null, // Link to collection card if selected
+        cards: cardDetails.map((card) => ({
+          ...card,
+          cardID: card.cardId,
+        })),
+        cardCount: selectedCards.length,
+        cardID: selectedCards[0]?.id || null,
+        linkedCardId: selectedCards[0]?.id || null,
+        sellerID: user.uid,
         sellerId: user.uid,
         sellerName: user.displayName || user.email?.split("@")[0] || "Seller",
+        startPrice: parsedPrice,
         startingPrice: parsedPrice,
         currentBid: parsedPrice,
         minimumNextBid: parsedPrice + 5,
         highestBidder: null,
         highestBidderId: null,
         bidCount: 0,
-        status: "active",
+        status: "live",
         ended: false,
+        created: serverTimestamp(),
         createdAt: serverTimestamp(),
         endTime: Timestamp.fromMillis(Date.now() + durationMap[selectedDuration]),
       });
@@ -263,39 +313,75 @@ export default function CreateAuctionPage() {
           {/* Left Panel: Select from Collection */}
           <section className={styles.collectionPanel}>
             <h2>📚 Your Collection</h2>
+            <p style={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.6)", marginBottom: "1rem" }}>
+              Select one or more cards to include in this auction
+            </p>
             {cardsLoading ? (
               <div style={{ color: "rgba(255,255,255,0.6)", padding: "1rem" }}>Loading cards...</div>
             ) : cards.length === 0 ? (
               <div style={{ color: "rgba(255,255,255,0.6)", padding: "1rem" }}>
                 No cards in your collection.{" "}
-                <Link href="/dashboard/collection/add" style={{ color: "#8b5cf6" }}>
+                <Link href="/dashboard/scan" style={{ color: "#8b5cf6" }}>
                   Add a card →
                 </Link>
               </div>
             ) : (
               <div className={styles.cardList}>
-                {cards.map((card) => (
-                  <div
-                    key={card.id}
-                    className={`${styles.cardOption} ${selectedCard?.id === card.id ? styles.selected : ""}`}
-                    onClick={() => handleSelectFromCollection(card)}
-                  >
-                    <Image
-                      src={card.imageUrl || card.photoUrl || card.frontImageUrl || card.thumbnailUrl || "/placeholder-card.svg"}
-                      alt={card.name}
-                      width={60}
-                      height={80}
-                      sizes="60px"
-                      className={styles.cardThumbnail}
-                      unoptimized
-                    />
-                    <div className={styles.cardInfo}>
-                      <div className={styles.cardName}>{card.name}</div>
-                      {card.year && <div className={styles.cardMeta}>{card.year}</div>}
-                      {card.condition && <div className={styles.cardMeta}>{card.condition}</div>}
+                {cards.map((card) => {
+                  const isSelected = selectedCardIds.includes(card.id);
+                  return (
+                    <div
+                      key={card.id}
+                      className={`${styles.cardOption} ${isSelected ? styles.selected : ""}`}
+                      onClick={() => toggleCardSelection(card.id)}
+                      style={{ position: "relative" }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleCardSelection(card.id)}
+                        style={{
+                          position: "absolute",
+                          top: "0.5rem",
+                          left: "0.5rem",
+                          cursor: "pointer",
+                          width: "18px",
+                          height: "18px",
+                          zIndex: 1
+                        }}
+                      />
+                      <Image
+                        src={card.imageUrl || card.photoUrl || card.frontImageUrl || card.thumbnailUrl || "/placeholder-card.svg"}
+                        alt={card.name}
+                        width={60}
+                        height={80}
+                        sizes="60px"
+                        className={styles.cardThumbnail}
+                        unoptimized
+                      />
+                      <div className={styles.cardInfo}>
+                        <div className={styles.cardName}>{card.name}</div>
+                        {card.year && <div className={styles.cardMeta}>{card.year}</div>}
+                        {card.condition && <div className={styles.cardMeta}>{card.condition}</div>}
+                        <div className={styles.cardMeta} style={{ color: "#22c55e" }}>
+                          ${card.value?.toLocaleString() || 0}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
+              </div>
+            )}
+            {selectedCardIds.length > 0 && (
+              <div style={{ 
+                marginTop: "1rem", 
+                padding: "0.75rem", 
+                background: "rgba(139,92,246,0.15)", 
+                borderRadius: "8px",
+                border: "1px solid rgba(139,92,246,0.3)",
+                fontSize: "0.875rem"
+              }}>
+                <strong>{selectedCardIds.length} card{selectedCardIds.length > 1 ? 's' : ''} selected</strong>
               </div>
             )}
           </section>

@@ -60,7 +60,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   },
   {
     id: "pro-plus",
-    name: "Pro+",
+    name: "Premium",
     description: "Everything in Pro, plus advanced tools",
     color: "purple",
     badge: "💜",
