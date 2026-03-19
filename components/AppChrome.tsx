@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
+import GlobalImageLightbox from "@/components/GlobalImageLightbox";
 import { shouldUseInternalChrome } from "@/lib/appChromeRoutes";
 
 export default function AppChrome({ children }: { children: ReactNode }) {
@@ -30,6 +31,8 @@ export default function AppChrome({ children }: { children: ReactNode }) {
           </main>
         </div>
       </div>
+
+      <GlobalImageLightbox />
     </div>
   );
 }
