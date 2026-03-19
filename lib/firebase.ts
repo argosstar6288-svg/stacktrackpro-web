@@ -5,12 +5,12 @@ import { getFunctions } from "firebase/functions";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCN4I_INUKp1qyqLiATrH0HXFZU4Y5Iumg",
-  authDomain: "stacktrackpro.firebaseapp.com",
-  projectId: "stacktrackpro",
-  storageBucket: "stacktrackpro.firebasestorage.app",
-  messagingSenderId: "1043025959147",
-  appId: "1:1043025959147:web:e0b19fcb3eaa54328646ae",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);

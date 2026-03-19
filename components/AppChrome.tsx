@@ -1,18 +1,33 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { usePathname } from "next/navigation";
+import { useEffect, useState, type ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 import GlobalImageLightbox from "@/components/GlobalImageLightbox";
 import { shouldUseInternalChrome } from "@/lib/appChromeRoutes";
+import { useCurrentUser } from "@/lib/useCurrentUser";
 
 export default function AppChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user, loading } = useCurrentUser();
+
+  useEffect(() => {
+    if (!shouldUseInternalChrome(pathname)) return;
+    if (!loading && !user) {
+      router.replace("/auth");
+    }
+  }, [loading, user, pathname, router]);
 
   if (!shouldUseInternalChrome(pathname)) {
     return <>{children}</>;
+  }
+
+  // Prevent flash of protected content while resolving auth
+  if (loading || !user) {
+    return null;
   }
 
   return (
