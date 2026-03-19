@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
 import { hybridScanPipeline } from "@/lib/scanPipeline";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase-server";
 
 /**
  * Optimized Card Scan API

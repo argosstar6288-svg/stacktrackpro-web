@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase-server";
 import { collection, query, where, getDocs, limit as firestoreLimit } from "firebase/firestore";
 import { matchCardDNA, generateCardDNA, buildDNASearchQuery, cleanScanInputForSearch } from "@/lib/card-dna";
 

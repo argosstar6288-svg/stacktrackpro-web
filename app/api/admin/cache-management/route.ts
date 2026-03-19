@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { invalidateCardCache, invalidateAllCaches } from "@/lib/cardCache";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase-server";
 import { collection, getDocs, query, where, Timestamp } from "firebase/firestore";
 
 /**
