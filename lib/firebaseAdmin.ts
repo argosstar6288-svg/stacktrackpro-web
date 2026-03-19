@@ -8,26 +8,60 @@ type ParsedServiceAccount = {
 	privateKey: string;
 };
 
+type ServiceAccountPayload = {
+	project_id?: string;
+	client_email?: string;
+	private_key?: string;
+};
+
+function parseJsonObject<T>(raw: string): T | null {
+	try {
+		return JSON.parse(raw) as T;
+	} catch {
+		const start = raw.indexOf("{");
+		const end = raw.lastIndexOf("}");
+		if (start >= 0 && end > start) {
+			try {
+				return JSON.parse(raw.slice(start, end + 1)) as T;
+			} catch {
+				return null;
+			}
+		}
+		return null;
+	}
+}
+
+function toParsedServiceAccount(payload: ServiceAccountPayload | null): ParsedServiceAccount | null {
+	if (!payload?.project_id || !payload?.client_email || !payload?.private_key) {
+		return null;
+	}
+
+	return {
+		projectId: payload.project_id,
+		clientEmail: payload.client_email,
+		privateKey: payload.private_key,
+	};
+}
+
 function parseServiceAccount(): ParsedServiceAccount | null {
-	const rawServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
+	const rawServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT?.trim();
 	if (rawServiceAccount) {
-		const parsed = JSON.parse(rawServiceAccount);
-		return {
-			projectId: parsed.project_id,
-			clientEmail: parsed.client_email,
-			privateKey: parsed.private_key,
-		};
+		const parsed = parseJsonObject<ServiceAccountPayload>(rawServiceAccount);
+		const mapped = toParsedServiceAccount(parsed);
+		if (mapped) {
+			return mapped;
+		}
 	}
 
 	const base64ServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
 	if (base64ServiceAccount) {
-		const decoded = Buffer.from(base64ServiceAccount, "base64").toString("utf8");
-		const parsed = JSON.parse(decoded);
-		return {
-			projectId: parsed.project_id,
-			clientEmail: parsed.client_email,
-			privateKey: parsed.private_key,
-		};
+		const normalizedBase64 = base64ServiceAccount.replace(/\s+/g, "");
+		const decoded = Buffer.from(normalizedBase64, "base64").toString("utf8");
+		const parsed = parseJsonObject<ServiceAccountPayload>(decoded);
+		const mapped = toParsedServiceAccount(parsed);
+		if (mapped) {
+			return mapped;
+		}
 	}
 
 	if (

@@ -7,14 +7,40 @@ type ServiceAccountShape = {
   private_key?: string;
 };
 
+function parseJsonObject<T>(raw: string): T | null {
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    const start = raw.indexOf("{");
+    const end = raw.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      try {
+        return JSON.parse(raw.slice(start, end + 1)) as T;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+}
+
 function parseServiceAccount(): ServiceAccountShape | null {
-  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-    return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT) as ServiceAccountShape;
+  const rawServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT?.trim();
+  if (rawServiceAccount) {
+    const parsed = parseJsonObject<ServiceAccountShape>(rawServiceAccount);
+    if (parsed?.project_id && parsed?.client_email && parsed?.private_key) {
+      return parsed;
+    }
   }
 
-  if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
-    const decoded = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, "base64").toString("utf8");
-    return JSON.parse(decoded) as ServiceAccountShape;
+  const base64ServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
+  if (base64ServiceAccount) {
+    const normalizedBase64 = base64ServiceAccount.replace(/\s+/g, "");
+    const decoded = Buffer.from(normalizedBase64, "base64").toString("utf8");
+    const parsed = parseJsonObject<ServiceAccountShape>(decoded);
+    if (parsed?.project_id && parsed?.client_email && parsed?.private_key) {
+      return parsed;
+    }
   }
 
   if (
