@@ -100,6 +100,12 @@
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(255, 255, 255, 0.06);
+  transition: transform 0.25s ease;
+  transform-origin: center center;
+}
+
+.selectedCardPreview:hover .selectedCardPreviewImage {
+  transform: scale(1.08);
 }
 
 .selectedCardPreviewText {
@@ -112,6 +118,24 @@
   margin: 10px 0 0;
   font-size: 12px;
   color: rgba(255, 230, 150, 0.95);
+}
+
+.selectableCardOption {
+  overflow: hidden;
+}
+
+.selectableCardImage {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  transition: transform 0.25s ease, opacity 0.2s ease;
+  transform-origin: center center;
+}
+
+.selectableCardOption:hover .selectableCardImage {
+  transform: scale(1.06);
 }
 
 .formGrid {

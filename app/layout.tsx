@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import AppChrome from "../components/AppChrome";
 import Footer from "../components/Footer";
 import "./globals.css";
 
@@ -43,7 +44,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <div className="app-shell">
-          {children}
+          <AppChrome>{children}</AppChrome>
           <Footer />
         </div>
       </body>

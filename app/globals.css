@@ -22,28 +22,55 @@ body {
   font-family: Inter, sans-serif;
 }
 
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
 @layer components {
   /* ── Cards ── */
   .card {
-    @apply bg-[#121826] border border-white/10 rounded-xl p-4;
+    @apply rounded-2xl border p-4;
+    background: linear-gradient(180deg, rgba(25, 19, 16, 0.96), rgba(14, 11, 10, 0.96));
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.03);
   }
 
   .panel,
   .dashboard-card {
-    @apply bg-[#121826] border border-white/10 rounded-xl p-4;
+    @apply rounded-2xl border p-4;
+    background: linear-gradient(180deg, rgba(24, 18, 15, 0.96), rgba(13, 10, 9, 0.96));
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 22px 44px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.03);
   }
 
   /* ── Buttons ── */
   .btn-primary {
-    @apply bg-[#ff8f00] hover:bg-[#ffb300] text-white px-4 py-2 rounded-lg font-semibold transition-colors cursor-pointer;
+    @apply cursor-pointer rounded-xl px-4 py-2 font-semibold text-white transition-colors;
+    background: linear-gradient(180deg, #ff8a00, #ef6c00);
+    box-shadow: 0 12px 24px rgba(255, 122, 0, 0.25);
   }
 
   .btn-secondary {
-    @apply bg-[#1e88e5] hover:bg-[#4fc3f7] text-white px-4 py-2 rounded-lg font-semibold transition-colors cursor-pointer;
+    @apply cursor-pointer rounded-xl px-4 py-2 font-semibold text-white transition-colors;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
   }
 
   .btn-blue {
-    @apply bg-[#1e88e5] hover:bg-[#4fc3f7] text-white px-4 py-2 rounded-lg font-semibold transition-colors cursor-pointer;
+    @apply cursor-pointer rounded-xl px-4 py-2 font-semibold text-white transition-colors;
+    background: linear-gradient(180deg, #1e88e5, #1565c0);
   }
 
   /* ── Sidebar nav items ── */
@@ -62,11 +89,11 @@ body {
 }
 
 .dashboard-card {
-  background: linear-gradient(180deg, rgba(20, 28, 44, 0.92), rgba(13, 19, 31, 0.92));
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(24, 18, 15, 0.96), rgba(13, 10, 9, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
   padding: 16px;
-  box-shadow: 0 10px 30px rgba(3, 7, 18, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: 0 16px 36px rgba(3, 7, 18, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .section-head {

@@ -88,6 +88,7 @@
   cursor: pointer;
   background: rgba(255, 255, 255, 0.02);
   transition: all 0.2s ease;
+  overflow: hidden;
 }
 
 .cardOption:hover {
@@ -106,6 +107,12 @@
   height: 80px;
   object-fit: contain;
   border-radius: 6px;
+  transition: transform 0.25s ease;
+  transform-origin: center center;
+}
+
+.cardOption:hover .cardThumbnail {
+  transform: scale(1.08);
 }
 
 .cardPlaceholder {
@@ -184,6 +191,12 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
+  transition: transform 0.25s ease;
+  transform-origin: center center;
+}
+
+.previewWrap:hover .previewImage {
+  transform: scale(1.08);
 }
 
 .previewPlaceholder {

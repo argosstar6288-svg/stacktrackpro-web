@@ -355,6 +355,7 @@ export default function CreateListingPage() {
                 return (
                   <div
                     key={card.id}
+                    className={styles.selectableCardOption}
                     onClick={() => toggleCardSelection(card.id)}
                     style={{
                       cursor: "pointer",
@@ -403,13 +404,11 @@ export default function CreateListingPage() {
                         width={160}
                         height={224}
                         sizes="160px"
+                        className={styles.selectableCardImage}
                         style={{
                           width: "100%",
                           height: "auto",
-                          borderRadius: "4px",
-                          marginBottom: "0.5rem",
-                          opacity: isSelected ? 0.9 : 1,
-                          transition: "opacity 0.2s"
+                          opacity: isSelected ? 0.9 : 1
                         }}
                         unoptimized
                       />

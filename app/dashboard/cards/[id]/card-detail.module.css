@@ -68,6 +68,12 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
+  transition: transform 0.25s ease;
+  transform-origin: center center;
+}
+
+.imageBox:hover .cardImg {
+  transform: scale(1.08);
 }
 
 .noImg {
@@ -341,6 +347,12 @@
   aspect-ratio: 2.5 / 3.5;
   object-fit: contain;
   background: rgba(0, 0, 0, 0.2);
+  transition: transform 0.25s ease;
+  transform-origin: center center;
+}
+
+.variantCard:hover .variantImg {
+  transform: scale(1.08);
 }
 
 .variantNoImg {
