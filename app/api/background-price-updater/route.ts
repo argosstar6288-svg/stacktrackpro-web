@@ -2,16 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   addDoc,
   collection,
-  doc,
   getDocs,
   limit,
   query,
   serverTimestamp,
-  updateDoc,
   where,
 } from "firebase/firestore";
 import { buildPriceIntelligence } from "@/lib/priceIntelligence";
 import { db } from "@/lib/firebase-server";
+import { adminDb, adminServerTimestamp } from "@/lib/firebase-admin";
 
 const FIREBASE_WEB_API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "";
 const PRICECHARTING_API_KEY = process.env.PRICECHARTING_API_KEY || "";
@@ -142,7 +141,7 @@ async function lookupPriceFromPriceCharting(card: any): Promise<{
 }
 
 export async function processQueuedJobs(maxJobs = 1, filterUserId?: string) {
-  const jobsSnapshot = await getDocs(query(collection(db, "priceUpdateJobs"), limit(25)));
+  const jobsSnapshot = await adminDb.collection("priceUpdateJobs").limit(25).get();
 
   const queuedJobs = jobsSnapshot.docs
     .map((snapshot) => ({ id: snapshot.id, ...(snapshot.data() as any) }) as UpdateJob)
@@ -156,16 +155,14 @@ export async function processQueuedJobs(maxJobs = 1, filterUserId?: string) {
   for (const job of queuedJobs) {
     processedJobs += 1;
 
-    const jobRef = doc(db, "priceUpdateJobs", job.id);
-    await updateDoc(jobRef, {
+    const jobRef = adminDb.collection("priceUpdateJobs").doc(job.id);
+    await jobRef.update({
       status: "processing",
-      startedAt: serverTimestamp(),
+      startedAt: adminServerTimestamp(),
     });
 
     try {
-      const cardsSnapshot = await getDocs(
-        query(collection(db, "cards"), where("userId", "==", job.userId))
-      );
+      const cardsSnapshot = await adminDb.collection("cards").where("userId", "==", job.userId).get();
 
       const cards = cardsSnapshot.docs.map((snapshot) => ({
         id: snapshot.id,
@@ -176,9 +173,7 @@ export async function processQueuedJobs(maxJobs = 1, filterUserId?: string) {
         ? cards.filter((card) => job.cardIds?.includes(card.id))
         : cards;
 
-      const alertsSnapshot = await getDocs(
-        query(collection(db, "cardAlerts"), where("userId", "==", job.userId))
-      );
+      const alertsSnapshot = await adminDb.collection("cardAlerts").where("userId", "==", job.userId).get();
 
       const activeAlerts = alertsSnapshot.docs
         .map((snapshot) => ({ id: snapshot.id, ...(snapshot.data() as any) }))
@@ -207,14 +202,14 @@ export async function processQueuedJobs(maxJobs = 1, filterUserId?: string) {
           rarityHint: card.rarity,
         });
 
-        await updateDoc(doc(db, "cards", card.id), {
+        await adminDb.collection("cards").doc(card.id).update({
           marketPrice: currentPrice,
           priceLastUpdated: new Date().toISOString(),
           predicted30DayValue: intelligence.predicted30DayValue,
           rarityTier: intelligence.rarityTier,
           rarity: card.rarity || toLegacyRarity(intelligence.rarityTier),
           priceSource: lookup.source || "pricecharting",
-          updatedAt: serverTimestamp(),
+          updatedAt: adminServerTimestamp(),
         });
 
         updatedCards += 1;
@@ -229,9 +224,9 @@ export async function processQueuedJobs(maxJobs = 1, filterUserId?: string) {
 
           if (!shouldTrigger) continue;
 
-          await updateDoc(doc(db, "cardAlerts", alert.id), {
+          await adminDb.collection("cardAlerts").doc(alert.id).update({
             status: "triggered",
-            triggeredAt: serverTimestamp(),
+            triggeredAt: adminServerTimestamp(),
             triggeredPrice: currentPrice,
           });
           triggeredAlerts += 1;
@@ -242,19 +237,19 @@ export async function processQueuedJobs(maxJobs = 1, filterUserId?: string) {
 
       totalCardsUpdated += updatedCards;
 
-      await updateDoc(jobRef, {
+      await jobRef.update({
         status: "completed",
         totalCards: targetCards.length,
         updatedCards,
         failedCards,
         triggeredAlerts,
-        completedAt: serverTimestamp(),
+        completedAt: adminServerTimestamp(),
       });
     } catch (error) {
-      await updateDoc(jobRef, {
+      await jobRef.update({
         status: "failed",
         error: error instanceof Error ? error.message : "Unknown processing error",
-        completedAt: serverTimestamp(),
+        completedAt: adminServerTimestamp(),
       });
     }
   }
