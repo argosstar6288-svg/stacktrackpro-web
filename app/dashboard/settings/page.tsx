@@ -9,7 +9,7 @@ import { CURRENCIES } from "@/lib/currency";
 import { useCurrency } from "@/hooks/useCurrency";
 import styles from "./settings.module.css";
 
-const SUPPORTED_CURRENCIES = ["USD", "CAD"] as const;
+const SUPPORTED_CURRENCIES = ["CAD"] as const;
 
 export default function SettingsPage() {
   const router = useRouter();

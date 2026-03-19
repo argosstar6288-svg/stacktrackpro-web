@@ -14,13 +14,9 @@ interface SidebarProps {
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: "⌂" },
-  { href: "/dashboard/scan", label: "Scan Card", icon: "◉" },
   { href: "/dashboard/collection", label: "My Collection", icon: "▣" },
-  { href: "/dashboard/collection", label: "Folders", icon: "▤", activePaths: ["/dashboard/collection/folder"] },
   { href: "/dashboard/marketplace", label: "Marketplace", icon: "◫" },
   { href: "/auctions/live", label: "Auctions", icon: "◌" },
-  { href: "/dashboard/pricing", label: "Price Tracker", icon: "↗" },
-  { href: "/dashboard/portfolio", label: "Statistics", icon: "⋮" },
   { href: "/dashboard/watchlist", label: "Watchlist", icon: "♡" },
   { href: "/dashboard/inbox", label: "Messages", icon: "✉" },
   { href: "/dashboard/settings", label: "Settings", icon: "⚙" },
@@ -76,12 +72,10 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
         <nav className="flex flex-1 flex-col gap-1 px-4 py-5">
           {sidebarItems.map((item) => {
-            const activePaths = "activePaths" in item ? item.activePaths : undefined;
             const isActive =
               item.href === "/dashboard"
                 ? pathname === "/dashboard"
-                : activePaths?.some((activePath) => pathname === activePath || pathname.startsWith(`${activePath}/`)) ||
-                  pathname === item.href ||
+                : pathname === item.href ||
                   pathname.startsWith(`${item.href}/`);
 
             return (

@@ -1004,7 +1004,7 @@ export default function CollectionAddPage() {
           </label>
 
           <label className={styles.field}>
-            <span>Value (USD) *</span>
+            <span>Value (CAD) *</span>
             <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
               <input
                 name="value"

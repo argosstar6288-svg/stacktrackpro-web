@@ -224,7 +224,7 @@ RETURN FORMAT: ONLY raw JSON - no markdown, no code blocks.
   "isGraded": boolean,
   "gradingCompany": "PSA/BGS/SGC/CGC or null",
   "grade": "grade number or null",
-  "estimatedValue": number in USD,
+  "estimatedValue": number in CAD,
   "confidence": 0.0-1.0
 }
 

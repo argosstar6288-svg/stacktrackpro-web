@@ -3,7 +3,7 @@ import { DEFAULT_CURRENCY } from "@/lib/currency";
 
 const CURRENCY_STORAGE_KEY = "user-currency";
 const CURRENCY_EVENT_NAME = "currencyChange";
-const CURRENCY_MIGRATION_KEY = "user-currency-migrated-cad-default";
+const ALLOWED_CURRENCIES = new Set([DEFAULT_CURRENCY]);
 
 export function useCurrency() {
   const [currency, setCurrencyState] = useState<string>(DEFAULT_CURRENCY);
@@ -11,24 +11,12 @@ export function useCurrency() {
 
   useEffect(() => {
     const syncCurrency = (nextCurrency?: string | null) => {
-      if (!nextCurrency) {
-        setCurrencyState(DEFAULT_CURRENCY);
-        localStorage.setItem(CURRENCY_STORAGE_KEY, DEFAULT_CURRENCY);
-        return;
-      }
-
-      const hasMigratedDefault = localStorage.getItem(CURRENCY_MIGRATION_KEY) === "1";
       const resolvedCurrency =
-        !hasMigratedDefault && nextCurrency === "USD" ? DEFAULT_CURRENCY : nextCurrency;
+        nextCurrency && ALLOWED_CURRENCIES.has(nextCurrency)
+          ? nextCurrency
+          : DEFAULT_CURRENCY;
 
-      if (!hasMigratedDefault) {
-        localStorage.setItem(CURRENCY_MIGRATION_KEY, "1");
-      }
-
-      if (resolvedCurrency !== nextCurrency) {
-        localStorage.setItem(CURRENCY_STORAGE_KEY, resolvedCurrency);
-      }
-
+      localStorage.setItem(CURRENCY_STORAGE_KEY, resolvedCurrency);
       setCurrencyState(resolvedCurrency);
     };
 
@@ -56,9 +44,12 @@ export function useCurrency() {
   }, []);
 
   const setCurrency = (newCurrency: string) => {
-    setCurrencyState(newCurrency);
-    localStorage.setItem(CURRENCY_STORAGE_KEY, newCurrency);
-    window.dispatchEvent(new CustomEvent(CURRENCY_EVENT_NAME, { detail: { currency: newCurrency } }));
+    const resolvedCurrency =
+      ALLOWED_CURRENCIES.has(newCurrency) ? newCurrency : DEFAULT_CURRENCY;
+
+    setCurrencyState(resolvedCurrency);
+    localStorage.setItem(CURRENCY_STORAGE_KEY, resolvedCurrency);
+    window.dispatchEvent(new CustomEvent(CURRENCY_EVENT_NAME, { detail: { currency: resolvedCurrency } }));
   };
 
   return { currency, setCurrency, isLoaded };
