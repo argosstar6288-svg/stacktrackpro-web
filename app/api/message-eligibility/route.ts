@@ -17,6 +17,9 @@ async function getAuthenticatedUserId(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   const requestedOtherUserId = request.nextUrl.searchParams.get("otherUserId")?.trim() || "";
+  const authorization = request.headers.get("authorization") || "";
+  const hasBearerToken = authorization.startsWith("Bearer ")
+    && authorization.slice("Bearer ".length).trim().length > 0;
 
   try {
     const currentUserId = await getAuthenticatedUserId(request);
@@ -96,7 +99,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Error checking message eligibility:", error);
 
-    if (requestedOtherUserId) {
+    if (requestedOtherUserId && hasBearerToken) {
       return NextResponse.json({
         canMessage: true,
         blockedByCurrentUser: false,
