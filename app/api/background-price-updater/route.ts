@@ -159,12 +159,12 @@ async function lookupPriceFromPriceCharting(card: any): Promise<{
   }
 }
 
-async function processQueuedJobs(maxJobs = 1) {
+export async function processQueuedJobs(maxJobs = 1, filterUserId?: string) {
   const jobsSnapshot = await getDocs(query(collection(db, "priceUpdateJobs"), limit(25)));
 
   const queuedJobs = jobsSnapshot.docs
     .map((snapshot) => ({ id: snapshot.id, ...(snapshot.data() as any) }) as UpdateJob)
-    .filter((job) => job.status === "queued")
+    .filter((job) => job.status === "queued" && (!filterUserId || job.userId === filterUserId))
     .sort((a, b) => toMillis(a.requestedAt) - toMillis(b.requestedAt))
     .slice(0, Math.max(1, Math.min(maxJobs, 10)));
 
@@ -334,12 +334,25 @@ export async function POST(request: NextRequest) {
       requestedAt: serverTimestamp(),
     });
 
+    // Process the queued job immediately (inline) rather than waiting for a cron
+    let processResult = { processedJobs: 0, totalCardsUpdated: 0 };
+    try {
+      processResult = await processQueuedJobs(1, userId);
+    } catch (processErr) {
+      console.error("[Background Updater] Inline processing error:", processErr);
+      // Job stays in 'queued' state — cron will pick it up
+    }
+
     return NextResponse.json({
       success: true,
       mode: "enqueue",
       jobId: jobRef.id,
       queuedCards: cardIds.length || "all",
-      message: "Background price update queued",
+      processedImmediately: processResult.processedJobs > 0,
+      updatedCards: processResult.totalCardsUpdated,
+      message: processResult.processedJobs > 0
+        ? `Updated ${processResult.totalCardsUpdated} card price(s)`
+        : "Background price update queued",
     });
   } catch (error) {
     console.error("[Background Updater] Error:", error);

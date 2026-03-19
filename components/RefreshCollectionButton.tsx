@@ -69,13 +69,13 @@ export function RefreshCollectionButton() {
   const handleRefresh = async () => {
     const user = auth.currentUser;
     if (!user) {
-      setError("You must be logged in to queue updates");
+      setError("You must be logged in to update prices");
       return;
     }
 
     setIsRefreshing(true);
     setError(null);
-    setStatusMessage(null);
+    setStatusMessage("Fetching latest market prices...");
 
     try {
       const token = await user.getIdToken();
@@ -93,11 +93,18 @@ export function RefreshCollectionButton() {
 
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
-        throw new Error(payload?.error || "Failed to queue update");
+        throw new Error(payload?.error || "Failed to update prices");
       }
 
-      setJobStatus("queued");
-      setStatusMessage("Queued. Market prices will refresh in the background.");
+      const payload = await response.json();
+      setJobStatus("completed");
+      setLastRefresh(new Date());
+      setNeedsUpdate(false);
+      if (payload?.updatedCards > 0) {
+        setStatusMessage(`✅ Updated ${payload.updatedCards} card price${payload.updatedCards === 1 ? "" : "s"}`);
+      } else {
+        setStatusMessage("✅ Prices are up to date");
+      }
     } catch (err) {
       console.error("Error refreshing collection:", err);
       setError(err instanceof Error ? err.message : "Failed to queue background update");
@@ -137,15 +144,15 @@ export function RefreshCollectionButton() {
         onClick={handleRefresh}
         disabled={isRefreshing}
         className={`${styles.button} ${needsUpdate ? styles.needsUpdate : ''}`}
-        title="Queue background market price update"
+        title="Refresh card market prices"
       >
         {isRefreshing ? (
           <>
-            <span className={styles.spinner}>↻</span> Queueing...
+            <span className={styles.spinner}>↻</span> Updating prices...
           </>
         ) : (
           <>
-            🔄 {needsUpdate ? "Queue Price Update" : "Run Background Update"}
+            🔄 {needsUpdate ? "Update Prices" : "Refresh Prices"}
           </>
         )}
       </button>
@@ -156,7 +163,7 @@ export function RefreshCollectionButton() {
       
       {needsUpdate && !isRefreshing && (
         <div className={styles.notification}>
-          💡 Prices are read from stored card records. Queue a background update to refresh market data.
+          💡 Click "Update Prices" to fetch the latest market prices for your cards.
         </div>
       )}
     </div>
