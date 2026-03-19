@@ -20,6 +20,9 @@ export default function SystemCheckPage() {
   const { user } = useCurrentUser();
   const [checks, setChecks] = useState<SystemCheck[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUpdaterRunning, setIsUpdaterRunning] = useState(false);
+  const [updaterMessage, setUpdaterMessage] = useState<string | null>(null);
+  const [updaterError, setUpdaterError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -263,6 +266,40 @@ export default function SystemCheckPage() {
     return { text: "All Systems Operational", color: "#22c55e" };
   };
 
+  const runPriceUpdaterNow = async () => {
+    if (!user) return;
+
+    try {
+      setIsUpdaterRunning(true);
+      setUpdaterError(null);
+      setUpdaterMessage(null);
+
+      const token = await user.getIdToken();
+      const response = await fetch("/api/admin/run-background-updater", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ maxJobs: 5 }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.error || "Failed to run background updater");
+      }
+
+      setUpdaterMessage(
+        `Processed ${Number(payload?.processedJobs || 0)} job(s), updated ${Number(payload?.totalCardsUpdated || 0)} card(s).`
+      );
+      void runSystemChecks();
+    } catch (error) {
+      setUpdaterError(error instanceof Error ? error.message : "Failed to run background updater");
+    } finally {
+      setIsUpdaterRunning(false);
+    }
+  };
+
   if (!user || !isAdminEmail(user.email)) {
     return null;
   }
@@ -272,9 +309,20 @@ export default function SystemCheckPage() {
       <div className={styles.header}>
         <h1>System Status Check</h1>
         <p className={styles.subtitle}>Real-time system health monitoring</p>
-        <button onClick={runSystemChecks} className={styles.refreshBtn}>
-          🔄 Re-run Checks
-        </button>
+        <div className={styles.actionsRow}>
+          <button onClick={runSystemChecks} className={styles.refreshBtn}>
+            🔄 Re-run Checks
+          </button>
+          <button
+            onClick={runPriceUpdaterNow}
+            className={styles.updaterBtn}
+            disabled={isUpdaterRunning}
+          >
+            {isUpdaterRunning ? "⏳ Running Updater..." : "⚙️ Run Price Updater Now"}
+          </button>
+        </div>
+        {updaterMessage && <p className={styles.updaterMessage}>{updaterMessage}</p>}
+        {updaterError && <p className={styles.updaterError}>{updaterError}</p>}
       </div>
 
       {isLoading ? (

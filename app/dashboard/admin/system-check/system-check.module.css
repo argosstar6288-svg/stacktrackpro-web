@@ -22,6 +22,13 @@
   margin-bottom: 1.5rem;
 }
 
+.actionsRow {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 .refreshBtn {
   background: #3b82f6;
   color: white;
@@ -38,6 +45,41 @@
   background: #2563eb;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.updaterBtn {
+  background: #f59e0b;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.updaterBtn:hover:not(:disabled) {
+  background: #d97706;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+}
+
+.updaterBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.updaterMessage {
+  margin-top: 0.9rem;
+  color: #15803d;
+  font-weight: 600;
+}
+
+.updaterError {
+  margin-top: 0.9rem;
+  color: #dc2626;
+  font-weight: 600;
 }
 
 .loading {
