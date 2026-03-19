@@ -9,6 +9,8 @@ import { CURRENCIES } from "@/lib/currency";
 import { useCurrency } from "@/hooks/useCurrency";
 import styles from "./settings.module.css";
 
+const SUPPORTED_CURRENCIES = ["USD", "CAD"] as const;
+
 export default function SettingsPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
@@ -101,11 +103,14 @@ export default function SettingsPage() {
                 className={styles.select}
                 disabled={!isLoaded}
               >
-                {Object.values(CURRENCIES).map((curr) => (
-                  <option key={curr.code} value={curr.code}>
-                    {curr.name} ({curr.symbol})
-                  </option>
-                ))}
+                {SUPPORTED_CURRENCIES.map((currencyCode) => {
+                  const curr = CURRENCIES[currencyCode];
+                  return (
+                    <option key={curr.code} value={curr.code}>
+                      {curr.name} ({curr.code})
+                    </option>
+                  );
+                })}
               </select>
             </div>
           </section>

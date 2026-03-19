@@ -2,8 +2,10 @@
 
 import React, { useState } from 'react';
 import { useCurrentUser } from '@/app/lib/useCurrentUser';
-import { PRICING_TIERS, formatPrice, getAnnualSavings } from '@/app/lib/stripe';
+import { PRICING_TIERS } from '@/app/lib/stripe';
 import { getPriceId } from '@/app/lib/stripe-config';
+import { useCurrency } from '@/hooks/useCurrency';
+import { formatCurrency } from '@/lib/currency';
 import styles from './subscription-plan-grid.module.css';
 
 interface SubscriptionPlanGridProps {
@@ -18,6 +20,7 @@ export default function SubscriptionPlanGrid({
   selectedPlan,
 }: SubscriptionPlanGridProps) {
   const { user } = useCurrentUser();
+  const { currency } = useCurrency();
   const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('yearly');
 
@@ -129,7 +132,10 @@ export default function SubscriptionPlanGrid({
           const isSelected = selectedPlan === plan.id;
           const isLoading = loadingPlanId === plan.id;
           const isLifetime = plan.interval === 'once';
-          const priceDisplay = formatPrice(plan.price, plan.currency);
+          const priceDisplay = formatCurrency(plan.price / 100, currency, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          });
 
           return (
             <div

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import styles from "./pricing-advisor.module.css";
+import { useCurrency } from "@/hooks/useCurrency";
+import { formatCurrency } from "@/lib/currency";
 import {
   getTrendingCategories,
   getFastestSellingCategories,
@@ -14,6 +16,7 @@ import {
 } from "../../lib/revenueMetrics";
 
 export default function PricingAdvisorPage() {
+  const { currency } = useCurrency();
   const [trendingCategories, setTrendingCategories] = useState<TrendingCategory[]>([]);
   const [fastestSelling, setFastestSelling] = useState<FastestSellingCategory[]>([]);
   const [priceSignals, setPriceSignals] = useState<PriceSignal[]>([]);
@@ -102,12 +105,12 @@ export default function PricingAdvisorPage() {
 
                 <div className={styles.metricRow}>
                   <span className={styles.label}>Avg Price</span>
-                  <span className={styles.value}>${category.avgPrice}</span>
+                  <span className={styles.value}>{formatCurrency(category.avgPrice, currency)}</span>
                 </div>
 
                 <div className={styles.metricRow}>
                   <span className={styles.label}>Volume</span>
-                  <span className={styles.value}>${category.totalVolume.toLocaleString()}</span>
+                  <span className={styles.value}>{formatCurrency(category.totalVolume, currency)}</span>
                 </div>
 
                 <div className={styles.momentumBar}>
@@ -166,7 +169,7 @@ export default function PricingAdvisorPage() {
                         <span>{category.completionRate}%</span>
                       </div>
                     </td>
-                    <td>${category.avgPrice}</td>
+                    <td>{formatCurrency(category.avgPrice, currency)}</td>
                     <td>
                       <div className={styles.momentumScore}>
                         {category.momentum}
@@ -212,12 +215,12 @@ export default function PricingAdvisorPage() {
                 <div className={styles.signalBody}>
                   <div className={styles.signalMetric}>
                     <span className={styles.label}>7-Day Avg</span>
-                    <span className={styles.price}>${signal.avgPrice7d}</span>
+                    <span className={styles.price}>{formatCurrency(signal.avgPrice7d, currency)}</span>
                   </div>
 
                   <div className={styles.signalMetric}>
                     <span className={styles.label}>30-Day Avg</span>
-                    <span className={styles.price}>${signal.avgPrice30d}</span>
+                    <span className={styles.price}>{formatCurrency(signal.avgPrice30d, currency)}</span>
                   </div>
 
                   <div className={styles.changeAmount}>
@@ -265,13 +268,13 @@ export default function PricingAdvisorPage() {
                 <div className={styles.alertMetrics}>
                   <div className={styles.metricBox}>
                     <div className={styles.metricLabel}>Current</div>
-                    <div className={styles.metricValue}>${alert.listingPrice}</div>
+                    <div className={styles.metricValue}>{formatCurrency(alert.listingPrice, currency)}</div>
                   </div>
 
                   <div className={styles.metricBox}>
                     <div className={styles.metricLabel}>Market Avg</div>
                     <div className={styles.metricValue}>
-                      ${alert.marketAveragePrice}
+                      {formatCurrency(alert.marketAveragePrice, currency)}
                     </div>
                   </div>
 
@@ -285,7 +288,7 @@ export default function PricingAdvisorPage() {
                   <div className={styles.metricBox}>
                     <div className={styles.metricLabel}>Potential Profit</div>
                     <div className={styles.metricValue} style={{ color: "#059669" }}>
-                      +${alert.potentialProfit}
+                      +{formatCurrency(alert.potentialProfit, currency)}
                     </div>
                   </div>
                 </div>

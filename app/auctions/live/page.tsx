@@ -146,10 +146,13 @@ export default function LiveAuctionsPage() {
   if (loading) {
     return (
       <div className={styles.content}>
-        <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔴 Live Auctions</h1>
-        <div style={{ textAlign: 'center', padding: '3rem', color: 'rgba(255,255,255,0.6)' }}>
-          <div style={{ fontSize: '1.2rem' }}>Loading auctions...</div>
+        <div className={auctionStyles.pageHeader}>
+          <div>
+            <p className={auctionStyles.eyebrow}>Marketplace</p>
+            <h1 className={auctionStyles.title}>🔴 Live Auctions</h1>
+          </div>
         </div>
+        <div className={auctionStyles.spinner} style={{ margin: '4rem auto' }} />
       </div>
     )
   }
@@ -159,10 +162,8 @@ export default function LiveAuctionsPage() {
       {/* Page Header */}
       <div className={auctionStyles.pageHeader}>
         <div>
-          <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔴 Live Auctions</h1>
-          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.95rem' }}>
-            Actively bidding right now
-          </p>
+          <p className={auctionStyles.eyebrow}>Marketplace</p>
+          <h1 className={auctionStyles.title}>🔴 Live Auctions</h1>
         </div>
         <Link href="/auctions/create" className={auctionStyles.createAuctionButton}>
           + Create Auction
@@ -171,28 +172,14 @@ export default function LiveAuctionsPage() {
 
       {/* Error Message */}
       {error && (
-        <div style={{ 
-          color: '#ff6b6b', 
-          padding: '1rem', 
-          background: 'rgba(255,107,107,0.1)', 
-          borderRadius: '8px',
-          marginBottom: '1rem'
-        }}>
-          {error}
-        </div>
+        <div className={auctionStyles.errorBanner}>{error}</div>
       )}
 
       {/* Auctions Grid */}
       {auctions.length === 0 ? (
-        <div style={{ 
-          textAlign: 'center', 
-          padding: '4rem 2rem',
-          background: 'rgba(255,255,255,0.05)',
-          borderRadius: '12px',
-          backdropFilter: 'blur(10px)'
-        }}>
-          <p style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>No auctions currently live</p>
-          <p style={{ color: 'rgba(255,255,255,0.6)' }}>Check back soon!</p>
+        <div className={auctionStyles.emptyState}>
+          <p>No auctions currently live</p>
+          <p>Check back soon or create one!</p>
         </div>
       ) : (
         <div className={auctionStyles.auctionsGrid}>
@@ -204,6 +191,7 @@ export default function LiveAuctionsPage() {
                     cardName: auction.cardName,
                     imageUrl: auction.imageUrl
                   }}
+                  showPrice={false}
                   badge="🔴 LIVE"
                 />
 

@@ -18,6 +18,7 @@ import {
   onSnapshot,
   query,
   serverTimestamp,
+  setDoc,
   where,
   writeBatch,
 } from "firebase/firestore";
@@ -43,6 +44,39 @@ type ChatMessage = {
   time: string;
   mine: boolean;
 };
+
+type UserSearchResult = {
+  uid: string;
+  displayName: string;
+  email: string;
+};
+
+type MessageEligibility = {
+  canMessage: boolean;
+  blockedByCurrentUser: boolean;
+  blockedByOtherUser: boolean;
+  reason: string;
+  recipient: UserSearchResult | null;
+};
+
+const buildChatId = (firstUserId: string, secondUserId: string) =>
+  [firstUserId, secondUserId].sort().join("__");
+
+const buildThreadSummary = (
+  chatId: string,
+  recipientId: string,
+  displayName: string,
+  overrides?: Partial<ThreadSummary>
+): ThreadSummary => ({
+  id: chatId,
+  otherUserId: recipientId,
+  name: displayName,
+  handle: `@${recipientId.slice(0, 6)}`,
+  lastMessage: overrides?.lastMessage ?? "",
+  lastTimestamp: overrides?.lastTimestamp ?? 0,
+  status: overrides?.status ?? "Active",
+  unread: overrides?.unread ?? 0,
+});
 
 const formatTime = (value: number) =>
   new Intl.DateTimeFormat("en-US", {
@@ -84,11 +118,110 @@ export default function InboxPage() {
   const [composeMessage, setComposeMessage] = useState("");
   const [composeError, setComposeError] = useState("");
   const [sendingCompose, setSendingCompose] = useState(false);
-  const [searchResults, setSearchResults] = useState<Array<{ uid: string; displayName: string; email: string }>>([]);
+  const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ message: string; sender?: string } | null>(null);
+  const [messageEligibility, setMessageEligibility] = useState<MessageEligibility | null>(null);
+  const [blockActionLoading, setBlockActionLoading] = useState(false);
   const previousMessagesLengthRef = useRef(0);
+
+  const getAuthHeaders = useCallback(async () => {
+    if (!user) {
+      return {};
+    }
+
+    const token = await user.getIdToken();
+    return {
+      Authorization: `Bearer ${token}`,
+    };
+  }, [user]);
+
+  const checkMessageEligibility = useCallback(
+    async (otherUserId: string) => {
+      if (!user) {
+        return {
+          canMessage: false,
+          blockedByCurrentUser: false,
+          blockedByOtherUser: false,
+          reason: "Please sign in to send messages.",
+          recipient: null,
+        };
+      }
+
+      const response = await fetch(
+        `/api/message-eligibility?otherUserId=${encodeURIComponent(otherUserId)}`,
+        {
+          headers: await getAuthHeaders(),
+        }
+      );
+      const payload = await response.json().catch(() => ({}));
+
+      return {
+        canMessage: Boolean(response.ok && payload.canMessage),
+        blockedByCurrentUser: Boolean(payload.blockedByCurrentUser),
+        blockedByOtherUser: Boolean(payload.blockedByOtherUser),
+        reason: payload.reason || (response.ok ? "" : "Unable to send a message right now."),
+        recipient: payload.recipient || null,
+      };
+    },
+    [getAuthHeaders, user]
+  );
+
+  const refreshMessageEligibility = useCallback(
+    async (otherUserId: string, fallbackName?: string) => {
+      const eligibility = await checkMessageEligibility(otherUserId);
+      setMessageEligibility({
+        ...eligibility,
+        recipient:
+          eligibility.recipient ||
+          (fallbackName
+            ? {
+                uid: otherUserId,
+                displayName: fallbackName,
+                email: "",
+              }
+            : null),
+      });
+      return eligibility;
+    },
+    [checkMessageEligibility]
+  );
+
+  const upsertDirectThread = useCallback(
+    (recipientId: string, displayName?: string, overrides?: Partial<ThreadSummary>) => {
+      if (!user) {
+        return null;
+      }
+
+      const chatId = buildChatId(user.uid, recipientId);
+      const fallbackName = displayName?.trim() || recipientId;
+
+      setActiveTab("direct");
+      setActiveThreadId(chatId);
+      setActiveRecipientId(recipientId);
+      setThreads((current) => {
+        const existing = current.find((thread) => thread.id === chatId);
+
+        if (existing) {
+          return current.map((thread) =>
+            thread.id === chatId
+              ? {
+                  ...thread,
+                  name: displayName?.trim() || thread.name,
+                  ...overrides,
+                }
+              : thread
+          );
+        }
+
+        return [buildThreadSummary(chatId, recipientId, fallbackName, overrides), ...current];
+      });
+
+      return chatId;
+    },
+    [user]
+  );
 
   const searchUsers = useCallback(
     async (query: string) => {
@@ -100,8 +233,14 @@ export default function InboxPage() {
       setSearchLoading(true);
       try {
         const response = await fetch(
-          `/api/search-users?q=${encodeURIComponent(query)}&currentUserId=${user.uid}`
+          `/api/search-users?q=${encodeURIComponent(query)}&currentUserId=${user.uid}`,
+          {
+            headers: await getAuthHeaders(),
+          }
         );
+        if (!response.ok) {
+          throw new Error("Unable to search users");
+        }
         const data = await response.json();
         setSearchResults(data.results || []);
       } catch (error) {
@@ -111,7 +250,7 @@ export default function InboxPage() {
         setSearchLoading(false);
       }
     },
-    [user]
+    [getAuthHeaders, user]
   );
 
   const loadRecommendedUsers = useCallback(async () => {
@@ -119,24 +258,31 @@ export default function InboxPage() {
 
     try {
       const response = await fetch(
-        `/api/search-users?recommendations=true&currentUserId=${user.uid}`
+        `/api/search-users?recommendations=true&currentUserId=${user.uid}`,
+        {
+          headers: await getAuthHeaders(),
+        }
       );
+      if (!response.ok) {
+        throw new Error("Unable to load recommended users");
+      }
       const data = await response.json();
       setSearchResults(data.results || []);
     } catch (error) {
       console.error("Error loading recommended users:", error);
       setSearchResults([]);
     }
-  }, [user]);
+  }, [getAuthHeaders, user]);
 
   const handleOpenCompose = () => {
     setComposeOpen(true);
     loadRecommendedUsers();
   };
 
-  const handleSelectUser = (userId: string, displayName: string) => {
+  const handleSelectUser = (userId: string, _displayName: string) => {
     setComposeRecipient(userId);
     setSelectedUserId(userId);
+    setComposeError("");
     setSearchResults([]);
   };
 
@@ -294,6 +440,10 @@ export default function InboxPage() {
     return threads.find((thread) => thread.id === activeThreadId) ?? null;
   }, [threads, activeThreadId]);
 
+  const isBlockedByMe = Boolean(messageEligibility?.blockedByCurrentUser);
+  const isBlockedByThem = Boolean(messageEligibility?.blockedByOtherUser);
+  const isMessagingDisabled = isBlockedByMe || isBlockedByThem;
+
   const initials = activeThread?.name
     ? activeThread.name
         .split(" ")
@@ -307,6 +457,15 @@ export default function InboxPage() {
       setActiveRecipientId(activeThread.otherUserId);
     }
   }, [activeThread]);
+
+  useEffect(() => {
+    if (!user || !activeRecipientId) {
+      setMessageEligibility(null);
+      return;
+    }
+
+    void refreshMessageEligibility(activeRecipientId, activeThread?.name);
+  }, [activeRecipientId, activeThread?.name, refreshMessageEligibility, user]);
 
   const markThreadRead = useCallback(async () => {
     if (!user || !activeThreadId) return;
@@ -343,6 +502,14 @@ export default function InboxPage() {
 
     try {
       const messageText = draft.trim();
+      const eligibility = await checkMessageEligibility(activeRecipientId);
+
+      if (!eligibility.canMessage) {
+        setMessageEligibility(eligibility);
+        alert(eligibility.reason || "You cannot message this user.");
+        return;
+      }
+
       setDraft("");
       await addDoc(collection(db, "directChats", activeThreadId ?? "", "messages"), {
         message: messageText,
@@ -381,9 +548,46 @@ export default function InboxPage() {
     }
   };
 
+  const handleToggleBlock = async () => {
+    if (!user || !activeRecipientId) {
+      return;
+    }
+
+    const targetName = activeThread?.name || messageEligibility?.recipient?.displayName || activeRecipientId;
+    const confirmed = isBlockedByMe
+      ? window.confirm(`Unblock ${targetName}? You will be able to send messages again.`)
+      : window.confirm(`Block ${targetName}? You will no longer be able to send or receive direct messages unless you unblock them.`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    setBlockActionLoading(true);
+    try {
+      const blockedUserRef = doc(db, "users", user.uid, "blockedUsers", activeRecipientId);
+
+      if (isBlockedByMe) {
+        await deleteDoc(blockedUserRef);
+      } else {
+        await setDoc(blockedUserRef, {
+          blockedUserId: activeRecipientId,
+          displayName: targetName,
+          createdAt: serverTimestamp(),
+        });
+      }
+
+      await refreshMessageEligibility(activeRecipientId, targetName);
+    } catch (error) {
+      console.error("Error updating blocked user:", error);
+      alert("Unable to update block status right now.");
+    } finally {
+      setBlockActionLoading(false);
+    }
+  };
+
   const handleStartChat = async () => {
     if (!user) return;
-    const recipientId = normalizeRecipientId(composeRecipient);
+    const recipientId = normalizeRecipientId(selectedUserId ?? composeRecipient);
     const messageText = composeMessage.trim();
 
     if (!recipientId) {
@@ -404,7 +608,14 @@ export default function InboxPage() {
     setComposeError("");
     setSendingCompose(true);
     try {
-      const chatId = [user.uid, recipientId].sort().join("__");
+      const eligibility = await checkMessageEligibility(recipientId);
+      if (!eligibility.canMessage) {
+        setMessageEligibility(eligibility);
+        setComposeError(eligibility.reason || "You cannot message this user.");
+        return;
+      }
+
+      const chatId = buildChatId(user.uid, recipientId);
       await addDoc(collection(db, "directChats", chatId, "messages"), {
         message: messageText,
         senderId: user.uid,
@@ -413,27 +624,19 @@ export default function InboxPage() {
         readAt: null,
       });
 
-      setActiveThreadId(chatId);
-      setActiveRecipientId(recipientId);
-      setThreads((current) => {
-        if (current.some((thread) => thread.id === chatId)) return current;
-        return [
-          {
-            id: chatId,
-            otherUserId: recipientId,
-            name: recipientId,
-            handle: `@${recipientId.slice(0, 6)}`,
-            lastMessage: messageText,
-            lastTimestamp: Date.now(),
-            status: "Active",
-            unread: 0,
-          },
-          ...current,
-        ];
-      });
+      upsertDirectThread(
+        recipientId,
+        eligibility.recipient?.displayName || recipientId,
+        {
+          lastMessage: messageText,
+          lastTimestamp: Date.now(),
+          unread: 0,
+        }
+      );
 
       setComposeMessage("");
       setComposeRecipient("");
+      setSelectedUserId(null);
       setComposeOpen(false);
       loadThreads();
     } catch (error) {
@@ -469,6 +672,53 @@ export default function InboxPage() {
       setActiveTab("direct");
     }
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !user) {
+      return;
+    }
+
+    const recipientParam = normalizeRecipientId(
+      new URLSearchParams(window.location.search).get("user") || ""
+    );
+
+    if (!recipientParam || recipientParam === user.uid) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const openRequestedConversation = async () => {
+      try {
+        const eligibility = await checkMessageEligibility(recipientParam);
+
+        if (!eligibility.canMessage) {
+          if (!cancelled) {
+            alert(eligibility.reason || "You cannot message this user.");
+          }
+          return;
+        }
+
+        if (!cancelled) {
+          upsertDirectThread(
+            recipientParam,
+            eligibility.recipient?.displayName || recipientParam
+          );
+        }
+      } catch (error) {
+        console.error("Error opening requested conversation:", error);
+        if (!cancelled) {
+          upsertDirectThread(recipientParam, recipientParam);
+        }
+      }
+    };
+
+    void openRequestedConversation();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [checkMessageEligibility, upsertDirectThread, user]);
 
   return (
     <div className={styles.wrapper}>
@@ -595,11 +845,33 @@ export default function InboxPage() {
             <button className={styles.secondaryButton} type="button">
               View Profile
             </button>
-            <button className={styles.secondaryButton} type="button">
-              Archive
+            <button
+              className={`${styles.secondaryButton} ${isBlockedByMe ? styles.unblockButton : styles.blockButton}`}
+              type="button"
+              onClick={handleToggleBlock}
+              disabled={!activeRecipientId || blockActionLoading}
+            >
+              {blockActionLoading
+                ? "Updating..."
+                : isBlockedByMe
+                ? "Unblock User"
+                : "Block User"}
             </button>
           </div>
         </div>
+
+        {messageEligibility?.reason ? (
+          <div className={styles.statusBanner}>
+            <strong className={styles.statusBannerTitle}>
+              {isBlockedByMe
+                ? "User blocked"
+                : isBlockedByThem
+                ? "Messaging unavailable"
+                : "Conversation status"}
+            </strong>
+            <span className={styles.statusBannerText}>{messageEligibility.reason}</span>
+          </div>
+        ) : null}
 
         <div className={styles.messageList}>
           {!activeThread ? (
@@ -648,9 +920,9 @@ export default function InboxPage() {
             className={styles.primaryButton}
             type="button"
             onClick={handleSend}
-            disabled={!draft.trim() || !activeRecipientId}
+            disabled={!draft.trim() || !activeRecipientId || isMessagingDisabled}
           >
-            Send
+            {isBlockedByMe ? "Blocked" : isBlockedByThem ? "Unavailable" : "Send"}
           </button>
         </div>
       </div>

@@ -1,13 +1,79 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  limit,
-  orderBy,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
+
+type UserSummary = {
+  uid: string;
+  displayName: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+};
+
+function mapUserSummary(userId: string, data: FirebaseFirestore.DocumentData): UserSummary {
+  const displayName =
+    data.displayName ||
+    [data.firstName, data.lastName].filter(Boolean).join(" ") ||
+    data.email?.split("@")[0] ||
+    "Anonymous";
+
+  return {
+    uid: userId,
+    displayName,
+    email: data.email || "",
+    firstName: data.firstName || "",
+    lastName: data.lastName || "",
+  };
+}
+
+async function getAuthenticatedUserId(request: NextRequest) {
+  const authorization = request.headers.get("authorization") || "";
+  const token = authorization.startsWith("Bearer ")
+    ? authorization.slice("Bearer ".length)
+    : "";
+
+  if (!token) {
+    throw new Error("Missing authorization token");
+  }
+
+  const decodedToken = await adminAuth.verifyIdToken(token);
+  return decodedToken.uid;
+}
+
+async function getBlockedUserIds(userId: string) {
+  const snapshot = await adminDb.collection("users").doc(userId).collection("blockedUsers").get();
+  return new Set(snapshot.docs.map((doc) => doc.id));
+}
+
+async function filterBlockedUsers(currentUserId: string, users: UserSummary[]) {
+  if (users.length === 0) {
+    return [];
+  }
+
+  const blockedByCurrentUser = await getBlockedUserIds(currentUserId);
+  const notBlockedByCurrentUser = users.filter(
+    (candidate) => candidate.uid !== currentUserId && !blockedByCurrentUser.has(candidate.uid)
+  );
+
+  const blockedCurrentUserChecks = await Promise.all(
+    notBlockedByCurrentUser.map(async (candidate) => {
+      const blockedDoc = await adminDb
+        .collection("users")
+        .doc(candidate.uid)
+        .collection("blockedUsers")
+        .doc(currentUserId)
+        .get();
+
+      return {
+        candidate,
+        isBlocked: blockedDoc.exists,
+      };
+    })
+  );
+
+  return blockedCurrentUserChecks
+    .filter((entry) => !entry.isBlocked)
+    .map((entry) => entry.candidate);
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,38 +81,53 @@ export async function GET(request: NextRequest) {
     const searchTerm = searchParams.get("q")?.toLowerCase().trim();
     const currentUserId = searchParams.get("currentUserId");
     const getRecommendations = searchParams.get("recommendations") === "true";
+    const requestedUserId = searchParams.get("uid")?.trim();
+    const authenticatedUserId = await getAuthenticatedUserId(request);
 
-    if (!currentUserId) {
+    if (currentUserId && currentUserId !== authenticatedUserId) {
       return NextResponse.json(
-        { error: "currentUserId is required" },
-        { status: 400 }
+        { error: "Authenticated user mismatch" },
+        { status: 403 }
       );
     }
 
-    const usersRef = collection(db, "users");
+    if (requestedUserId) {
+      if (requestedUserId === authenticatedUserId) {
+        return NextResponse.json({
+          result: {
+            uid: authenticatedUserId,
+            displayName: "You",
+            email: "",
+          },
+        });
+      }
+
+      const userDoc = await adminDb.collection("users").doc(requestedUserId).get();
+      if (!userDoc.exists) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+      }
+
+      const [result] = await filterBlockedUsers(authenticatedUserId, [
+        mapUserSummary(userDoc.id, userDoc.data() || {}),
+      ]);
+
+      if (!result) {
+        return NextResponse.json({ error: "User unavailable" }, { status: 403 });
+      }
+
+      return NextResponse.json({ result });
+    }
+
+    const usersRef = adminDb.collection("users");
 
     if (getRecommendations) {
-      // Get recommended users (active users you haven't chatted with)
-      const recentActiveQuery = query(
-        usersRef,
-        orderBy("createdAt", "desc"),
-        limit(10)
+      const recentSnap = await usersRef.orderBy("createdAt", "desc").limit(20).get();
+      const recommendations = await filterBlockedUsers(
+        authenticatedUserId,
+        recentSnap.docs.map((doc) => mapUserSummary(doc.id, doc.data()))
       );
 
-      const recentSnap = await getDocs(recentActiveQuery);
-
-      const recommendations = recentSnap.docs
-        .map((doc) => ({
-          uid: doc.id,
-          displayName: doc.data().displayName,
-          email: doc.data().email,
-          firstName: doc.data().firstName,
-          lastName: doc.data().lastName,
-        }))
-        .filter((user) => user.uid !== currentUserId)
-        .slice(0, 5);
-
-      return NextResponse.json({ results: recommendations });
+      return NextResponse.json({ results: recommendations.slice(0, 5) });
     }
 
     if (!searchTerm || searchTerm.length < 2) {
@@ -56,35 +137,26 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Search by display name (case-insensitive prefix match)
-    const displayNameQuery = query(
-      usersRef,
-      where("displayName", ">=", searchTerm.charAt(0).toUpperCase() + searchTerm.slice(1)),
-      where("displayName", "<=", searchTerm + "\uf8ff"),
-      limit(20)
-    );
+    const snapshot = await usersRef.limit(100).get();
+    const matchingUsers = snapshot.docs
+      .map((doc) => mapUserSummary(doc.id, doc.data()))
+      .filter((candidate) => {
+        const haystack = [
+          candidate.displayName,
+          candidate.email,
+          candidate.firstName,
+          candidate.lastName,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
 
-    const [displayNameSnap] = await Promise.all([getDocs(displayNameQuery)]);
+        return haystack.includes(searchTerm);
+      });
 
-    const results = displayNameSnap.docs
-      .map((doc) => ({
-        uid: doc.id,
-        displayName: doc.data().displayName,
-        email: doc.data().email,
-        firstName: doc.data().firstName,
-        lastName: doc.data().lastName,
-      }))
-      // Filter out current user
-      .filter((user) => user.uid !== currentUserId)
-      // Remove duplicates
-      .reduce((acc: Array<{ uid: string; displayName: string; email: string; firstName: string; lastName: string }>, user) => {
-        if (!acc.find((u) => u.uid === user.uid)) {
-          acc.push(user);
-        }
-        return acc;
-      }, []);
+    const results = await filterBlockedUsers(authenticatedUserId, matchingUsers);
 
-    return NextResponse.json({ results });
+    return NextResponse.json({ results: results.slice(0, 20) });
   } catch (error) {
     console.error("Error searching users:", error);
     return NextResponse.json(

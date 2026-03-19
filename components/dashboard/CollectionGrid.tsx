@@ -7,6 +7,7 @@ interface FolderPreview {
 interface CardPreview {
   id: string;
   name: string;
+  imageUrl?: string;
 }
 
 interface CollectionGridProps {
@@ -45,7 +46,14 @@ export default function CollectionGrid({ folders, cards, loading }: CollectionGr
           <div className="collection-grid">
             {cards.map((card) => (
               <article key={card.id} className="collection-card">
-                <div className="collection-card-image">🃏</div>
+                <div className="collection-card-image">
+                  {card.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={card.imageUrl} alt={card.name} loading="lazy" />
+                  ) : (
+                    "🃏"
+                  )}
+                </div>
                 <p>{card.name}</p>
               </article>
             ))}

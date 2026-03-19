@@ -1,3 +1,6 @@
+import { useCurrency } from "@/hooks/useCurrency";
+import { formatCurrency } from "@/lib/currency";
+
 interface WatchlistPreviewItem {
   id: string;
   name: string;
@@ -9,15 +12,9 @@ interface WatchlistProps {
   loading?: boolean;
 }
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value);
-};
-
 export default function Watchlist({ items, loading }: WatchlistProps) {
+  const { currency } = useCurrency();
+
   return (
     <section className="dashboard-card" id="watchlist">
       <div className="section-head">
@@ -37,7 +34,7 @@ export default function Watchlist({ items, loading }: WatchlistProps) {
           {items.map((item) => (
             <article key={item.id} className="watch-row">
               <p>{item.name}</p>
-              <strong>{formatCurrency(item.price)}</strong>
+              <strong>{formatCurrency(item.price, currency)}</strong>
             </article>
           ))}
         </div>

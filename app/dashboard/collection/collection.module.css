@@ -189,7 +189,7 @@
 }
 
 .newFolderInput input:focus {
-  border-color: #1E90FF;
+  border-color: #ff8f00;
 }
 
 .newFolderInput button {
@@ -367,7 +367,7 @@
   margin: 0.5rem 0;
   font-size: 1.1rem;
   font-weight: 700;
-  color: #1E90FF;
+  color: #ff8f00;
 }
 
 .removeBtn {

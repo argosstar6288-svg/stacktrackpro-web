@@ -11,6 +11,8 @@ import { FLAT_COLLECTIONS } from "@/lib/flatCollections";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { useUserCards } from "@/lib/cards";
 import type { Card } from "@/lib/cards";
+import { useCurrency } from "@/hooks/useCurrency";
+import { formatCurrency } from "@/lib/currency";
 import dashboardStyles from "../../dashboard/dashboard.module.css";
 import styles from "./create.module.css";
 
@@ -31,6 +33,7 @@ export default function CreateAuctionPage() {
   const router = useRouter();
   const { user, loading: userLoading } = useCurrentUser();
   const { cards, loading: cardsLoading } = useUserCards();
+  const { currency } = useCurrency();
 
   // Collection selection - support multiple cards
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
@@ -297,11 +300,10 @@ export default function CreateAuctionPage() {
   return (
     <div className={dashboardStyles.content}>
       {/* Page Header */}
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>Create New Auction</h1>
-        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.95rem' }}>
-          List your card for live bidding
-        </p>
+      <div>
+        <p style={{ margin: 0, textTransform: 'uppercase', letterSpacing: '2px', fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>Marketplace</p>
+        <h1 style={{ margin: '6px 0 0', fontSize: '30px', fontWeight: 700 }}>Create New Auction</h1>
+        <p style={{ margin: '6px 0 0', color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem' }}>List your card for live bidding</p>
       </div>
 
       <div className={styles.verificationNotice}>
@@ -364,7 +366,7 @@ export default function CreateAuctionPage() {
                         {card.year && <div className={styles.cardMeta}>{card.year}</div>}
                         {card.condition && <div className={styles.cardMeta}>{card.condition}</div>}
                         <div className={styles.cardMeta} style={{ color: "#22c55e" }}>
-                          ${card.value?.toLocaleString() || 0}
+                          {formatCurrency(Number(card.value || 0), currency)}
                         </div>
                       </div>
                     </div>
@@ -489,7 +491,7 @@ export default function CreateAuctionPage() {
 
         <section className={styles.pricingSection}>
           <label className={styles.field}>
-            <span>Starting Price ($) *</span>
+            <span>Starting Price ({currency}) *</span>
             <input
               type="number"
               value={startPrice}

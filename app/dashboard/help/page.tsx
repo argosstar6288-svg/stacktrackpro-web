@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useCurrency } from "@/hooks/useCurrency";
+import { formatCurrency } from "@/lib/currency";
 import styles from "./help.module.css";
 
 interface FAQItem {
@@ -94,7 +96,7 @@ const faqs: FAQItem[] = [
   {
     category: "Pricing & Plans",
     question: "What subscription plans are available?",
-    answer: "StackTrack Pro offers Starter ($9.99/month), Pro ($19.99/month), and Lifetime ($299 one-time) plans. Each tier includes different features like unlimited cards, AI scans, and advanced analytics."
+    answer: "StackTrack Pro offers Starter, Pro, and Lifetime plans. Each tier includes different features like unlimited cards, AI scans, and advanced analytics."
   },
   {
     category: "Technical",
@@ -109,17 +111,27 @@ const faqs: FAQItem[] = [
 ];
 
 export default function HelpPage() {
+  const { currency } = useCurrency();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+
+  const getFAQAnswer = (faq: FAQItem) => {
+    if (faq.question === "What subscription plans are available?") {
+      return `StackTrack Pro offers Starter (${formatCurrency(9.99, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/month), Pro (${formatCurrency(19.99, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/month), and Lifetime (${formatCurrency(299, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} one-time) plans. Each tier includes different features like unlimited cards, AI scans, and advanced analytics.`;
+    }
+
+    return faq.answer;
+  };
 
   const categories = ["All", ...Array.from(new Set(faqs.map(faq => faq.category)))];
 
   const filteredFAQs = faqs.filter(faq => {
     const matchesCategory = selectedCategory === "All" || faq.category === selectedCategory;
+    const answer = getFAQAnswer(faq);
     const matchesSearch = 
       faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      faq.answer.toLowerCase().includes(searchQuery.toLowerCase());
+      answer.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
@@ -176,7 +188,7 @@ export default function HelpPage() {
                     </button>
                     {expandedIndex === index && (
                       <div className={styles.faqAnswer}>
-                        {faq.answer}
+                        {getFAQAnswer(faq)}
                       </div>
                     )}
                   </div>

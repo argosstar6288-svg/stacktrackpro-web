@@ -28,6 +28,8 @@ import {
 import { db } from "@/lib/firebase";
 import { FLAT_COLLECTIONS } from "@/lib/flatCollections";
 import { useCurrentUser } from "@/lib/useCurrentUser";
+import { formatCurrency } from "@/lib/currency";
+import { useCurrency } from "@/hooks/useCurrency";
 import styles from "./card-detail.module.css";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -147,6 +149,7 @@ export default function CardDetailPage() {
   const cardId = params?.id as string;
   const router = useRouter();
   const { user } = useCurrentUser();
+  const { currency } = useCurrency();
 
   const [card, setCard] = useState<MasterCard | null>(null);
   const [marketData, setMarketData] = useState<MarketData | null>(null);
@@ -469,8 +472,8 @@ export default function CardDetailPage() {
               <div>
                 <div className={styles.marketLabel}>Market Value</div>
                 <div className={styles.marketValue}>
-                  ${marketData.marketPrice > 0
-                    ? marketData.marketPrice.toLocaleString("en-US", {
+                  {marketData.marketPrice > 0
+                    ? formatCurrency(marketData.marketPrice, currency, {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })
@@ -563,7 +566,7 @@ export default function CardDetailPage() {
                 <YAxis
                   stroke="rgba(255,255,255,0.3)"
                   tick={{ fontSize: 11, fill: "rgba(255,255,255,0.45)" }}
-                  tickFormatter={(v) => `$${v}`}
+                  tickFormatter={(v) => formatCurrency(Number(v), currency)}
                   width={52}
                 />
                 <Tooltip
@@ -574,9 +577,10 @@ export default function CardDetailPage() {
                   }}
                   labelStyle={{ color: "rgba(255,255,255,0.7)", fontSize: 12 }}
                   formatter={(v: any) => [
-                    `$${Number(v).toLocaleString("en-US", {
+                    formatCurrency(Number(v), currency, {
                       minimumFractionDigits: 2,
-                    })}`,
+                      maximumFractionDigits: 2,
+                    }),
                     "Price",
                   ]}
                 />
@@ -619,8 +623,9 @@ export default function CardDetailPage() {
                   <td>{formatDate(sale.date)}</td>
                   <td>
                     <span className={styles.salePrice}>
-                      ${sale.price.toLocaleString("en-US", {
+                      {formatCurrency(sale.price, currency, {
                         minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
                       })}
                     </span>
                   </td>
@@ -679,7 +684,7 @@ export default function CardDetailPage() {
                   <div className={styles.variantName}>{v.name}</div>
                   {v.avgPrice && v.avgPrice > 0 && (
                     <div className={styles.variantPrice}>
-                      ${v.avgPrice.toLocaleString()}
+                      {formatCurrency(v.avgPrice, currency)}
                     </div>
                   )}
                 </div>
@@ -700,8 +705,9 @@ export default function CardDetailPage() {
               <div key={l.id} className={styles.listingCard}>
                 <div className={styles.listingHeader}>
                   <div className={styles.listingPrice}>
-                    ${l.price.toLocaleString("en-US", {
+                    {formatCurrency(l.price, currency, {
                       minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
                     })}
                   </div>
                   {l.condition && (
@@ -768,9 +774,10 @@ export default function CardDetailPage() {
             {
               key: "Market Price",
               val: marketData?.marketPrice
-                ? `$${marketData.marketPrice.toLocaleString("en-US", {
+                ? formatCurrency(marketData.marketPrice, currency, {
                     minimumFractionDigits: 2,
-                  })}`
+                    maximumFractionDigits: 2,
+                  })
                 : "—",
             },
           ].map((m) => (

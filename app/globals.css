@@ -150,6 +150,15 @@ body {
   margin-bottom: 6px;
 }
 
+.scan-image img,
+.mini-card-image img,
+.collection-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 7px;
+}
+
 .scan-name,
 .mini-card-title,
 .market-name {

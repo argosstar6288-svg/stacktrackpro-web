@@ -18,6 +18,8 @@ import {
 import { db } from '@/lib/firebase'
 import { FLAT_COLLECTIONS } from '@/lib/flatCollections'
 import { useCurrentUser } from '@/lib/useCurrentUser'
+import { useCurrency } from '@/hooks/useCurrency'
+import { formatCurrency, getCurrencySymbol } from '@/lib/currency'
 import styles from './auction.module.css'
 
 interface Auction {
@@ -52,6 +54,7 @@ export default function AuctionDetailPage() {
   const params = useParams()
   const auctionId = params.auctionId as string
   const { user } = useCurrentUser()
+  const { currency } = useCurrency()
   
   const [auction, setAuction] = useState<Auction | null>(null)
   const [bidHistory, setBidHistory] = useState<BidHistory[]>([])
@@ -175,7 +178,7 @@ export default function AuctionDetailPage() {
     const bidAmount = parseFloat(maxBid)
 
     if (bidAmount <= auction.currentBid) {
-      setBidError(`Bid must be at least $${(auction.currentBid + 1).toFixed(2)}`)
+      setBidError(`Bid must be at least ${formatCurrency(auction.currentBid + 1, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
       return
     }
 
@@ -295,7 +298,10 @@ export default function AuctionDetailPage() {
         <Link href="/auctions/live" className={styles.backButton}>
           ← Back to Live Auctions
         </Link>
-        <h1>Live Auction</h1>
+        <div className={styles.headerTitleGroup}>
+          <p className={styles.eyebrow}>Marketplace</p>
+          <h1>Live Auction</h1>
+        </div>
         <div className={styles.spacer}></div>
       </div>
 
@@ -376,12 +382,12 @@ export default function AuctionDetailPage() {
             <div className={styles.bigBid}>
               <div className={styles.bidAmount}>
                 <span className={styles.label}>Current Bid</span>
-                <span className={styles.amount}>${auction.currentBid.toFixed(2)}</span>
+                <span className={styles.amount}>{formatCurrency(auction.currentBid, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
               
               <div className={styles.bidAmount}>
                 <span className={styles.label}>Minimum Next Bid</span>
-                <span className={styles.amount}>${auction.minimumNextBid.toFixed(2)}</span>
+                <span className={styles.amount}>{formatCurrency(auction.minimumNextBid, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
               
               <div className={styles.bidAmount}>
@@ -417,7 +423,7 @@ export default function AuctionDetailPage() {
                   <div className={styles.formGroup}>
                     <label htmlFor="maxBid">Your Maximum Bid</label>
                     <div className={styles.inputWrapper}>
-                      <span className={styles.currencySymbol}>$</span>
+                      <span className={styles.currencySymbol}>{getCurrencySymbol(currency)}</span>
                       <input
                         id="maxBid"
                         type="number"
@@ -449,7 +455,7 @@ export default function AuctionDetailPage() {
                     ✓ You are currently the highest bidder
                   </div>
                   <div className={styles.statusDetails}>
-                    Your maximum bid: <strong>${maxBid || auction.currentBid.toFixed(2)}</strong>
+                    Your maximum bid: <strong>{formatCurrency(Number(maxBid || auction.currentBid), currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
                   </div>
                 </div>
               )}
@@ -460,14 +466,14 @@ export default function AuctionDetailPage() {
                     ✗ You have been outbid
                   </div>
                   <div className={styles.statusDetails}>
-                    Current bid: <strong>${auction.currentBid.toFixed(2)}</strong>
+                    Current bid: <strong>{formatCurrency(auction.currentBid, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
                   </div>
                 </div>
               )}
 
               {success && (
                 <div className={styles.successBanner}>
-                  ✓ Auto bid placed! You're bidding up to ${maxBid}
+                  ✓ Auto bid placed! You're bidding up to {formatCurrency(Number(maxBid || auction.currentBid), currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               )}
             </div>
@@ -489,7 +495,7 @@ export default function AuctionDetailPage() {
                         <div className={styles.bidTime}>{getTimeAgo(bid.timestamp)}</div>
                       </div>
                       <div className={styles.bidHistoryRight}>
-                        <div className={styles.bidAmount}>${bid.amount.toFixed(2)}</div>
+                        <div className={styles.bidAmount}>{formatCurrency(bid.amount, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                       </div>
                     </div>
                   ))}

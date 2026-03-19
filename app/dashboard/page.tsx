@@ -13,6 +13,7 @@ import {
 import AuctionPreview from "../../components/dashboard/AuctionPreview";
 import CardGrid from "../../components/CardGrid";
 import CollectionGrid from "../../components/dashboard/CollectionGrid";
+import CommunityChatFeed from "../../components/dashboard/CommunityChatFeed";
 import MarketplacePreview from "../../components/dashboard/MarketplacePreview";
 import MarketMovers from "../../components/dashboard/MarketMovers";
 import PortfolioValue from "../../components/dashboard/PortfolioValue";
@@ -20,12 +21,15 @@ import RecentScans from "../../components/dashboard/RecentScans";
 import Watchlist from "../../components/dashboard/Watchlist";
 import { getUserCards, getUserFolders, type Card, type Folder } from "../../lib/cards";
 import { FLAT_COLLECTIONS, type FlatMasterCard, type FlatUserCard } from "../../lib/flatCollections";
+import { formatCurrency } from "../../lib/currency";
 import { db } from "../../lib/firebase";
 import { useCurrentUser } from "../../lib/useCurrentUser";
+import { useCurrency } from "../../hooks/useCurrency";
 
 interface MarketplaceListing {
   id: string;
   cardName?: string;
+  imageUrl?: string;
   price?: number;
   status?: string;
   createdAt?: any;
@@ -112,6 +116,7 @@ const loadMasterCardsByIds = async (cardIds: string[]) => {
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useCurrentUser();
+  const { currency } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [cards, setCards] = useState<Card[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -233,6 +238,7 @@ export default function DashboardPage() {
             return {
               id: snapshot.id,
               cardName: data.cardName || data.name || data.cardID,
+              imageUrl: data.imageUrl || data.image,
               price: Number(data.price || 0),
               status: data.status,
               createdAt: data.created,
@@ -329,6 +335,7 @@ export default function DashboardPage() {
       .map((card) => ({
         id: card.id || `${card.name}-${card.cardNumber || ""}`,
         name: card.name || "Unnamed card",
+        imageUrl: card.imageUrl || card.photoUrl,
         set: [card.brand, card.year, card.cardNumber ? `#${card.cardNumber}` : null]
           .filter(Boolean)
           .join(" • "),
@@ -347,6 +354,7 @@ export default function DashboardPage() {
         return {
           id: card.id || `${card.name}-${card.cardNumber || ""}`,
           name: card.name || "Unnamed card",
+          imageUrl: card.imageUrl || card.photoUrl,
           price: currentValue,
           changePercent: pct,
           up: pct >= 0,
@@ -401,6 +409,7 @@ export default function DashboardPage() {
       .map((card) => ({
         id: card.id || `${card.name}-${card.cardNumber || ""}`,
         name: card.name || "Unnamed card",
+        imageUrl: card.imageUrl || card.photoUrl,
       }));
   }, [cards]);
 
@@ -408,6 +417,7 @@ export default function DashboardPage() {
     return marketplaceListings.map((listing) => ({
       id: listing.id,
       name: listing.cardName || "Listing",
+      imageUrl: listing.imageUrl,
       price: Number(listing.price || 0),
     }));
   }, [marketplaceListings]);
@@ -441,7 +451,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="card" style={{ background: "linear-gradient(140deg, rgba(28, 55, 104, 0.85), rgba(12, 28, 56, 0.92))" }}>
           <h3 className="text-gray-300 text-xs uppercase tracking-wide">Collection Value</h3>
-          <p className="text-3xl font-extrabold text-white">${Math.round(totalValue).toLocaleString()}</p>
+          <p className="text-3xl font-extrabold text-white">{formatCurrency(Math.round(totalValue), currency)}</p>
         </div>
 
         <div className="card" style={{ background: "linear-gradient(140deg, rgba(24, 32, 52, 0.9), rgba(11, 16, 28, 0.94))" }}>
@@ -470,6 +480,7 @@ export default function DashboardPage() {
         <MarketplacePreview listings={marketplacePreview} loading={loading} />
         <AuctionPreview auctions={auctionPreview} loading={loading} />
         <Watchlist items={watchlistPreview} loading={loading} />
+        <CommunityChatFeed />
       </CardGrid>
     </div>
   );

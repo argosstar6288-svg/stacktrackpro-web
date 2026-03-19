@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useCurrency } from "@/hooks/useCurrency";
+import { formatCurrency } from "@/lib/currency";
 import styles from "./CardItem.module.css";
 
 interface CardItemProps {
@@ -22,11 +24,13 @@ interface CardItemProps {
     brand?: string;
   };
   badge?: React.ReactNode;
+  showPrice?: boolean;
   onClick?: () => void;
   className?: string;
 }
 
-export default function CardItem({ card, badge, onClick, className }: CardItemProps) {
+export default function CardItem({ card, badge, showPrice = true, onClick, className }: CardItemProps) {
+  const { currency } = useCurrency();
   const cardName = card.name || card.cardName || "Untitled Card";
   const placeholderImageUrl = "/placeholder-card.svg";
   const imageUrl = useMemo(() => {
@@ -122,9 +126,9 @@ export default function CardItem({ card, badge, onClick, className }: CardItemPr
           <p className={styles.condition}>{card.condition}</p>
         )}
 
-        {(card.value || card.price) && (
+        {showPrice && (card.value || card.price) && (
           <p className={styles.price}>
-            ${(card.value || card.price)?.toLocaleString()}
+            {formatCurrency(Number(card.value || card.price || 0), currency)}
           </p>
         )}
       </div>

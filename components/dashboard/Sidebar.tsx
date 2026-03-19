@@ -16,6 +16,7 @@ const navItems = [
   { icon: "🛒", label: "Marketplace", href: "/dashboard/marketplace" },
   { icon: "🔥", label: "Auctions", href: "/auctions/live" },
   { icon: "📈", label: "Price Trends", href: "/dashboard/market" },
+  { icon: "💳", label: "Pricing", href: "/dashboard/pricing" },
   { icon: "⭐", label: "Watchlist", href: "/dashboard/watchlist" },
   { icon: "⚙", label: "Settings", href: "/dashboard/settings" },
 ];

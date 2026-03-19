@@ -6,6 +6,8 @@ import { doc, getDoc, updateDoc, increment, deleteDoc } from "firebase/firestore
 import { db } from "@/lib/firebase";
 import { FLAT_COLLECTIONS } from "@/lib/flatCollections";
 import { useCurrentUser } from "../../../../lib/useCurrentUser";
+import { formatCurrency } from "@/lib/currency";
+import { useCurrency } from "@/hooks/useCurrency";
 import Link from "next/link";
 import Image from "next/image";
 import styles from "./listing.module.css";
@@ -87,9 +89,11 @@ export default function ListingDetailPage() {
   const listingId = params?.id as string;
   const router = useRouter();
   const { user } = useCurrentUser();
+  const { currency } = useCurrency();
   const [listing, setListing] = useState<Listing | null>(null);
   const [listingSource, setListingSource] = useState<"flat" | "legacy">("flat");
   const [loading, setLoading] = useState(true);
+  const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string } | null>(null);
 
   useEffect(() => {
     const fetchListing = async () => {
@@ -195,6 +199,11 @@ export default function ListingDetailPage() {
   const forSale = listing.listingType === 'sale' || listing.listingType === 'sell' || listing.listingType === 'both';
   const forTrade = listing.listingType === 'trade' || listing.listingType === 'both';
 
+  const openImage = (src: string | undefined, alt: string) => {
+    if (!src) return;
+    setLightboxImage({ src, alt });
+  };
+
   return (
     <div className={styles.page}>
       <div className={styles.backNav}>
@@ -207,69 +216,45 @@ export default function ListingDetailPage() {
         <div className={styles.imageSection}>
           {listing.cards && listing.cards.length > 0 ? (
             <>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: listing.cards.length === 1 ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '1rem',
-                marginBottom: '1rem'
-              }}>
+              <div className={styles.imageGrid}>
                 {listing.cards.map((card, index) => (
-                  <div key={card.cardId || index} className={styles.imageContainer}>
+                  <div key={card.cardId || index} className={styles.imageCard}>
                     {card.imageUrl ? (
-                      <Image 
-                        src={card.imageUrl} 
-                        alt={card.cardName} 
-                        width={300} 
-                        height={420} 
-                        sizes="(max-width: 768px) 100vw, 300px" 
-                        className={styles.cardImage} 
-                        unoptimized 
-                      />
+                      <button
+                        type="button"
+                        className={styles.imageZoomTrigger}
+                        onClick={() => openImage(card.imageUrl, card.cardName)}
+                        aria-label={`Enlarge ${card.cardName}`}
+                      >
+                        <Image 
+                          src={card.imageUrl} 
+                          alt={card.cardName} 
+                          width={420} 
+                          height={600} 
+                          sizes="(max-width: 768px) 100vw, 420px" 
+                          className={styles.cardImage} 
+                          unoptimized 
+                        />
+                      </button>
                     ) : (
                       <div className={styles.placeholderImage}>
                         <span>📷</span>
                         <p>No image</p>
                       </div>
                     )}
-                    <div style={{
-                      marginTop: '0.5rem',
-                      fontSize: '0.875rem',
-                      fontWeight: '600',
-                      textAlign: 'center'
-                    }}>
+                    <div className={styles.imageCardTitle}>
                       {card.cardName}
                     </div>
                     {(card.cardNumber || card.cardId) && (
-                      <div style={{
-                        fontSize: '0.75rem',
-                        color: 'rgba(255,255,255,0.7)',
-                        textAlign: 'center',
-                        marginTop: '0.25rem'
-                      }}>
+                      <div className={styles.imageCardMeta}>
                         {card.cardNumber ? `Card #${card.cardNumber}` : `Card ID: ${card.cardId}`}
-                      </div>
-                    )}
-                    {card.value && (
-                      <div style={{
-                        fontSize: '0.75rem',
-                        color: 'rgba(255,255,255,0.6)',
-                        textAlign: 'center'
-                      }}>
-                        ${card.value.toLocaleString()}
                       </div>
                     )}
                   </div>
                 ))}
               </div>
               {listing.cards.length > 1 && (
-                <div style={{
-                  padding: '0.75rem',
-                  background: 'rgba(30,144,255,0.1)',
-                  borderRadius: '8px',
-                  border: '1px solid rgba(30,144,255,0.3)',
-                  marginBottom: '1rem',
-                  textAlign: 'center'
-                }}>
+                <div className={styles.bundleInfo}>
                   <strong>{listing.cards.length} cards included in this listing</strong>
                 </div>
               )}
@@ -277,7 +262,14 @@ export default function ListingDetailPage() {
           ) : (
             <div className={styles.imageContainer}>
               {listing.imageUrl ? (
-                <Image src={listing.imageUrl} alt={listing.cardName} width={300} height={420} sizes="(max-width: 768px) 100vw, 400px" className={styles.cardImage} unoptimized />
+                <button
+                  type="button"
+                  className={styles.imageZoomTrigger}
+                  onClick={() => openImage(listing.imageUrl, listing.cardName)}
+                  aria-label={`Enlarge ${listing.cardName}`}
+                >
+                  <Image src={listing.imageUrl} alt={listing.cardName} width={420} height={600} sizes="(max-width: 768px) 100vw, 420px" className={styles.cardImage} unoptimized />
+                </button>
               ) : (
                 <div className={styles.placeholderImage}>
                   <span>📷</span>
@@ -364,7 +356,7 @@ export default function ListingDetailPage() {
           {forSale && listing.price && (
             <div className={styles.priceSection}>
               <span className={styles.priceLabel}>Price</span>
-              <span className={styles.price}>${listing.price.toLocaleString()}</span>
+              <span className={styles.price}>{formatCurrency(listing.price, currency)}</span>
             </div>
           )}
 
@@ -400,7 +392,7 @@ export default function ListingDetailPage() {
                     onClick={handleBuyNow}
                     className={styles.buyButton}
                   >
-                    Buy Now - ${listing.price?.toLocaleString()}
+                    Buy Now - {formatCurrency(Number(listing.price || 0), currency)}
                   </button>
                   <button 
                     onClick={handleMakeOffer}
@@ -447,6 +439,30 @@ export default function ListingDetailPage() {
           )}
         </div>
       </div>
+
+      {lightboxImage && (
+        <div className={styles.lightboxOverlay} onClick={() => setLightboxImage(null)}>
+          <div className={styles.lightboxCard} onClick={(event) => event.stopPropagation()}>
+            <button
+              type="button"
+              className={styles.lightboxClose}
+              onClick={() => setLightboxImage(null)}
+              aria-label="Close image preview"
+            >
+              ×
+            </button>
+            <Image
+              src={lightboxImage.src}
+              alt={lightboxImage.alt}
+              width={980}
+              height={1400}
+              className={styles.lightboxImage}
+              unoptimized
+            />
+            <p className={styles.lightboxCaption}>{lightboxImage.alt}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

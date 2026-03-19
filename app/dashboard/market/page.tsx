@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { useCurrency } from "@/hooks/useCurrency";
+import { formatCurrency } from "@/lib/currency";
 import { CustomLineChart } from "@/lib/charts";
 import { useUserCards } from "@/lib/cards";
 import {
@@ -21,6 +23,7 @@ type AITab = "pricing" | "valuation" | "deals";
 
 export default function MarketPage() {
   const router = useRouter();
+  const { currency } = useCurrency();
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [activeAiTab, setActiveAiTab] = useState<AITab>("pricing");
@@ -211,8 +214,8 @@ export default function MarketPage() {
                         </span>
                       </div>
                       <div className={styles.aiMetrics}>
-                        <div><span>7-Day:</span><strong>${trend.predictedPrice7d}</strong></div>
-                        <div><span>30-Day:</span><strong>${trend.predictedPrice30d}</strong></div>
+                        <div><span>7-Day:</span><strong>{formatCurrency(trend.predictedPrice7d, currency)}</strong></div>
+                        <div><span>30-Day:</span><strong>{formatCurrency(trend.predictedPrice30d, currency)}</strong></div>
                         <div><span>Momentum:</span><strong>{trend.momentum}/100</strong></div>
                         <div><span>Confidence:</span><strong>{trend.confidence}%</strong></div>
                       </div>
@@ -226,15 +229,15 @@ export default function MarketPage() {
                   <div className={styles.aiStatsGrid}>
                     <div className={styles.aiStatCard}>
                       <span>Current Value</span>
-                      <strong>${valuation.estimatedValue.toLocaleString()}</strong>
+                      <strong>{formatCurrency(valuation.estimatedValue, currency)}</strong>
                     </div>
                     <div className={styles.aiStatCard}>
                       <span>Potential Value</span>
-                      <strong>${valuation.potentialValue.toLocaleString()}</strong>
+                      <strong>{formatCurrency(valuation.potentialValue, currency)}</strong>
                     </div>
                     <div className={styles.aiStatCard}>
                       <span>Growth Potential</span>
-                      <strong>+${valuation.gainPotential.toLocaleString()}</strong>
+                      <strong>+{formatCurrency(valuation.gainPotential, currency)}</strong>
                     </div>
                     <div className={styles.aiStatCard}>
                       <span>Risk Level</span>
@@ -257,10 +260,10 @@ export default function MarketPage() {
                       <span className={styles.aiDealScore}>{deal.dealScore}/100</span>
                     </div>
                     <div className={styles.aiMetrics}>
-                      <div><span>Current:</span><strong>${deal.currentPrice}</strong></div>
-                      <div><span>Market:</span><strong>${deal.predictedMarketValue}</strong></div>
+                      <div><span>Current:</span><strong>{formatCurrency(deal.currentPrice, currency)}</strong></div>
+                      <div><span>Market:</span><strong>{formatCurrency(deal.predictedMarketValue, currency)}</strong></div>
                       <div><span>Discount:</span><strong>-{deal.discountPercentage}%</strong></div>
-                      <div><span>Profit:</span><strong>${deal.estimatedProfit}</strong></div>
+                      <div><span>Profit:</span><strong>{formatCurrency(deal.estimatedProfit, currency)}</strong></div>
                     </div>
                   </div>
                 ))}
@@ -290,7 +293,7 @@ export default function MarketPage() {
                     </div>
                     <div className={styles.cardMeta}>{card.year || "N/A"}</div>
                     <div className={styles.cardValue}>
-                      ${card.value.toLocaleString()}
+                      {formatCurrency(card.value, currency)}
                     </div>
                   </div>
                 ))
@@ -313,11 +316,11 @@ export default function MarketPage() {
               <div className={styles.rarityList}>
                 {(() => {
                   const valueRanges = [
-                    { label: "Under $100", min: 0, max: 100 },
-                    { label: "$100 - $500", min: 100, max: 500 },
-                    { label: "$500 - $1K", min: 500, max: 1000 },
-                    { label: "$1K - $5K", min: 1000, max: 5000 },
-                    { label: "Over $5K", min: 5000, max: Infinity },
+                    { label: `Under ${formatCurrency(100, currency)}`, min: 0, max: 100 },
+                    { label: `${formatCurrency(100, currency)} - ${formatCurrency(500, currency)}`, min: 100, max: 500 },
+                    { label: `${formatCurrency(500, currency)} - ${formatCurrency(1000, currency)}`, min: 500, max: 1000 },
+                    { label: `${formatCurrency(1000, currency)} - ${formatCurrency(5000, currency)}`, min: 1000, max: 5000 },
+                    { label: `Over ${formatCurrency(5000, currency)}`, min: 5000, max: Infinity },
                   ];
                   
                   const breakdown = valueRanges.map(range => {
@@ -335,7 +338,7 @@ export default function MarketPage() {
                   return breakdown.map((item) => (
                     <div key={item.label} className={styles.rarityRow}>
                       <span>{item.label}</span>
-                      <span>${item.value.toLocaleString()}</span>
+                      <span>{formatCurrency(item.value, currency)}</span>
                     </div>
                   ));
                 })()}
@@ -349,10 +352,10 @@ export default function MarketPage() {
             <p className={styles.valueLabel}>Average Price</p>
             <div className={styles.valueAmount}>
               {(cards || []).length > 0
-                ? `$${Math.floor(
+                ? formatCurrency(Math.floor(
                     cards.reduce((sum, c) => sum + c.value, 0) / cards.length
-                  ).toLocaleString()}`
-                : "$0"}
+                  ), currency)
+                : formatCurrency(0, currency)}
             </div>
             <p className={styles.valueNote}>Based on your tracked cards</p>
           </section>

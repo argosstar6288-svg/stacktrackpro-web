@@ -1,3 +1,6 @@
+import { useCurrency } from "@/hooks/useCurrency";
+import { formatCurrency } from "@/lib/currency";
+
 interface PortfolioValueProps {
   totalValue: number;
   changePercent: number;
@@ -5,20 +8,13 @@ interface PortfolioValueProps {
   loading?: boolean;
 }
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value);
-};
-
 export default function PortfolioValue({
   totalValue,
   changePercent,
   trendPoints,
   loading,
 }: PortfolioValueProps) {
+  const { currency } = useCurrency();
   const points = trendPoints.length > 0 ? trendPoints.slice(0, 7) : [25, 33, 40, 46, 58, 62, 68];
   const up = changePercent >= 0;
 
@@ -27,7 +23,7 @@ export default function PortfolioValue({
       <div className="section-head">
         <h2>Your Portfolio</h2>
       </div>
-      <div className="portfolio-value">{loading ? "—" : formatCurrency(totalValue)}</div>
+      <div className="portfolio-value">{loading ? "—" : formatCurrency(totalValue, currency)}</div>
       <div
         className="portfolio-change"
         style={{ color: loading ? "rgba(255,255,255,0.7)" : up ? "#22c55e" : "#ef4444" }}

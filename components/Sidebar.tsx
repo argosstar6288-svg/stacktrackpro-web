@@ -15,6 +15,7 @@ const navItems = [
   { href: "/scan", label: "Scan Card", icon: "◇" },
   { href: "/collection", label: "Collection", icon: "◇" },
   { href: "/dashboard/inbox", label: "Inbox", icon: "◇" },
+  { href: "/dashboard/pricing", label: "Pricing", icon: "◇" },
   { href: "/marketplace", label: "Marketplace", icon: "◇" },
   { href: "/auctions", label: "Auctions", icon: "◇" },
 ];
@@ -69,8 +70,10 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                 key={item.href}
                 href={item.href}
                 onClick={onClose}
-                className={`sidebar-item text-sm font-medium ${
-                  isActive ? "sidebar-active" : "text-white/70"
+                className={`sidebar-item text-sm font-medium transition-colors duration-150 ${
+                  isActive
+                    ? "sidebar-active text-[#ff8f00] bg-[#ff8f00]/15 shadow-[0_0_0_1px_rgba(255,143,0,0.35)]"
+                    : "text-white/70 hover:text-[#ff8f00] hover:bg-[#ff8f00]/15 hover:shadow-[0_0_0_1px_rgba(255,143,0,0.35)]"
                 }`}
               >
                 <span className="text-[11px] opacity-80">{item.icon}</span>

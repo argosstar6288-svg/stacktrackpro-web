@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import CardItem from "@/components/CardItem";
 import { auth, db } from "../../../lib/firebase";
@@ -84,7 +83,6 @@ const normalizeListing = (id: string, data: any): Listing => {
 };
 
 export default function MarketplacePage() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [listings, setListings] = useState<Listing[]>([]);
@@ -95,18 +93,30 @@ export default function MarketplacePage() {
   const [sortBy, setSortBy] = useState<"newest" | "price-low" | "price-high" | "popular">("newest");
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        router.replace("/login");
-      } else {
-        setUserId(user.uid);
-        setIsLoading(false);
-        loadListings();
+    let isMounted = true;
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!isMounted) {
+        return;
+      }
+
+      setUserId(user?.uid ?? null);
+      setIsLoading(true);
+
+      try {
+        await loadListings();
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     });
 
-    return () => unsubscribe();
-  }, [router]);
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
 
   const loadListings = async () => {
     try {
@@ -338,22 +348,38 @@ export default function MarketplacePage() {
                 href={`/dashboard/marketplace/${listing.id}`}
                 className={`panel ${styles.listingCard}`}
               >
-                <CardItem
-                  card={{
-                    cardName: listing.cardName,
-                    imageUrl: listing.imageUrl,
-                    player: listing.player,
-                    year: listing.year,
-                    sport: listing.sport,
-                    condition: listing.condition,
-                    price: listing.price
-                  }}
-                  badge={
-                    listing.listingType === "sell" ? "For Sale" :
-                    listing.listingType === "trade" ? "For Trade" :
-                    "Sale/Trade"
-                  }
-                />
+                {listing.cards && listing.cards.length > 1 ? (
+                  <div className={styles.bundlePreview}>
+                    <div className={styles.bundleBadge}>📦 {listing.cards.length} Card Bundle</div>
+                    <h3 className={styles.bundleTitle}>{listing.cardName || "Multi-Card Listing"}</h3>
+                    <p className={styles.bundleDescription}>
+                      {listing.description?.trim()
+                        ? listing.description
+                        : `Bundle includes ${listing.cards
+                            .slice(0, 3)
+                            .map((card) => card.cardName || "Card")
+                            .join(", ")}${listing.cards.length > 3 ? " and more." : "."}`}
+                    </p>
+                  </div>
+                ) : (
+                  <CardItem
+                    card={{
+                      cardName: listing.cardName,
+                      imageUrl: listing.imageUrl,
+                      player: listing.player,
+                      year: listing.year,
+                      sport: listing.sport,
+                      condition: listing.condition,
+                      price: listing.price
+                    }}
+                    showPrice={false}
+                    badge={
+                      listing.listingType === "sell" ? "For Sale" :
+                      listing.listingType === "trade" ? "For Trade" :
+                      "Sale/Trade"
+                    }
+                  />
+                )}
 
                 <div className={styles.listingIdentifier}>
                   {listing.cards && listing.cards.length > 1

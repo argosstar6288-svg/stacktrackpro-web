@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { useCurrentUser } from '@/lib/useCurrentUser';
 import { useRouter } from 'next/navigation';
+import { useCurrency } from '@/hooks/useCurrency';
+import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
 import {
   calculateSellerEarnings,
   createPayoutRequest,
@@ -17,6 +19,7 @@ import styles from './payouts.module.css';
 export default function SellerPayoutsPage() {
   const { user, loading: authLoading } = useCurrentUser();
   const router = useRouter();
+  const { currency } = useCurrency();
 
   const [earnings, setEarnings] = useState<SellerEarnings | null>(null);
   const [payouts, setPayouts] = useState<PayoutRequest[]>([]);
@@ -73,7 +76,7 @@ export default function SellerPayoutsPage() {
 
       const request = await createPayoutRequest(user.uid, amount, earnings.stripeConnectId);
 
-      setSuccess(`Payout request created for $${amount.toFixed(2)}`);
+      setSuccess(`Payout request created for ${formatCurrency(amount, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
       setRequestAmount('');
 
       // Reload data
@@ -119,25 +122,25 @@ export default function SellerPayoutsPage() {
   const stats = [
     {
       label: 'Available Balance',
-      value: `$${earnings.currentBalance.toFixed(2)}`,
+      value: formatCurrency(earnings.currentBalance, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       color: '#10b981',
       subtext: 'Ready to withdraw',
     },
     {
       label: 'Pending Earnings',
-      value: `$${earnings.pendingEarnings.toFixed(2)}`,
+      value: formatCurrency(earnings.pendingEarnings, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       color: '#f59e0b',
       subtext: 'Awaiting approval',
     },
     {
       label: 'All-Time Earned',
-      value: `$${earnings.totalEarned.toFixed(2)}`,
+      value: formatCurrency(earnings.totalEarned, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       color: '#3b82f6',
       subtext: 'Before platform fees',
     },
     {
       label: 'Total Paid Out',
-      value: `$${earnings.allTimePaid.toFixed(2)}`,
+      value: formatCurrency(earnings.allTimePaid, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       color: '#8b5cf6',
       subtext: 'Successfully transferred',
     },
@@ -179,7 +182,7 @@ export default function SellerPayoutsPage() {
                 Amount to Withdraw
               </label>
               <div className={styles.inputContainer}>
-                <span className={styles.currency}>$</span>
+                <span className={styles.currency}>{getCurrencySymbol(currency)}</span>
                 <input
                   type="number"
                   id="amount"
@@ -194,7 +197,7 @@ export default function SellerPayoutsPage() {
                 />
               </div>
               <div className={styles.helper}>
-                Minimum $100 • Maximum ${earnings.currentBalance.toFixed(2)}
+                Minimum {formatCurrency(100, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} • Maximum {formatCurrency(earnings.currentBalance, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             </div>
 
@@ -212,9 +215,9 @@ export default function SellerPayoutsPage() {
           <div className={styles.minIcon}>💰</div>
           <h3>Minimum Amount Required</h3>
           <p>
-            You need at least $100 available to request a payout.
+            You need at least {formatCurrency(100, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} available to request a payout.
             <br />
-            Current balance: ${earnings.currentBalance.toFixed(2)}
+            Current balance: {formatCurrency(earnings.currentBalance, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
         </div>
       )}
@@ -251,7 +254,7 @@ export default function SellerPayoutsPage() {
               <div className={styles.infoCard}>
                 <div className={styles.infoLabel}>Platform Fees Paid</div>
                 <div className={styles.infoValue}>
-                  ${earnings.totalFeesPaid.toFixed(2)}
+                  {formatCurrency(earnings.totalFeesPaid, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
                 <div className={styles.infoHelper}>15% of total earnings</div>
               </div>
@@ -289,7 +292,7 @@ export default function SellerPayoutsPage() {
                   <div key={payout.id} className={styles.requestCard}>
                     <div className={styles.requestHeader}>
                       <div className={styles.requestAmount}>
-                        ${payout.amount.toFixed(2)}
+                        {formatCurrency(payout.amount, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
                       <div
                         className={`${styles.requestStatus} ${styles[`status_${payout.status}`]}`}
@@ -362,11 +365,11 @@ export default function SellerPayoutsPage() {
                     </div>
                     <div className={styles.colAmount}>
                       <span className={entry.amount > 0 ? styles.income : styles.expense}>
-                        {entry.amount > 0 ? '+' : '-'}${Math.abs(entry.amount).toFixed(2)}
+                        {entry.amount > 0 ? '+' : '-'}{formatCurrency(Math.abs(entry.amount), currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
                     <div className={styles.colBalance}>
-                      ${entry.balance.toFixed(2)}
+                      {formatCurrency(entry.balance, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                   </div>
                 ))}

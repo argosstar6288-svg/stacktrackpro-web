@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { useCurrency } from "@/hooks/useCurrency";
+import { formatCurrency } from "@/lib/currency";
 
 interface AuctionPreviewItem {
   id: string;
@@ -12,14 +14,6 @@ interface AuctionPreviewProps {
   auctions: AuctionPreviewItem[];
   loading?: boolean;
 }
-
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value);
-};
 
 const getTimeLeft = (endTime: any): string => {
   if (!endTime) return "Unknown";
@@ -46,6 +40,7 @@ const getTimeLeft = (endTime: any): string => {
 };
 
 export default function AuctionPreview({ auctions, loading }: AuctionPreviewProps) {
+  const { currency } = useCurrency();
   const topAuction = auctions[0];
 
   return (
@@ -68,7 +63,7 @@ export default function AuctionPreview({ auctions, loading }: AuctionPreviewProp
           <div className="auction-meta">
             <div>
               <span>Current Bid</span>
-              <strong>{formatCurrency(topAuction.currentBid)}</strong>
+              <strong>{formatCurrency(topAuction.currentBid, currency)}</strong>
             </div>
             <div>
               <span>Time Left</span>

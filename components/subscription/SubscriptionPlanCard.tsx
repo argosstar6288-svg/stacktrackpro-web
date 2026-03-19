@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { SubscriptionPlan } from "@/lib/subscriptionPlans";
+import { useCurrency } from "@/hooks/useCurrency";
+import { formatCurrency } from "@/lib/currency";
 import styles from "./SubscriptionPlans.module.css";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
@@ -15,6 +17,7 @@ export default function SubscriptionPlanCard({
   plan,
   onAction,
 }: SubscriptionPlanCardProps) {
+  const { currency } = useCurrency();
   const [spotsRemaining, setSpotsRemaining] = useState<number | null>(null);
   const [isSoldOut, setIsSoldOut] = useState(false);
 
@@ -88,8 +91,7 @@ export default function SubscriptionPlanCard({
           <div className={styles.price}>Free</div>
         ) : (
           <>
-            <span className={styles.currency}>$</span>
-            <span className={styles.amount}>{plan.price.toFixed(2)}</span>
+            <span className={styles.amount}>{formatCurrency(plan.price, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             <span className={styles.period}>
               {plan.period === "one-time" ? " one-time" : "/month"}
             </span>

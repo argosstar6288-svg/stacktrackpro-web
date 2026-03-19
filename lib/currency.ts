@@ -27,7 +27,7 @@ export const CURRENCIES: Record<string, Currency> = {
   },
   CAD: {
     code: "CAD",
-    symbol: "$",
+    symbol: "CA$",
     name: "Canadian Dollar",
   },
   AUD: {
@@ -47,7 +47,7 @@ export const CURRENCIES: Record<string, Currency> = {
   },
 };
 
-export const DEFAULT_CURRENCY = "USD";
+export const DEFAULT_CURRENCY = "CAD";
 
 export function formatCurrency(
   value: number,

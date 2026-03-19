@@ -1,9 +1,13 @@
 "use client";
 
 import SubscriptionPlanGrid from "@/app/components/subscription/SubscriptionPlanGrid";
+import { useCurrency } from "@/hooks/useCurrency";
+import { formatCurrency } from "@/lib/currency";
 import styles from "./pricing.module.css";
 
 export default function PricingPage() {
+  const { currency } = useCurrency();
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -16,7 +20,7 @@ export default function PricingPage() {
       <div className={styles.disclosure}>
         <p className={styles.disclosureText}>
           ⭐ <strong>Limited Time Offer:</strong> The Lifetime plan is available to only the first 50 customers. 
-          Lock in permanent access at <strong>$299 one-time</strong> before spots run out.
+          Lock in permanent access at <strong>{formatCurrency(299, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} one-time</strong> before spots run out.
         </p>
       </div>
 

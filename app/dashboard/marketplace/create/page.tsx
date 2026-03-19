@@ -9,10 +9,13 @@ import { onAuthStateChanged } from "firebase/auth";
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore";
 import { useUserCards } from "../../../../lib/cards";
 import { FLAT_COLLECTIONS } from "@/lib/flatCollections";
+import { formatCurrency } from "@/lib/currency";
+import { useCurrency } from "@/hooks/useCurrency";
 import styles from "./create.module.css";
 
 export default function CreateListingPage() {
   const router = useRouter();
+  const { currency } = useCurrency();
   const [isLoading, setIsLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -308,7 +311,7 @@ export default function CreateListingPage() {
           <div className={styles.section}>
             <h3 className={styles.sectionTitle}>Select Cards from Collection</h3>
             <p className={styles.selectedCardPreviewText}>
-              Select one or more cards to include in this listing. Total value: ${getTotalValue().toLocaleString()}
+              Select one or more cards to include in this listing. Total value: {formatCurrency(getTotalValue(), currency)}
               <br />
               <span style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.6)' }}>
                 {cards.filter(card => !listedCardIds.has(card.id)).length} of {cards.length} cards available 
@@ -418,7 +421,7 @@ export default function CreateListingPage() {
                       {cardNumber ? `Card #${cardNumber}` : `Card ID: ${card.id}`}
                     </div>
                     <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.6)" }}>
-                      ${card.value?.toLocaleString() || 0}
+                      {formatCurrency(Number(card.value || 0), currency)}
                     </div>
                   </div>
                 );
@@ -483,7 +486,7 @@ export default function CreateListingPage() {
           <div className={styles.section}>
             <h3 className={styles.sectionTitle}>Price</h3>
             <label className={styles.field}>
-              <span>Asking Price (USD) *</span>
+              <span>Asking Price ({currency}) *</span>
               <input
                 type="number"
                 name="price"

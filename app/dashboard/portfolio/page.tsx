@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { useCurrency } from "@/hooks/useCurrency";
+import { formatCurrency } from "@/lib/currency";
 import { CustomBarChart } from "@/lib/charts";
 import { useUserCards } from "@/lib/cards";
 import { 
@@ -31,6 +33,7 @@ import {
 
 export default function PortfolioPage() {
   const router = useRouter();
+  const { currency } = useCurrency();
   const [userId, setUserId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const { cards, loading: cardsLoading } = useUserCards();
@@ -93,6 +96,9 @@ export default function PortfolioPage() {
           <Link href="/dashboard/profile" title="Profile">
             👤
           </Link>
+          <Link href="/dashboard/pricing" title="Pricing">
+            💳
+          </Link>
           <Link href="/dashboard/settings" title="Settings">
             ⚙️
           </Link>
@@ -124,7 +130,7 @@ export default function PortfolioPage() {
               <div className={styles.metricCard}>
                 <div className={styles.metricLabel}>Total Collection Value</div>
                 <div className={styles.metricValue}>
-                  ${portfolioMetrics?.totalValue.toLocaleString() || "0"}
+                  {formatCurrency(portfolioMetrics?.totalValue ?? 0, currency)}
                 </div>
                 <div className={styles.metricSubtext}>
                   {portfolioMetrics?.itemCount || 0} Items
@@ -134,7 +140,7 @@ export default function PortfolioPage() {
               <div className={styles.metricCard}>
                 <div className={styles.metricLabel}>Estimated Appreciation</div>
                 <div className={`${styles.metricValue} ${(portfolioMetrics?.estimatedAppreciation || 0) >= 0 ? styles.positive : styles.negative}`}>
-                  ${portfolioMetrics?.estimatedAppreciation.toLocaleString() || "0"}
+                  {formatCurrency(portfolioMetrics?.estimatedAppreciation ?? 0, currency)}
                 </div>
                 <div className={styles.metricSubtext}>
                   +{portfolioMetrics?.appreciationPercentage.toFixed(1) || "0"}% Gain
@@ -185,12 +191,12 @@ export default function PortfolioPage() {
                     <YAxis 
                       stroke="#6b7280"
                       tick={{ fontSize: 12 }}
-                      label={{ value: 'Portfolio Value ($)', angle: -90, position: 'insideLeft' }}
+                      label={{ value: 'Portfolio Value', angle: -90, position: 'insideLeft' }}
                     />
                     <Tooltip 
                       contentStyle={{ backgroundColor: '#111827', border: '1px solid #10b3f0', borderRadius: '8px' }}
                       labelStyle={{ color: '#10b3f0' }}
-                      formatter={(value: any) => `$${value.toLocaleString()}`}
+                      formatter={(value: any) => formatCurrency(Number(value) || 0, currency)}
                     />
                     <Line 
                       type="monotone" 
@@ -230,10 +236,10 @@ export default function PortfolioPage() {
                     <div key={card.cardId} className={styles.cardChangeItem}>
                       <div className={styles.cardChangeName}>{card.cardName}</div>
                       <div className={styles.cardChangeValue}>
-                        ${card.priorValue} → <strong>${card.currentValue}</strong>
+                        {formatCurrency(card.priorValue, currency)} → <strong>{formatCurrency(card.currentValue, currency)}</strong>
                       </div>
                       <div className={`${styles.cardChangePercent} ${card.change >= 0 ? styles.positive : styles.negative}`}>
-                        {card.change >= 0 ? '+' : ''}{card.changePercent.toFixed(1)}% ({card.change >= 0 ? '+' : '-'}${Math.abs(card.change)})
+                        {card.change >= 0 ? '+' : ''}{card.changePercent.toFixed(1)}% ({card.change >= 0 ? '+' : '-'}{formatCurrency(Math.abs(card.change), currency)})
                       </div>
                     </div>
                   ))}
@@ -257,7 +263,7 @@ export default function PortfolioPage() {
                     }` }}>
                       <div style={{ fontWeight: "bold" }}>{card.name}</div>
                       <div style={{ fontSize: "0.85em", color: "#bbb" }}>{card.player || "N/A"}</div>
-                      <div style={{ fontSize: "0.9em", color: "#10b3f0" }}>${card.value.toLocaleString()}</div>
+                      <div style={{ fontSize: "0.9em", color: "#10b3f0" }}>{formatCurrency(card.value, currency)}</div>
                     </div>
                   ))
                 ) : (
@@ -290,7 +296,7 @@ export default function PortfolioPage() {
 
             <div className="total-value">
               <h4>Highest Value</h4>
-              <strong>{(cards || []).length > 0 ? `$${Math.max(...(cards || []).map(c => c.value)).toLocaleString()}` : "$0"}</strong>
+              <strong>{(cards || []).length > 0 ? formatCurrency(Math.max(...(cards || []).map(c => c.value)), currency) : formatCurrency(0, currency)}</strong>
             </div>
           </div>
         </div>

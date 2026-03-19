@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFeatureAccess } from "../hooks/useFeatureAccess";
+import { useCurrency } from "@/hooks/useCurrency";
+import { formatCurrency } from "@/lib/currency";
 import styles from "./AICardScanner.module.css";
 
 interface CardScanResult {
@@ -132,6 +134,7 @@ function toBaseCardName(name: string): string {
 
 export default function AICardScanner({ onScanComplete, onCancel, userId }: AICardScannerProps) {
   const router = useRouter();
+  const { currency } = useCurrency();
   const { canScan, scansRemaining, incrementScanCount, subscriptionPlan } = useFeatureAccess();
 
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
@@ -820,7 +823,7 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
             </div>
             <div className={styles.resultMetric}>
               <span>Market Value</span>
-              <strong>${Number(primaryResult.estimatedValue || 0).toFixed(0)}</strong>
+              <strong>{formatCurrency(Number(primaryResult.estimatedValue || 0), currency)}</strong>
             </div>
           </div>
 
