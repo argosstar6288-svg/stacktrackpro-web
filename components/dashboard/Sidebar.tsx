@@ -17,7 +17,6 @@ const navItems = [
   { icon: "🔥", label: "Auctions", href: "/auctions/live" },
   { icon: "📈", label: "Price Trends", href: "/dashboard/market" },
   { icon: "💳", label: "Pricing", href: "/dashboard/pricing" },
-  { icon: "⭐", label: "Watchlist", href: "/dashboard/watchlist" },
   { icon: "⚙", label: "Settings", href: "/dashboard/settings" },
 ];
 
@@ -31,6 +30,10 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [inboxUnread, setInboxUnread] = useState(0);
+
+  const universalItems = navItems.some((item) => item.href === "/dashboard/pricing")
+    ? navItems
+    : [...navItems, { icon: "💳", label: "Pricing", href: "/dashboard/pricing" }];
 
   useEffect(() => {
     if (!user) {
@@ -95,7 +98,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       </div>
       <nav className="sidebar-nav">
         {[
-          ...navItems,
+          ...universalItems,
           ...(isAdminEmail(user?.email)
             ? [{ icon: "🛠", label: "Admin", href: "/dashboard/admin" }]
             : []),

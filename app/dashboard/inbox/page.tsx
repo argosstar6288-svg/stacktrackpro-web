@@ -755,13 +755,22 @@ export default function InboxPage() {
             <p className={styles.eyebrow}>Inbox</p>
             <h2 className={styles.title}>Messages</h2>
           </div>
-          <button
-            className={styles.primaryButton}
-            type="button"
-            onClick={handleOpenCompose}
-          >
-            New Message
-          </button>
+          <div className={styles.listActions}>
+            <button
+              className={styles.secondaryButton}
+              type="button"
+              onClick={() => router.push("/dashboard/users")}
+            >
+              Find Users
+            </button>
+            <button
+              className={styles.primaryButton}
+              type="button"
+              onClick={handleOpenCompose}
+            >
+              New Message
+            </button>
+          </div>
         </div>
 
         {/* Tabs */}

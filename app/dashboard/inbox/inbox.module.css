@@ -25,6 +25,12 @@
   gap: 12px;
 }
 
+.listActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .eyebrow {
   margin: 0;
   text-transform: uppercase;
@@ -509,6 +515,12 @@
   .listHeader {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .listActions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
   .chatHeader {

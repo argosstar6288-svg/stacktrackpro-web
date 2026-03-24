@@ -17,10 +17,7 @@ const navItems = [
   { href: "/dashboard/collection", label: "My Collection", icon: "▣" },
   { href: "/dashboard/marketplace", label: "Marketplace", icon: "◫" },
   { href: "/auctions/live", label: "Auctions", icon: "◌" },
-  { href: "/dashboard/watchlist", label: "Watchlist", icon: "♡" },
   { href: "/dashboard/inbox", label: "Messages", icon: "✉" },
-  { href: "/dashboard/share", label: "Flex Share", icon: "⬗" },
-  { href: "/dashboard/users", label: "Find Users", icon: "⌕" },
   { href: "/dashboard/pricing", label: "Pricing", icon: "◈" },
   { href: "/dashboard/settings", label: "Settings", icon: "⚙" },
 ];
@@ -30,6 +27,10 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const router = useRouter();
   const { user } = useCurrentUser();
 
+  const universalItems = navItems.some((item) => item.href === "/dashboard/pricing")
+    ? navItems
+    : [...navItems, { href: "/dashboard/pricing", label: "Pricing", icon: "◈" }];
+
   const handleLogout = async () => {
     await signOut(auth);
     onClose?.();
@@ -37,8 +38,8 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   };
 
   const sidebarItems = isAdminEmail(user?.email)
-    ? [...navItems, { href: "/dashboard/admin", label: "Admin", icon: "✦" }]
-    : navItems;
+    ? [...universalItems, { href: "/dashboard/admin", label: "Admin", icon: "✦" }]
+    : universalItems;
 
   return (
     <>

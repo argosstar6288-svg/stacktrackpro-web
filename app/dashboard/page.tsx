@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   collection,
@@ -487,8 +488,22 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/dashboard/watchlist"
+            className="inline-flex items-center justify-center rounded-full border border-sky-300/40 bg-sky-500/20 px-4 py-2 text-sm font-semibold text-sky-100 transition hover:bg-sky-500/35"
+          >
+            Watchlist
+          </Link>
+          <Link
+            href="/dashboard/share"
+            className="inline-flex items-center justify-center rounded-full border border-orange-300/40 bg-orange-500/20 px-4 py-2 text-sm font-semibold text-orange-100 transition hover:bg-orange-500/35"
+          >
+            Flex Share
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
