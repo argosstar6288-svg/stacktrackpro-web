@@ -965,13 +965,13 @@
 }
 
 .searchResultItem {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
   padding: 12px 14px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  cursor: pointer;
   transition: background 0.2s;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
 }
 
 .searchResultItem:last-child {
@@ -979,6 +979,33 @@
 }
 
 .searchResultItem:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.searchResultMain {
+  border: none;
+  background: transparent;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0;
+}
+
+.searchResultAction {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.searchResultAction:hover {
   background: rgba(255, 255, 255, 0.08);
 }
 

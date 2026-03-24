@@ -14,6 +14,8 @@ interface RecentScansProps {
   loading?: boolean;
 }
 
+const PLACEHOLDER_IMAGE = "/placeholder-card.svg";
+
 export default function RecentScans({ scans, loading }: RecentScansProps) {
   const { currency } = useCurrency();
 
@@ -38,7 +40,17 @@ export default function RecentScans({ scans, loading }: RecentScansProps) {
               <div className="scan-image">
                 {scan.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={scan.imageUrl} alt={scan.name} loading="lazy" />
+                  <img
+                    src={scan.imageUrl}
+                    alt={scan.name}
+                    loading="lazy"
+                    decoding="async"
+                    onError={(event) => {
+                      const target = event.currentTarget;
+                      if (target.src.endsWith(PLACEHOLDER_IMAGE)) return;
+                      target.src = PLACEHOLDER_IMAGE;
+                    }}
+                  />
                 ) : (
                   "📷"
                 )}

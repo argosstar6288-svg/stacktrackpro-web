@@ -60,6 +60,70 @@ export interface Folder {
   createdAt?: any;
 }
 
+function normalizeKeyPart(value: unknown): string {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function buildCardDedupKey(card: Card): string {
+  if (card.cardID) return `cardid:${normalizeKeyPart(card.cardID)}`;
+  if (card.lookup) return `lookup:${normalizeKeyPart(card.lookup)}`;
+
+  return [
+    normalizeKeyPart(card.name),
+    normalizeKeyPart(card.cardNumber),
+    normalizeKeyPart(card.brand),
+    normalizeKeyPart(card.year),
+    normalizeKeyPart(card.condition),
+    normalizeKeyPart(card.variant),
+  ].join("|");
+}
+
+function scoreCardForDedup(card: Card): number {
+  let score = 0;
+  if (card.imageUrl || card.photoUrl || card.frontImageUrl || card.thumbnailUrl) score += 4;
+  if (card.marketPrice != null) score += 2;
+  if (card.value != null) score += 2;
+  if (card.cardNumber) score += 1;
+  if (card.brand) score += 1;
+  if (card.year) score += 1;
+  return score;
+}
+
+export function dedupeCards(cards: Card[]): Card[] {
+  const bestByKey = new Map<string, Card>();
+
+  for (const card of cards) {
+    const key = buildCardDedupKey(card);
+    const existing = bestByKey.get(key);
+
+    if (!existing) {
+      bestByKey.set(key, card);
+      continue;
+    }
+
+    const existingScore = scoreCardForDedup(existing);
+    const nextScore = scoreCardForDedup(card);
+
+    if (nextScore > existingScore) {
+      bestByKey.set(key, card);
+      continue;
+    }
+
+    if (nextScore === existingScore) {
+      const existingTime = existing.addedAt?.seconds || 0;
+      const nextTime = card.addedAt?.seconds || 0;
+      if (nextTime > existingTime) {
+        bestByKey.set(key, card);
+      }
+    }
+  }
+
+  return Array.from(bestByKey.values());
+}
+
 // Fetch user's card collection
 export async function getUserCards(userId: string): Promise<Card[]> {
   if (!db || !userId) return [];
@@ -77,7 +141,7 @@ export async function getUserCards(userId: string): Promise<Card[]> {
         ...doc.data(),
       } as Card);
     });
-    return cards;
+    return dedupeCards(cards);
   } catch (error) {
     console.error("Error fetching cards:", error);
     return [];
@@ -380,7 +444,7 @@ export async function getCardsInFolder(folderId: string, userId: string): Promis
         ...doc.data(),
       } as Card);
     });
-    return cards;
+    return dedupeCards(cards);
   } catch (error) {
     console.error("Error fetching cards in folder:", error);
     return [];

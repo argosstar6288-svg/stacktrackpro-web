@@ -100,7 +100,7 @@ export default function SubscriptionPlanGrid({
 
   const visiblePlans = billingPeriod === 'yearly'
     ? ['PRO_YEARLY', 'PREMIUM_YEARLY', 'LIFETIME']
-    : ['PRO_MONTHLY', 'PREMIUM_MONTHLY'];
+    : ['PRO_MONTHLY', 'PREMIUM_MONTHLY', 'LIFETIME'];
 
   return (
     <div className={styles.container}>
@@ -154,12 +154,10 @@ export default function SubscriptionPlanGrid({
                 <h3 className={styles.planName}>{plan.name}</h3>
                 <div className={styles.pricing}>
                   <span className={styles.price}>{priceDisplay}</span>
-                  {!isLifetime && (
-                    <span className={styles.period}>/{plan.interval === 'month' ? 'month' : 'year'}</span>
-                  )}
+                  <span className={styles.period}>{isLifetime ? '/once' : `/${plan.interval === 'month' ? 'month' : 'year'}`}</span>
                 </div>
                 {isLifetime && (
-                  <p className={styles.lifetimeNote}>one-time payment</p>
+                  <p className={styles.lifetimeNote}>One payment. Zero subscriptions. Ever.</p>
                 )}
               </div>
 
@@ -179,14 +177,17 @@ export default function SubscriptionPlanGrid({
                 onClick={() => handlePlanSelection(plan.id)}
                 disabled={isLoading}
               >
-                {isLoading ? 'Processing...' : isSelected ? 'Current Plan' : 'Get Started'}
+                {isLoading
+                  ? 'Processing...'
+                  : isSelected
+                  ? 'Current Plan'
+                  : isLifetime
+                  ? 'Unlock Lifetime Access Now'
+                  : 'Get Started'}
               </button>
 
-              {/* Note */}
               {isLifetime && (
-                <p className={styles.limitedNote}>
-                  ⭐ Limited to 50 customers
-                </p>
+                <p className={styles.limitedNote}>Limited offer - once it's gone, it's gone.</p>
               )}
             </div>
           );
@@ -195,10 +196,21 @@ export default function SubscriptionPlanGrid({
 
       {/* Free Tier Info */}
       <div className={styles.freeInfo}>
+        <h4 className={styles.freeTitle}>Free Tier</h4>
+        <ul className={styles.freeList}>
+          <li>Basic collection tracking (cards/items)</li>
+          <li>Manual item entry (no AI scan)</li>
+          <li>Basic value tracking (no deep analytics)</li>
+          <li>Limited collections</li>
+          <li>View marketplace (no posting)</li>
+          <li>Basic notifications</li>
+        </ul>
+        <p className={styles.trialNote}>
+          Your first 30 days after signup include Premium features.
+        </p>
         <p>
-          Want to try before committing?{' '}
           <a href="/dashboard/collection" className={styles.link}>
-            Start with our free plan
+            Start with Free Tier
           </a>
         </p>
       </div>

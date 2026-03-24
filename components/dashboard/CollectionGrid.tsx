@@ -16,6 +16,8 @@ interface CollectionGridProps {
   loading?: boolean;
 }
 
+const PLACEHOLDER_IMAGE = "/placeholder-card.svg";
+
 export default function CollectionGrid({ folders, cards, loading }: CollectionGridProps) {
   return (
     <section className="dashboard-card" id="collection-section">
@@ -49,7 +51,17 @@ export default function CollectionGrid({ folders, cards, loading }: CollectionGr
                 <div className="collection-card-image">
                   {card.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={card.imageUrl} alt={card.name} loading="lazy" />
+                    <img
+                      src={card.imageUrl}
+                      alt={card.name}
+                      loading="lazy"
+                      decoding="async"
+                      onError={(event) => {
+                        const target = event.currentTarget;
+                        if (target.src.endsWith(PLACEHOLDER_IMAGE)) return;
+                        target.src = PLACEHOLDER_IMAGE;
+                      }}
+                    />
                   ) : (
                     "🃏"
                   )}

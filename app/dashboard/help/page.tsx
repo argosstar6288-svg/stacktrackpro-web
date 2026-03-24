@@ -56,7 +56,12 @@ const faqs: FAQItem[] = [
   {
     category: "Market & Portfolio",
     question: "Where does pricing data come from?",
-    answer: "Card values are based on your manual entries or AI estimates. The AI considers player popularity, card scarcity, condition/grade, brand prestige, and recent market trends."
+    answer: "StackTrack identifies the card first, then uses catalog matches, cached market pricing, and refreshed price lookups to estimate value. Condition, grade, and match confidence all affect the final number. See 'How StackTrack Values Cards' in Quick Links for the full breakdown."
+  },
+  {
+    category: "Market & Portfolio",
+    question: "How does StackTrack come up with card values?",
+    answer: "StackTrack uses a multi-step process: identify the card, normalize the details, check known catalog pricing, reuse fresh cached pricing, and refresh market data when needed. It is a market estimate, not a formal appraisal."
   },
   {
     category: "Auctions",
@@ -208,6 +213,10 @@ export default function HelpPage() {
               <h2 className={styles.panelTitle}>Quick Links</h2>
             </div>
             <div className={styles.quickLinks}>
+              <Link href="/dashboard/help/how-values-work" className={styles.quickLink}>
+                <span className={styles.quickLinkIcon}>💵</span>
+                <span>How StackTrack Values Cards</span>
+              </Link>
               <Link href="/dashboard/scan" className={styles.quickLink}>
                 <span className={styles.quickLinkIcon}>📷</span>
                 <span>Scan a Card</span>

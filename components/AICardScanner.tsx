@@ -37,7 +37,6 @@ interface AICardScannerProps {
 }
 
 type ScannerView = "scanner" | "result" | "bulk";
-type DetectionPhase = "detecting" | "matching" | "identified";
 
 const TARGET_SCAN_IMAGE_SIZE = 800;
 
@@ -127,11 +126,6 @@ function toConfidencePercent(value: unknown): number {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
-function toBaseCardName(name: string): string {
-  if (!name) return "Charizard";
-  return name.split(" ")[0] || "Charizard";
-}
-
 export default function AICardScanner({ onScanComplete, onCancel, userId }: AICardScannerProps) {
   const router = useRouter();
   const { currency } = useCurrency();
@@ -144,18 +138,13 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
   const [scanning, setScanning] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
   const [bulkMode, setBulkMode] = useState(false);
-  const [autoScanEnabled, setAutoScanEnabled] = useState(true);
-  const [flashOn, setFlashOn] = useState(false);
   const [selectedCondition, setSelectedCondition] = useState("Near Mint");
-  const [detectionPhase, setDetectionPhase] = useState<DetectionPhase>("detecting");
-  const [feedbackMessage, setFeedbackMessage] = useState("");
   const [lastScanLatencyMs, setLastScanLatencyMs] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [scanProgress, setScanProgress] = useState({ current: 0, total: 0 });
 
   const captureInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
-  const autoCaptureKeyRef = useRef("");
 
   const primaryResult = scanResults[0];
   const primaryPreviewImage = selectedImages[0] || "";
@@ -174,55 +163,6 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
 
     return { label: "Low", icon: "❗", className: styles.confidenceLow };
   }, [confidencePercent]);
-
-  const possibleMatches = useMemo(() => {
-    const base = toBaseCardName(primaryResult?.name || "Charizard");
-    return [
-      `${base} Base Set`,
-      `${base} Legendary Collection`,
-      `${base} XY Evolutions`,
-    ];
-  }, [primaryResult?.name]);
-
-  const liveDetectedName = primaryResult?.name || "Charizard";
-  const liveDetectedSet = primaryResult?.setName || primaryResult?.brand || "Base Set";
-  const liveDetectedNumber = primaryResult?.cardNumber || "4/102";
-
-  const playFeedbackTone = (mode: "capture" | "success") => {
-    if (typeof window === "undefined") return;
-
-    const AudioContextClass =
-      window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-
-    if (!AudioContextClass) return;
-
-    try {
-      const audioContext = new AudioContextClass();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-
-      oscillator.type = "sine";
-      oscillator.frequency.value = mode === "capture" ? 620 : 860;
-      gainNode.gain.value = 0.03;
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      oscillator.start();
-      oscillator.frequency.exponentialRampToValueAtTime(
-        mode === "capture" ? 760 : 1060,
-        audioContext.currentTime + 0.1
-      );
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.14);
-      oscillator.stop(audioContext.currentTime + 0.14);
-
-      window.setTimeout(() => {
-        void audioContext.close();
-      }, 180);
-    } catch {
-      // Best effort only
-    }
-  };
 
   const enhanceImage = async (dataUrl: string): Promise<string> => {
     return new Promise((resolve) => {
@@ -346,8 +286,6 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
       setScanResults([]);
       setLastScanLatencyMs(null);
       setSelectedCondition("Near Mint");
-      setFeedbackMessage(useSingle ? "Card centered. Preparing auto-detection…" : "Bulk cards ready for fast scan.");
-      autoCaptureKeyRef.current = "";
       if (hasError) {
         setError("Some files were skipped.");
       }
@@ -382,10 +320,8 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
     setSelectedFileLabels([]);
     setScanResults([]);
     setError("");
-    setFeedbackMessage("");
     setLastScanLatencyMs(null);
     setSelectedCondition("Near Mint");
-    autoCaptureKeyRef.current = "";
   };
 
   const handleAddToCollection = () => {
@@ -400,7 +336,7 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
     });
 
     onScanComplete(output, {
-      instantMode: autoScanEnabled,
+      instantMode: false,
       autoAdd: false,
       avgLatencyMs: lastScanLatencyMs ?? undefined,
     });
@@ -422,10 +358,8 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
       return;
     }
 
-    playFeedbackTone("capture");
     setScanning(true);
     setError("");
-    setFeedbackMessage("Scanning...");
     setScanProgress({ current: 0, total: selectedImages.length });
 
     const results: CardScanResult[] = [];
@@ -433,90 +367,97 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
     let blockingError = "";
 
     try {
-      const scanOutcomes = await Promise.all(
-        selectedImages.map(async (image, index) => {
-          try {
-            const requestStartedAt = performance.now();
-            const response = await fetch("/api/scan-card", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                image,
-                userId,
-                scanMode: autoScanEnabled ? "instant" : "standard",
-              }),
-            });
+      const scanOutcomes: Array<
+        | { ok: true; index: number; result: CardScanResult; latencyMs: number }
+        | { ok: false; index: number; message: string; latencyMs: number; blocking: boolean }
+      > = [];
 
-            if (!response.ok) {
-              let errorData: any = null;
-              try {
-                errorData = await response.json();
-              } catch {
-                errorData = { error: "Failed to scan" };
-              }
+      for (let index = 0; index < selectedImages.length; index += 1) {
+        const image = selectedImages[index];
+        try {
+          const requestStartedAt = performance.now();
+          const response = await fetch("/api/scan-card-v2", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              image,
+              userId,
+              scanMode: "standard",
+              useFastPath: true,
+              aiVisionOnly: false,
+            }),
+          });
 
-              const message = normalizeErrorText(getScanErrorMessage(errorData));
-              const isConfigurationError =
-                String(errorData?.error || "").toLowerCase().includes("api key not configured") ||
-                String(errorData?.debug || "").toLowerCase().includes("openai_api_key") ||
-                String(errorData?.message || "").toLowerCase().includes("not properly configured");
-
-              return {
-                ok: false,
-                index,
-                message,
-                latencyMs: Math.round(performance.now() - requestStartedAt),
-                blocking: Boolean(errorData?.quotaExceeded || errorData?.providerQuotaExceeded || isConfigurationError),
-              };
+          if (!response.ok) {
+            let errorData: any = null;
+            try {
+              errorData = await response.json();
+            } catch {
+              errorData = { error: "Failed to scan" };
             }
 
-            const result: CardScanResult = await response.json();
-            result.imageUrl = image;
-            result.photoUrl = image;
+            const message = normalizeErrorText(getScanErrorMessage(errorData));
+            const isConfigurationError =
+              String(errorData?.error || "").toLowerCase().includes("api key not configured") ||
+              String(errorData?.debug || "").toLowerCase().includes("openai_api_key") ||
+              String(errorData?.message || "").toLowerCase().includes("not properly configured");
 
-            if (!result.name) {
-              const nameParts = [
-                result.player,
-                result.year ? String(result.year) : null,
-                result.brand,
-                result.sport !== "Other" ? result.sport : null,
-              ].filter(Boolean);
-              result.name = nameParts.length > 0 ? nameParts.join(" ") : "Sports Card";
-            }
-
-            if (!result.player) result.player = "Unknown Player";
-            if (!result.estimatedValue) result.estimatedValue = 0;
-            if (!result.sport) result.sport = "Other";
-            if (!result.confidence) result.confidence = 0.3;
-            if (!result.brand) result.brand = "Unknown";
-            if (!result.condition) result.condition = "Good";
-            if (!result.year) result.year = new Date().getFullYear();
-            if (typeof result.cardNumber !== "string") result.cardNumber = "";
-            if (typeof result.setName !== "string") result.setName = result.brand;
-
-            const measuredLatencyMs = Math.round(performance.now() - requestStartedAt);
-            const latencyMs = typeof result.processingMs === "number" ? result.processingMs : measuredLatencyMs;
-
-            return { ok: true, index, result, latencyMs };
-          } catch (cardError) {
-            const rawMessage = cardError instanceof Error ? cardError.message : "Unknown error";
-            return {
+            scanOutcomes.push({
               ok: false,
               index,
-              message: normalizeErrorText(rawMessage),
-              latencyMs: 0,
-              blocking: false,
-            };
-          } finally {
-            setScanProgress((previous) => ({
-              ...previous,
-              current: Math.min(previous.current + 1, previous.total),
-            }));
+              message,
+              latencyMs: Math.round(performance.now() - requestStartedAt),
+              blocking: Boolean(errorData?.quotaExceeded || errorData?.providerQuotaExceeded || isConfigurationError),
+            });
+            continue;
           }
-        })
-      );
+
+          const result: CardScanResult = await response.json();
+          result.imageUrl = image;
+          result.photoUrl = image;
+
+          if (!result.name) {
+            const nameParts = [
+              result.player,
+              result.year ? String(result.year) : null,
+              result.brand,
+              result.sport !== "Other" ? result.sport : null,
+            ].filter(Boolean);
+            result.name = nameParts.length > 0 ? nameParts.join(" ") : "Sports Card";
+          }
+
+          if (!result.player) result.player = "Unknown Player";
+          if (!result.estimatedValue) result.estimatedValue = 0;
+          if (!result.sport) result.sport = "Other";
+          if (!result.confidence) result.confidence = 0.3;
+          if (!result.brand) result.brand = "Unknown";
+          if (!result.condition) result.condition = "Good";
+          if (!result.year) result.year = new Date().getFullYear();
+          if (typeof result.cardNumber !== "string") result.cardNumber = "";
+          if (typeof result.setName !== "string") result.setName = result.brand;
+
+          const measuredLatencyMs = Math.round(performance.now() - requestStartedAt);
+          const latencyMs = typeof result.processingMs === "number" ? result.processingMs : measuredLatencyMs;
+
+          scanOutcomes.push({ ok: true, index, result, latencyMs });
+        } catch (cardError) {
+          const rawMessage = cardError instanceof Error ? cardError.message : "Unknown error";
+          scanOutcomes.push({
+            ok: false,
+            index,
+            message: normalizeErrorText(rawMessage),
+            latencyMs: 0,
+            blocking: false,
+          });
+        } finally {
+          setScanProgress((previous) => ({
+            ...previous,
+            current: Math.min(previous.current + 1, previous.total),
+          }));
+        }
+      }
 
       scanOutcomes
         .sort((a, b) => a.index - b.index)
@@ -526,12 +467,12 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
             return;
           }
 
-          if (outcome.blocking && !blockingError) {
+          if ("blocking" in outcome && outcome.blocking && !blockingError) {
             blockingError = outcome.message;
             return;
           }
 
-          skippedCards.push(`Card ${outcome.index + 1}: ${outcome.message}`);
+          skippedCards.push(`Card ${outcome.index + 1}: ${"message" in outcome ? outcome.message : "Scan failed"}`);
         });
 
       if (blockingError) {
@@ -561,10 +502,8 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
 
       await Promise.allSettled(results.map(() => incrementScanCount()));
 
-      playFeedbackTone("success");
       setScanResults(results);
       setSelectedCondition(results[0]?.condition || "Near Mint");
-      setFeedbackMessage("Scan successful ✓");
       setScannerView(results.length > 1 || bulkMode ? "bulk" : "result");
 
       if (skippedCards.length > 0) {
@@ -572,47 +511,11 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
       }
     } catch (scanError) {
       setError(scanError instanceof Error ? scanError.message : "Failed to scan cards");
-      setFeedbackMessage("");
     } finally {
       setScanning(false);
       setScanProgress({ current: 0, total: 0 });
     }
   }
-
-  useEffect(() => {
-    if (scannerView !== "scanner" || scanning) return;
-
-    const phases: DetectionPhase[] = ["detecting", "matching", "identified"];
-    let currentIndex = hasSelectedImage ? 1 : 0;
-    setDetectionPhase(phases[currentIndex]);
-
-    const timer = window.setInterval(() => {
-      currentIndex = (currentIndex + 1) % phases.length;
-      setDetectionPhase(phases[currentIndex]);
-    }, 850);
-
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, [scannerView, scanning, hasSelectedImage]);
-
-  useEffect(() => {
-    if (scannerView !== "scanner") return;
-    if (!autoScanEnabled || scanning) return;
-    if (selectedImages.length !== 1) return;
-
-    const captureKey = selectedImages[0];
-    if (!captureKey || autoCaptureKeyRef.current === captureKey) return;
-
-    setFeedbackMessage("Card stable... auto capture");
-
-    const timer = window.setTimeout(() => {
-      autoCaptureKeyRef.current = captureKey;
-      void handleScan();
-    }, 950);
-
-    return () => window.clearTimeout(timer);
-  }, [scannerView, autoScanEnabled, scanning, selectedImages]);
 
   const frameStateClass = scanning
     ? styles.frameCapturing
@@ -621,8 +524,6 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
     : hasSelectedImage
     ? styles.frameDetected
     : "";
-
-  const showPossibleMatches = scannerView === "result" && confidencePercent < 80;
 
   return (
     <div className={styles.shell}>
@@ -688,35 +589,6 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
             </div>
           </section>
 
-          <div className={styles.detectedText}>✔ Card Detected: {liveDetectedName}</div>
-
-          <section className={styles.liveDetectionPanel}>
-            <p className={styles.liveDetectionTitle}>
-              {detectionPhase === "detecting"
-                ? "Detecting..."
-                : detectionPhase === "matching"
-                ? "Matching card..."
-                : "Card identified"}
-            </p>
-            <strong className={styles.liveCardName}>{liveDetectedName}</strong>
-            <span className={styles.liveCardMeta}>{liveDetectedSet}</span>
-            <span className={styles.liveCardMeta}>{liveDetectedNumber}</span>
-          </section>
-
-          <div className={styles.feedbackSteps}>
-            <span className={`${styles.feedbackStep} ${detectionPhase === "detecting" ? styles.feedbackActive : ""}`}>
-              Scanning...
-            </span>
-            <span className={`${styles.feedbackStep} ${detectionPhase === "matching" ? styles.feedbackActive : ""}`}>
-              Matching card...
-            </span>
-            <span className={`${styles.feedbackStep} ${detectionPhase === "identified" ? styles.feedbackActive : ""}`}>
-              Card identified
-            </span>
-          </div>
-
-          {feedbackMessage && <div className={styles.feedbackMessage}>{feedbackMessage}</div>}
-
           <div className={styles.primaryActions}>
             <button
               type="button"
@@ -724,26 +596,19 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
               onClick={() => captureInputRef.current?.click()}
               disabled={scanning || !canScan}
             >
-              Capture Card
+              Capture Photo
             </button>
             <button
               type="button"
-              className={`${styles.autoScanButton} ${autoScanEnabled ? styles.autoScanOn : ""}`}
-              onClick={() => setAutoScanEnabled((prev) => !prev)}
+              className={styles.autoScanButton}
+              onClick={() => galleryInputRef.current?.click()}
+              disabled={scanning}
             >
-              {autoScanEnabled ? "Auto Scan ON" : "Auto Scan OFF"}
+              {bulkMode ? "Upload Batch" : "Upload Image"}
             </button>
           </div>
 
           <div className={styles.mobileControls}>
-            <button
-              type="button"
-              className={`${styles.mobileButton} ${flashOn ? styles.flashOn : ""}`}
-              onClick={() => setFlashOn((prev) => !prev)}
-            >
-              {flashOn ? "Flash On" : "Flash"}
-            </button>
-
             <button
               type="button"
               className={`${styles.mobileButton} ${styles.mobileScanButton}`}
@@ -756,16 +621,7 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
               }}
               disabled={scanning || !canScan}
             >
-              {scanning ? "Scanning..." : "Scan Button"}
-            </button>
-
-            <button
-              type="button"
-              className={styles.mobileButton}
-              onClick={() => galleryInputRef.current?.click()}
-              disabled={scanning}
-            >
-              Gallery Upload
+              {scanning ? "Scanning..." : "Scan Now"}
             </button>
           </div>
 
@@ -841,17 +697,6 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
               ))}
             </select>
           </label>
-
-          {showPossibleMatches && (
-            <div className={styles.possibleMatches}>
-              <p className={styles.possibleMatchesTitle}>Possible Matches</p>
-              {possibleMatches.map((match) => (
-                <button key={match} type="button" className={styles.matchItem}>
-                  {match}
-                </button>
-              ))}
-            </div>
-          )}
 
           <div className={styles.resultActions}>
             <button type="button" className={styles.primaryCta} onClick={handleAddToCollection}>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
 import { hybridScanPipeline } from "@/lib/scanPipeline";
 import { db } from "@/lib/firebase-server";
+import { getEffectiveSubscription } from "@/lib/subscriptionAccess";
 
 /**
  * Optimized Card Scan API
@@ -205,7 +206,22 @@ export async function POST(request: NextRequest) {
 
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        isLifetime = userData?.subscription?.isLifetime === true;
+        const effectiveSubscription = getEffectiveSubscription(userData);
+
+        if (effectiveSubscription.shouldPersistExpiry) {
+          await updateDoc(userRef, {
+            "subscription.status": "expired",
+            "subscription.plan": "free",
+            "subscription.tier": "free",
+            subscriptionTier: "free",
+            trialExpiredAt: new Date(),
+          });
+        }
+
+        isLifetime =
+          effectiveSubscription.plan === "lifetime" ||
+          effectiveSubscription.plan === "pro" ||
+          effectiveSubscription.plan === "premium";
         const aiScansUsed = userData?.aiScansUsed || 0;
         const FREE_TIER_LIMIT = 50;
 
@@ -213,7 +229,7 @@ export async function POST(request: NextRequest) {
           return corsResponse(
             {
               error: "Scan limit reached",
-              message: `You've used all ${FREE_TIER_LIMIT} free scans. Upgrade for unlimited scanning.`,
+              message: `You've used all ${FREE_TIER_LIMIT} free scans. Upgrade to Pro or Premium for expanded scanning.`,
               quotaExceeded: true,
             },
             403

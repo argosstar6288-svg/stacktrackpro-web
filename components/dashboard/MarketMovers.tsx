@@ -15,6 +15,8 @@ interface MarketMoversProps {
   loading?: boolean;
 }
 
+const PLACEHOLDER_IMAGE = "/placeholder-card.svg";
+
 export default function MarketMovers({ movers, loading }: MarketMoversProps) {
   const { currency } = useCurrency();
 
@@ -39,7 +41,17 @@ export default function MarketMovers({ movers, loading }: MarketMoversProps) {
               <div className="mini-card-image">
                 {item.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.imageUrl} alt={item.name} loading="lazy" />
+                  <img
+                    src={item.imageUrl}
+                    alt={item.name}
+                    loading="lazy"
+                    decoding="async"
+                    onError={(event) => {
+                      const target = event.currentTarget;
+                      if (target.src.endsWith(PLACEHOLDER_IMAGE)) return;
+                      target.src = PLACEHOLDER_IMAGE;
+                    }}
+                  />
                 ) : (
                   "🃏"
                 )}

@@ -14,6 +14,8 @@
     "catalog:index": "node scripts/build-global-card-index.js",
     "catalog:index:pokemon": "node scripts/build-global-card-index.js --game=pokemon",
     "catalog:index:dry": "node scripts/build-global-card-index.js --dry-run",
+    "collection:dedupe": "node scripts/dedupe-collection.js --dry-run",
+    "collection:dedupe:apply": "node scripts/dedupe-collection.js --apply",
     "stripe:list": "node scripts/list-stripe-prices.js",
     "stripe:create-yearly": "node scripts/create-yearly-prices.js",
     "openai:test": "node test-openai.js",

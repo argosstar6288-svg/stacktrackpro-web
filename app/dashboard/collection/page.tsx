@@ -136,6 +136,9 @@ export default function CollectionPage() {
           <div className={styles.search}>
             <input type="text" placeholder="Quick search..." />
           </div>
+          <Link className={styles.addButton} href="/dashboard/share?mode=collection">
+            Share Collection
+          </Link>
           <button 
             className={styles.addButton}
             onClick={() => router.push('/dashboard/scan')}
@@ -158,6 +161,15 @@ export default function CollectionPage() {
           </button>
         </div>
       )}
+
+      <div className={styles.valueInfoBanner}>
+        <span className={styles.valueInfoText}>
+          Want to know where your collection values come from?
+        </span>
+        <Link href="/dashboard/help/how-values-work" className={styles.valueInfoLink}>
+          Learn how StackTrack values cards
+        </Link>
+      </div>
 
       {/* REFRESH BUTTON */}
       <RefreshCollectionButton />

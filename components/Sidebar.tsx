@@ -19,6 +19,9 @@ const navItems = [
   { href: "/auctions/live", label: "Auctions", icon: "◌" },
   { href: "/dashboard/watchlist", label: "Watchlist", icon: "♡" },
   { href: "/dashboard/inbox", label: "Messages", icon: "✉" },
+  { href: "/dashboard/share", label: "Flex Share", icon: "⬗" },
+  { href: "/dashboard/users", label: "Find Users", icon: "⌕" },
+  { href: "/dashboard/pricing", label: "Pricing", icon: "◈" },
   { href: "/dashboard/settings", label: "Settings", icon: "⚙" },
 ];
 

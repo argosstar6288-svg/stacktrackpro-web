@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase-server";
+import { getEffectiveSubscription } from "@/lib/subscriptionAccess";
 
 interface CardScanResult {
   name: string;
@@ -87,16 +88,32 @@ export async function POST(request: NextRequest) {
 
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        const isLifetime = userData?.subscription?.isLifetime === true;
+        const effectiveSubscription = getEffectiveSubscription(userData);
+
+        if (effectiveSubscription.shouldPersistExpiry) {
+          await updateDoc(userRef, {
+            "subscription.status": "expired",
+            "subscription.plan": "free",
+            "subscription.tier": "free",
+            subscriptionTier: "free",
+            trialExpiredAt: new Date(),
+          });
+        }
+
+        const isPaidOrTrial =
+          effectiveSubscription.plan === "lifetime" ||
+          effectiveSubscription.plan === "pro" ||
+          effectiveSubscription.plan === "premium";
+
         const aiScansUsed = userData?.aiScansUsed || 0;
         const FREE_TIER_LIMIT = 50;
 
-        // Check quota for non-lifetime users
-        if (!isLifetime && aiScansUsed >= FREE_TIER_LIMIT) {
+        // Check quota only for users on free tier
+        if (!isPaidOrTrial && aiScansUsed >= FREE_TIER_LIMIT) {
           return NextResponse.json(
             {
               error: "AI scan limit reached",
-              message: `You've used all ${FREE_TIER_LIMIT} free AI scans. Upgrade to Lifetime Plan for unlimited AI scanning, or continue adding cards manually.`,
+              message: `You've used all ${FREE_TIER_LIMIT} free AI scans. Upgrade to Pro or Premium for expanded scanning.`,
               quotaExceeded: true,
               scansUsed: aiScansUsed,
               limit: FREE_TIER_LIMIT,
@@ -106,7 +123,7 @@ export async function POST(request: NextRequest) {
         }
 
         console.log(
-          `[AI Scan] User ${userId} - Lifetime: ${isLifetime}, Scans used: ${aiScansUsed}/${isLifetime ? "∞" : FREE_TIER_LIMIT}`
+          `[AI Scan] User ${userId} - Plan: ${effectiveSubscription.plan}, Scans used: ${aiScansUsed}/${isPaidOrTrial ? "∞" : FREE_TIER_LIMIT}`
         );
       }
     } catch (quotaErr) {

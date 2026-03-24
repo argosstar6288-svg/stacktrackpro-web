@@ -30,13 +30,18 @@ export async function createUserProfile(
 
       // 30-day free trial
       subscription: {
-        tier: "pro",
+        plan: "premium",
+        tier: "premium",
         status: "trialing",
+        trialStartDate: serverTimestamp(),
         trialEndDate: Timestamp.fromDate(trialEndDate),
         renewalDate: null,
+        trialFallbackPlan: "free",
         stripeCustomerId: null,
         stripeSubscriptionId: null,
       },
+
+      subscriptionTier: "premium",
 
       createdAt: serverTimestamp(),
     });

@@ -237,6 +237,27 @@
   color: #666;
 }
 
+.freeTitle {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.freeList {
+  margin: 0 auto 1rem;
+  max-width: 620px;
+  text-align: left;
+  padding-left: 1.1rem;
+  line-height: 1.5;
+}
+
+.trialNote {
+  margin: 0 0 0.75rem;
+  font-weight: 700;
+  color: #10b3f0;
+}
+
 .link {
   color: #10b3f0;
   text-decoration: none;

@@ -78,6 +78,28 @@ const chunkArray = <T,>(items: T[], chunkSize: number): T[][] => {
   return chunks;
 };
 
+const DASHBOARD_PLACEHOLDER_IMAGE = "/placeholder-card.svg";
+
+const isRenderableImageUrl = (value?: string | null): boolean => {
+  if (!value || typeof value !== "string") return false;
+
+  const trimmed = value.trim();
+  return (
+    trimmed.startsWith("https://") ||
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("data:image/") ||
+    trimmed.startsWith("blob:") ||
+    trimmed.startsWith("/")
+  );
+};
+
+const resolveDashboardImageUrl = (
+  ...candidates: Array<string | undefined | null>
+): string => {
+  const selected = candidates.find((candidate) => isRenderableImageUrl(candidate));
+  return selected?.trim() || DASHBOARD_PLACEHOLDER_IMAGE;
+};
+
 const loadMasterCardsByIds = async (cardIds: string[]) => {
   const uniqueCardIds = Array.from(new Set(cardIds.filter(Boolean)));
   const masterByCardId = new Map<string, FlatMasterCard>();
@@ -200,6 +222,21 @@ export default function DashboardPage() {
 
           normalizedCards = userCardsData.map((entry) => {
             const master = masterById.get(entry.cardID) || null;
+            const entryWithImage = entry as FlatUserCard & {
+              imageUrl?: string;
+              photoUrl?: string;
+              image?: string;
+              frontImageUrl?: string;
+              thumbnailUrl?: string;
+            };
+            const cardImage = resolveDashboardImageUrl(
+              entryWithImage.imageUrl,
+              entryWithImage.photoUrl,
+              entryWithImage.image,
+              entryWithImage.frontImageUrl,
+              entryWithImage.thumbnailUrl,
+              master?.image
+            );
 
             return {
               id: entry.id || entry.cardID,
@@ -214,8 +251,8 @@ export default function DashboardPage() {
               condition: (entry.condition as Card["condition"]) || "Good",
               value: Number(entry.value ?? master?.avgPrice ?? 0),
               marketPrice: Number(master?.avgPrice ?? entry.value ?? 0),
-              imageUrl: master?.image,
-              photoUrl: master?.image,
+              imageUrl: cardImage,
+              photoUrl: cardImage,
               folderId: entry.folder,
               folderIds: entry.folder ? [entry.folder] : [],
               createdAt: entry.added,
@@ -238,7 +275,13 @@ export default function DashboardPage() {
             return {
               id: snapshot.id,
               cardName: data.cardName || data.name || data.cardID,
-              imageUrl: data.imageUrl || data.image,
+              imageUrl: resolveDashboardImageUrl(
+                data.imageUrl,
+                data.image,
+                data.photoUrl,
+                data.frontImageUrl,
+                data.thumbnailUrl
+              ),
               price: Number(data.price || 0),
               status: data.status,
               createdAt: data.created,
@@ -335,7 +378,7 @@ export default function DashboardPage() {
       .map((card) => ({
         id: card.id || `${card.name}-${card.cardNumber || ""}`,
         name: card.name || "Unnamed card",
-        imageUrl: card.imageUrl || card.photoUrl,
+        imageUrl: resolveDashboardImageUrl(card.imageUrl, card.photoUrl),
         set: [card.brand, card.year, card.cardNumber ? `#${card.cardNumber}` : null]
           .filter(Boolean)
           .join(" • "),
@@ -354,7 +397,7 @@ export default function DashboardPage() {
         return {
           id: card.id || `${card.name}-${card.cardNumber || ""}`,
           name: card.name || "Unnamed card",
-          imageUrl: card.imageUrl || card.photoUrl,
+          imageUrl: resolveDashboardImageUrl(card.imageUrl, card.photoUrl),
           price: currentValue,
           changePercent: pct,
           up: pct >= 0,
@@ -409,7 +452,7 @@ export default function DashboardPage() {
       .map((card) => ({
         id: card.id || `${card.name}-${card.cardNumber || ""}`,
         name: card.name || "Unnamed card",
-        imageUrl: card.imageUrl || card.photoUrl,
+        imageUrl: resolveDashboardImageUrl(card.imageUrl, card.photoUrl),
       }));
   }, [cards]);
 
@@ -417,7 +460,7 @@ export default function DashboardPage() {
     return marketplaceListings.map((listing) => ({
       id: listing.id,
       name: listing.cardName || "Listing",
-      imageUrl: listing.imageUrl,
+      imageUrl: resolveDashboardImageUrl(listing.imageUrl),
       price: Number(listing.price || 0),
     }));
   }, [marketplaceListings]);

@@ -519,6 +519,12 @@ export default function CardDetailPage() {
               <button className="btn-secondary" onClick={handleWatchlist}>
                 ♡ Watchlist
               </button>
+              <button
+                className="btn-secondary"
+                onClick={() => router.push(`/dashboard/share?mode=card&cardId=${cardId}`)}
+              >
+                Share Flex
+              </button>
             </div>
           </div>
         </div>

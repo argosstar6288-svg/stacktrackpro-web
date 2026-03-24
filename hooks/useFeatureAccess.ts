@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useCurrentUser } from "../lib/useCurrentUser";
+import { getEffectiveSubscription } from "../lib/subscriptionAccess";
 
 interface FeatureLimits {
   scansPerMonth: number;
@@ -50,16 +51,24 @@ export function useFeatureAccess() {
       const userRef = doc(db, "users", user.uid);
       const userDoc = await getDoc(userRef);
       const userData = userDoc.data();
+      const effectiveSubscription = getEffectiveSubscription(userData);
+      const subscriptionPlan = effectiveSubscription.plan;
 
-      const subscriptionPlan =
-        userData?.subscription?.plan || "free";
-      const isLifetime = userData?.subscription?.isLifetime || false;
+      if (effectiveSubscription.shouldPersistExpiry) {
+        await updateDoc(userRef, {
+          "subscription.status": "expired",
+          "subscription.plan": "free",
+          "subscription.tier": "free",
+          "subscription.trialExpiredAt": serverTimestamp(),
+          subscriptionTier: "free",
+        });
+      }
 
       // Define limits based on plan
       let scansPerMonth = 5; // Free tier
       let unlimited = false;
 
-      if (isLifetime || subscriptionPlan === "lifetime") {
+      if (subscriptionPlan === "lifetime" || subscriptionPlan === "premium") {
         unlimited = true;
         scansPerMonth = 999999;
       } else if (subscriptionPlan === "pro") {

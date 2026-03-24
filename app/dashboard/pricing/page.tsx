@@ -1,26 +1,25 @@
 "use client";
 
 import SubscriptionPlanGrid from "@/app/components/subscription/SubscriptionPlanGrid";
-import { useCurrency } from "@/hooks/useCurrency";
-import { formatCurrency } from "@/lib/currency";
 import styles from "./pricing.module.css";
 
 export default function PricingPage() {
-  const { currency } = useCurrency();
-
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h1 className={styles.title}>Simple, Transparent Pricing</h1>
+        <h1 className={styles.title}>Choose Your StackTrack Plan</h1>
         <p className={styles.subtitle}>
-          Choose the plan that fits your card trading needs
+          Start free and scale up with Pro or Pro+/Premium as your collection grows.
         </p>
       </div>
 
       <div className={styles.disclosure}>
         <p className={styles.disclosureText}>
-          ⭐ <strong>Limited Time Offer:</strong> The Lifetime plan is available to only the first 50 customers. 
-          Lock in permanent access at <strong>{formatCurrency(299, currency, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} one-time</strong> before spots run out.
+          Why keep paying every month for something you can own forever?{' '}
+          <strong>Lifetime Subscription is $299.99 one-time.</strong>
+        </p>
+        <p className={styles.disclosureText}>
+          ⭐ <strong>Signup Bonus:</strong> Your first 30 days from signup include Premium features.
         </p>
       </div>
 
@@ -30,9 +29,11 @@ export default function PricingPage() {
 
       <div className={styles.footer}>
         <p>
-          All plans include access to our community and marketplace. 
+          All plans include access to our community and marketplace.
           Want to learn more?{" "}
           <a href="/dashboard/help">Check our FAQ</a>
+          {" "}or{" "}
+          <a href="/dashboard/help/how-values-work">see how StackTrack values cards</a>
         </p>
       </div>
     </div>

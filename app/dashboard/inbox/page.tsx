@@ -8,6 +8,7 @@ import {
   useRef,
   type KeyboardEvent,
 } from "react";
+import { useRouter } from "next/navigation";
 import {
   addDoc,
   collection,
@@ -105,6 +106,7 @@ const getStatusLabelFromTimestamp = (timestamp: number) => {
 const normalizeRecipientId = (value: string) => value.trim().replace(/^@/, "");
 
 export default function InboxPage() {
+  const router = useRouter();
   const { user, loading } = useCurrentUser();
   const [activeTab, setActiveTab] = useState<"direct" | "groups">("direct");
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
@@ -661,6 +663,18 @@ export default function InboxPage() {
     void handleStartChat();
   };
 
+  const handleViewProfile = useCallback(
+    (targetUserId: string) => {
+      const normalizedTargetId = normalizeRecipientId(targetUserId);
+      if (!normalizedTargetId) {
+        return;
+      }
+
+      router.push(`/dashboard/profile/${encodeURIComponent(normalizedTargetId)}`);
+    },
+    [router]
+  );
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const tabParam = new URLSearchParams(window.location.search).get("tab");
@@ -842,7 +856,12 @@ export default function InboxPage() {
             </div>
           </div>
           <div className={styles.chatActions}>
-            <button className={styles.secondaryButton} type="button">
+            <button
+              className={styles.secondaryButton}
+              type="button"
+              onClick={() => activeRecipientId && handleViewProfile(activeRecipientId)}
+              disabled={!activeRecipientId}
+            >
               View Profile
             </button>
             <button
@@ -974,15 +993,26 @@ export default function InboxPage() {
                         <div className={styles.searchLoading}>Searching...</div>
                       ) : searchResults.length > 0 ? (
                         searchResults.map((result) => (
-                          <button
+                          <div
                             key={result.uid}
                             className={styles.searchResultItem}
-                            type="button"
-                            onClick={() => handleSelectUser(result.uid, result.displayName)}
                           >
-                            <span className={styles.searchResultName}>{result.displayName}</span>
-                            <span className={styles.searchResultEmail}>{result.email}</span>
-                          </button>
+                            <button
+                              className={styles.searchResultMain}
+                              type="button"
+                              onClick={() => handleSelectUser(result.uid, result.displayName)}
+                            >
+                              <span className={styles.searchResultName}>{result.displayName}</span>
+                              <span className={styles.searchResultEmail}>{result.email}</span>
+                            </button>
+                            <button
+                              className={styles.searchResultAction}
+                              type="button"
+                              onClick={() => handleViewProfile(result.uid)}
+                            >
+                              View
+                            </button>
+                          </div>
                         ))
                       ) : (
                         <div className={styles.searchEmpty}>No users found</div>

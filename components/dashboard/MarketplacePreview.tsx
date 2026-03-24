@@ -14,6 +14,8 @@ interface MarketplacePreviewProps {
   loading?: boolean;
 }
 
+const PLACEHOLDER_IMAGE = "/placeholder-card.svg";
+
 export default function MarketplacePreview({ listings, loading }: MarketplacePreviewProps) {
   const { currency } = useCurrency();
 
@@ -39,7 +41,17 @@ export default function MarketplacePreview({ listings, loading }: MarketplacePre
                 <div className="scan-image" style={{ width: "46px", minHeight: "62px", marginBottom: 0 }}>
                   {listing.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={listing.imageUrl} alt={listing.name} loading="lazy" />
+                    <img
+                      src={listing.imageUrl}
+                      alt={listing.name}
+                      loading="lazy"
+                      decoding="async"
+                      onError={(event) => {
+                        const target = event.currentTarget;
+                        if (target.src.endsWith(PLACEHOLDER_IMAGE)) return;
+                        target.src = PLACEHOLDER_IMAGE;
+                      }}
+                    />
                   ) : (
                     "🃏"
                   )}

@@ -1,0 +1,195 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(280px, 0.9fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.eyebrow,
+.sectionEyebrow,
+.heroLabel {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 12px;
+}
+
+.eyebrow,
+.sectionEyebrow {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.title {
+  margin: 8px 0 12px;
+  font-size: clamp(34px, 5vw, 52px);
+  line-height: 1.02;
+}
+
+.lead {
+  max-width: 68ch;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.heroCard {
+  padding: 22px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background:
+    linear-gradient(180deg, rgba(255, 140, 0, 0.22), rgba(30, 144, 255, 0.16)),
+    rgba(255, 255, 255, 0.04);
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.24);
+}
+
+.heroLabel {
+  color: #ffd89b;
+}
+
+.heroList {
+  margin: 14px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.95fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.main,
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.panel {
+  gap: 18px;
+}
+
+.sectionHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 24px;
+}
+
+.stepList,
+.faqList,
+.linkStack {
+  display: grid;
+  gap: 14px;
+}
+
+.stepCard,
+.faqCard,
+.driverCard,
+.noteBox {
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.stepCard {
+  padding: 18px 18px 20px;
+}
+
+.stepTitle,
+.faqQuestion {
+  margin: 0 0 10px;
+  font-size: 17px;
+  line-height: 1.4;
+}
+
+.stepBody,
+.faqAnswer,
+.driverCard p,
+.noteBox p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.76);
+  line-height: 1.7;
+}
+
+.driverGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.driverCard {
+  padding: 18px;
+  min-height: 100%;
+}
+
+.noteBox {
+  padding: 20px;
+  border-color: rgba(255, 140, 0, 0.24);
+  background: linear-gradient(180deg, rgba(255, 140, 0, 0.12), rgba(255, 255, 255, 0.04));
+}
+
+.faqCard {
+  padding: 16px 16px 18px;
+}
+
+.actionLink,
+.actionLinkAlt {
+  display: block;
+  padding: 14px 16px;
+  border-radius: 14px;
+  text-decoration: none;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.actionLink {
+  color: #08111e;
+  background: linear-gradient(135deg, #ff9d2f, #ffd166);
+  font-weight: 700;
+}
+
+.actionLinkAlt {
+  color: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.actionLink:hover,
+.actionLinkAlt:hover {
+  transform: translateY(-1px);
+}
+
+.actionLinkAlt:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+@media (max-width: 980px) {
+  .hero,
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .driverGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .title {
+    font-size: 34px;
+  }
+}
