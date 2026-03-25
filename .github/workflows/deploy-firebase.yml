@@ -29,14 +29,19 @@ jobs:
       - name: Write Firebase service account key
         shell: bash
         run: |
+          if [ -z "${{ secrets.FIREBASE_SERVICE_ACCOUNT_STACKTRACKPRO }}" ]; then
+            echo "Missing FIREBASE_SERVICE_ACCOUNT_STACKTRACKPRO secret"
+            exit 1
+          fi
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_STACKTRACKPRO }}' > "$RUNNER_TEMP/firebase-key.json"
+          node -e "const fs=require('fs'); const p=process.env.RUNNER_TEMP+'/firebase-key.json'; const j=JSON.parse(fs.readFileSync(p,'utf8')); if(!j.client_email||!j.private_key||!j.project_id){ throw new Error('Invalid service account json'); } console.log('Loaded service account for project:', j.project_id);"
           echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-key.json" >> $GITHUB_ENV
 
       - name: Deploy Hosting + Firestore
         shell: bash
         run: |
           set -o pipefail
-          npx firebase-tools@latest deploy --project stacktrackpro --non-interactive --debug 2>&1 | tee firebase-deploy.log
+          npx firebase-tools@latest deploy --project stacktrackpro --only hosting --non-interactive --debug 2>&1 | tee firebase-deploy.log
 
       - name: Upload deploy log
         if: always()
