@@ -29,33 +29,47 @@ jobs:
       - name: Configure Firebase auth
         shell: bash
         run: |
-          SA_SECRET='${{ secrets.FIREBASE_SERVICE_ACCOUNT_STACKTRACKPRO }}'
-          TOKEN_SECRET='${{ secrets.FIREBASE_TOKEN }}'
+          set +e
 
-          if [ -n "$SA_SECRET" ]; then
-            # Accept either raw JSON or base64-encoded JSON.
-            if echo "$SA_SECRET" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{JSON.parse(s);process.exit(0)}catch{process.exit(1)}})"; then
-              printf '%s' "$SA_SECRET" > "$RUNNER_TEMP/firebase-key.json"
-            else
-              printf '%s' "$SA_SECRET" | base64 --decode > "$RUNNER_TEMP/firebase-key.json"
-            fi
+          # Try raw service account JSON first.
+          cat > "$RUNNER_TEMP/firebase-key.raw.json" <<'EOF'
+          ${{ secrets.FIREBASE_SERVICE_ACCOUNT_STACKTRACKPRO }}
+          EOF
 
-            node -e "const fs=require('fs'); const p=process.env.RUNNER_TEMP+'/firebase-key.json'; const j=JSON.parse(fs.readFileSync(p,'utf8')); if(!j.client_email||!j.private_key||!j.project_id){ throw new Error('Invalid service account json'); } console.log('Loaded service account for project:', j.project_id);"
+          node -e "const fs=require('fs');const p=process.env.RUNNER_TEMP+'/firebase-key.raw.json';try{const j=JSON.parse(fs.readFileSync(p,'utf8'));if(j.client_email&&j.private_key&&j.project_id){console.log('Service account JSON detected for project:', j.project_id);process.exit(0);}process.exit(1);}catch{process.exit(1);}" 
+          raw_ok=$?
+
+          if [ "$raw_ok" -eq 0 ]; then
+            cp "$RUNNER_TEMP/firebase-key.raw.json" "$RUNNER_TEMP/firebase-key.json"
             echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-key.json" >> "$GITHUB_ENV"
-            echo "FIREBASE_AUTH_MODE=service-account" >> "$GITHUB_ENV"
-          elif [ -n "$TOKEN_SECRET" ]; then
-            echo "FIREBASE_TOKEN=$TOKEN_SECRET" >> "$GITHUB_ENV"
-            echo "FIREBASE_AUTH_MODE=token" >> "$GITHUB_ENV"
-            echo "Using FIREBASE_TOKEN authentication"
+            echo "FIREBASE_AUTH_MODE=service-account-raw" >> "$GITHUB_ENV"
           else
-            echo "Missing Firebase auth secrets. Set FIREBASE_SERVICE_ACCOUNT_STACKTRACKPRO or FIREBASE_TOKEN."
-            exit 1
+            # Try base64-encoded service account JSON.
+            printf '%s' '${{ secrets.FIREBASE_SERVICE_ACCOUNT_STACKTRACKPRO }}' | base64 --decode > "$RUNNER_TEMP/firebase-key.decoded.json" 2>/dev/null
+            node -e "const fs=require('fs');const p=process.env.RUNNER_TEMP+'/firebase-key.decoded.json';try{const j=JSON.parse(fs.readFileSync(p,'utf8'));if(j.client_email&&j.private_key&&j.project_id){console.log('Service account base64 detected for project:', j.project_id);process.exit(0);}process.exit(1);}catch{process.exit(1);}" 
+            b64_ok=$?
+
+            if [ "$b64_ok" -eq 0 ]; then
+              cp "$RUNNER_TEMP/firebase-key.decoded.json" "$RUNNER_TEMP/firebase-key.json"
+              echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-key.json" >> "$GITHUB_ENV"
+              echo "FIREBASE_AUTH_MODE=service-account-base64" >> "$GITHUB_ENV"
+            elif [ -n '${{ secrets.FIREBASE_TOKEN }}' ]; then
+              echo "FIREBASE_TOKEN=${{ secrets.FIREBASE_TOKEN }}" >> "$GITHUB_ENV"
+              echo "FIREBASE_AUTH_MODE=token" >> "$GITHUB_ENV"
+              echo "Using FIREBASE_TOKEN authentication"
+            else
+              echo "No usable Firebase auth secret found; deploy step will report the final auth error."
+              echo "FIREBASE_AUTH_MODE=none" >> "$GITHUB_ENV"
+            fi
           fi
+
+          echo "Auth mode: ${FIREBASE_AUTH_MODE:-pending}"
 
       - name: Deploy Hosting + Firestore
         shell: bash
         run: |
           set -o pipefail
+          echo "Deploy auth mode: ${FIREBASE_AUTH_MODE:-unknown}"
           npx firebase-tools@latest deploy --project stacktrackpro --only hosting --non-interactive --debug 2>&1 | tee firebase-deploy.log
 
       - name: Upload deploy log
