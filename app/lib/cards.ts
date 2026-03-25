@@ -47,6 +47,7 @@ export interface Folder {
   id?: string;
   name: string;
   userId: string;
+  isPublic?: boolean;
   createdAt?: any;
 }
 
@@ -306,10 +307,20 @@ export async function createFolder(userId: string, name: string): Promise<string
   const folderRef = await addDoc(collection(db, "folders"), {
     name: trimmedName,
     userId,
+    isPublic: false,
     createdAt: serverTimestamp(),
   });
 
   return folderRef.id;
+}
+
+export async function updateFolderVisibility(folderId: string, isPublic: boolean): Promise<void> {
+  if (!folderId) throw new Error("Folder ID missing");
+
+  await updateDoc(doc(db, "folders", folderId), {
+    isPublic,
+    updatedAt: serverTimestamp(),
+  });
 }
 
 export async function getUserFolders(userId: string): Promise<Folder[]> {
@@ -404,6 +415,16 @@ export function useUserFolders() {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const refreshFolders = async () => {
+    if (!user) {
+      setFolders([]);
+      return;
+    }
+
+    const nextFolders = await getUserFolders(user.uid);
+    setFolders(nextFolders);
+  };
+
   useEffect(() => {
     if (!user) {
       setFolders([]);
@@ -424,7 +445,7 @@ export function useUserFolders() {
     return () => unsubscribe();
   }, [user]);
 
-  return { folders, loading };
+  return { folders, loading, refreshFolders };
 }
 
 // ==================== COLLECTION VALUE REFRESH ====================

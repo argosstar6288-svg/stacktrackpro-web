@@ -7,7 +7,7 @@ import { auth } from "../../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { CollectionManager } from "../../components/CollectionManager";
 import { RefreshCollectionButton } from "@/components/RefreshCollectionButton";
-import { useUserFolders, createFolder, deleteFolder, addCardToFolder, type Folder } from "@/lib/cards";
+import { useUserFolders, createFolder, deleteFolder, addCardToFolder, updateFolderVisibility, type Folder } from "@/lib/cards";
 import styles from "./collection.module.css";
 
 const sportCategories = [
@@ -31,13 +31,24 @@ export default function CollectionPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
-  const { folders, loading: foldersLoading } = useUserFolders();
+  const { folders, loading: foldersLoading, refreshFolders } = useUserFolders();
   const [showNewFolderInput, setShowNewFolderInput] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [creating, setCreating] = useState(false);
   const [selectedSport, setSelectedSport] = useState<string | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+  const [folderVisibilityFilter, setFolderVisibilityFilter] = useState<"all" | "public" | "private">("all");
   const [scanSaveMessage, setScanSaveMessage] = useState("");
+
+  const customFolders = folders.filter(
+    (folder) => !tradingCardCategories.some((category) => category.name === folder.name)
+  );
+
+  const visibleCustomFolders = customFolders.filter((folder) => {
+    if (folderVisibilityFilter === "public") return Boolean(folder.isPublic);
+    if (folderVisibilityFilter === "private") return !folder.isPublic;
+    return true;
+  });
 
   // Quick-create a default folder
   const handleQuickCreateFolder = async (folderName: string) => {
@@ -55,6 +66,7 @@ export default function CollectionPage() {
       const folderId = await createFolder(userId, folderName);
       setSelectedFolder(folderId);
       setSelectedSport(null);
+      await refreshFolders();
     } catch (error) {
       console.error("Error creating folder:", error);
       alert("Failed to create folder");
@@ -100,7 +112,7 @@ export default function CollectionPage() {
       await createFolder(userId, newFolderName);
       setNewFolderName("");
       setShowNewFolderInput(false);
-      // Folders will auto-refresh via the hook
+      await refreshFolders();
     } catch (error) {
       console.error("Error creating folder:", error);
       alert("Failed to create folder");
@@ -114,10 +126,23 @@ export default function CollectionPage() {
 
     try {
       await deleteFolder(folderId);
-      // Folders will auto-refresh via the hook
+      await refreshFolders();
     } catch (error) {
       console.error("Error deleting folder:", error);
       alert("Failed to delete folder");
+    }
+  };
+
+  const handleToggleFolderVisibility = async (folder: Folder) => {
+    if (!folder.id) return;
+
+    const nextVisibility = !folder.isPublic;
+    try {
+      await updateFolderVisibility(folder.id, nextVisibility);
+      await refreshFolders();
+    } catch (error) {
+      console.error("Error updating folder visibility:", error);
+      alert("Failed to update folder visibility");
     }
   };
 
@@ -328,22 +353,46 @@ export default function CollectionPage() {
             </div>
 
             {/* Custom Folders */}
-            {folders.length > 0 && (
+            {customFolders.length > 0 && (
               <div className={styles.sectionLabel}>
                 My Folders
               </div>
             )}
 
+            {customFolders.length > 0 && (
+              <div className={styles.visibilityFilterRow}>
+                <button
+                  type="button"
+                  className={`${styles.visibilityFilterBtn} ${folderVisibilityFilter === "all" ? styles.visibilityFilterBtnActive : ""}`}
+                  onClick={() => setFolderVisibilityFilter("all")}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.visibilityFilterBtn} ${folderVisibilityFilter === "public" ? styles.visibilityFilterBtnActive : ""}`}
+                  onClick={() => setFolderVisibilityFilter("public")}
+                >
+                  Public
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.visibilityFilterBtn} ${folderVisibilityFilter === "private" ? styles.visibilityFilterBtnActive : ""}`}
+                  onClick={() => setFolderVisibilityFilter("private")}
+                >
+                  Private
+                </button>
+              </div>
+            )}
+
             {foldersLoading ? (
               <div className={styles.folderLoading}>Loading folders...</div>
-            ) : folders.length === 0 ? (
+            ) : customFolders.length === 0 ? (
               <div className={styles.noFolders}>No folders yet</div>
+            ) : visibleCustomFolders.length === 0 ? (
+              <div className={styles.noFolders}>No folders match this filter</div>
             ) : (
-              folders.map((folder) => {
-                // Skip folders that are in the trading card categories (they're shown above)
-                const isDefaultFolder = tradingCardCategories.some(cat => cat.name === folder.name);
-                if (isDefaultFolder) return null;
-                
+              visibleCustomFolders.map((folder) => {
                 return (
                   <div
                     key={folder.id}
@@ -378,6 +427,13 @@ export default function CollectionPage() {
                       }}
                     >
                       <span>📁</span> {folder.name}
+                    </button>
+                    <button
+                      className={styles.visibilityBtn}
+                      onClick={() => handleToggleFolderVisibility(folder)}
+                      title={folder.isPublic ? "Make private" : "Make public"}
+                    >
+                      {folder.isPublic ? "Public" : "Private"}
                     </button>
                     <button
                       className={styles.deleteFolderBtn}

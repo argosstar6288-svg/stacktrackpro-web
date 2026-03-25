@@ -8,6 +8,7 @@ import {
   serverTimestamp,
   where,
 } from "firebase/firestore";
+import { getAuth as getAdminAuth } from "firebase-admin/auth";
 import { buildPriceIntelligence } from "@/lib/priceIntelligence";
 import { db } from "@/lib/firebase-server";
 import { adminDb, adminServerTimestamp } from "@/lib/firebase-admin";
@@ -44,7 +45,18 @@ const toISODate = (value: any): string | null => {
 };
 
 async function getUidFromIdToken(idToken: string): Promise<string | null> {
-  if (!idToken || !FIREBASE_WEB_API_KEY) return null;
+  if (!idToken) return null;
+
+  // Prefer Admin SDK verification so this route works even when web API key
+  // is not available in the server runtime.
+  try {
+    const decoded = await getAdminAuth().verifyIdToken(idToken);
+    if (decoded?.uid) return decoded.uid;
+  } catch {
+    // Fallback to Identity Toolkit lookup below.
+  }
+
+  if (!FIREBASE_WEB_API_KEY) return null;
 
   try {
     const response = await fetch(

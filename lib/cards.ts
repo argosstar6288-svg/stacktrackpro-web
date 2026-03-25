@@ -57,6 +57,7 @@ export interface Folder {
   id?: string;
   name: string;
   userId: string;
+  isPublic?: boolean;
   createdAt?: any;
 }
 
@@ -331,11 +332,26 @@ export async function createFolder(userId: string, name: string): Promise<string
     const docRef = await addDoc(collection(db, "folders"), {
       name: name.trim(),
       userId,
+      isPublic: false,
       createdAt: serverTimestamp(),
     });
     return docRef.id;
   } catch (error) {
     console.error("Error creating folder:", error);
+    throw error;
+  }
+}
+
+// Update a folder's visibility
+export async function updateFolderVisibility(folderId: string, isPublic: boolean): Promise<void> {
+  if (!db || !folderId) throw new Error("Folder ID missing");
+
+  try {
+    await updateDoc(doc(db, "folders", folderId), {
+      isPublic,
+    });
+  } catch (error) {
+    console.error("Error updating folder visibility:", error);
     throw error;
   }
 }
@@ -456,7 +472,24 @@ export function useUserFolders() {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const router = useRouter();
+
+  const refreshFolders = async () => {
+    if (!currentUserId) return;
+
+    try {
+      setLoading(true);
+      const userFolders = await getUserFolders(currentUserId);
+      setFolders(userFolders);
+      setError(null);
+    } catch (err) {
+      console.error("Error loading folders:", err);
+      setError(err instanceof Error ? err.message : "Failed to load folders");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -464,6 +497,8 @@ export function useUserFolders() {
         router.replace("/login");
         return;
       }
+
+      setCurrentUserId(user.uid);
 
       try {
         setLoading(true);
@@ -481,7 +516,7 @@ export function useUserFolders() {
     return () => unsubscribe();
   }, [router]);
 
-  return { folders, loading, error };
+  return { folders, loading, error, refreshFolders };
 }
 
 // ==================== COLLECTION VALUE REFRESH ====================

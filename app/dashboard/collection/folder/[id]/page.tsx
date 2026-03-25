@@ -17,15 +17,12 @@ export default function FolderViewPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [folder, setFolder] = useState<Folder | null>(null);
   const [cards, setCards] = useState<Card[]>([]);
+  const [isOwner, setIsOwner] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        router.replace("/login");
-      } else {
-        setUserId(user.uid);
-      }
+      setUserId(user?.uid ?? null);
     });
 
     return () => unsubscribe();
@@ -33,7 +30,7 @@ export default function FolderViewPage() {
 
   // Load folder and cards
   useEffect(() => {
-    if (!userId || !folderId) return;
+    if (!folderId) return;
 
     const loadData = async () => {
       try {
@@ -47,9 +44,11 @@ export default function FolderViewPage() {
         }
 
         const folderData = { id: folderDoc.id, ...folderDoc.data() } as Folder;
+        const ownerView = Boolean(userId && folderData.userId === userId);
+        setIsOwner(ownerView);
 
-        // Check permissions
-        if (folderData.userId !== userId) {
+        // Allow owners or public folders.
+        if (!ownerView && !folderData.isPublic) {
           router.push("/dashboard/collection");
           return;
         }
@@ -57,7 +56,7 @@ export default function FolderViewPage() {
         setFolder(folderData);
 
         // Get cards in folder
-        const folderCards = await getCardsInFolder(folderId, userId);
+        const folderCards = await getCardsInFolder(folderId, folderData.userId);
         setCards(folderCards);
       } catch (error) {
         console.error("Error loading folder:", error);
@@ -70,7 +69,7 @@ export default function FolderViewPage() {
   }, [userId, folderId, router]);
 
   const handleRemoveCard = async (cardId: string) => {
-    if (!userId || !folderId) return;
+    if (!userId || !folderId || !isOwner) return;
 
     if (!confirm("Remove this card from the folder?")) return;
 
@@ -114,6 +113,11 @@ export default function FolderViewPage() {
           <p style={{ color: "rgba(255,255,255,0.6)", marginTop: "0.5rem" }}>
             {cards.length} {cards.length === 1 ? "card" : "cards"} in this folder
           </p>
+          {!isOwner && folder.isPublic && (
+            <p style={{ color: "#9ed8ff", marginTop: "0.3rem", fontSize: "0.9rem" }}>
+              Public collection
+            </p>
+          )}
         </div>
       </div>
 
@@ -127,12 +131,14 @@ export default function FolderViewPage() {
             {cards.map((card) => (
               <div key={card.id}>
                 <CardItem card={card} />
-                <button
-                  onClick={() => handleRemoveCard(card.id!)}
-                  className={styles.removeBtn}
-                >
-                  Remove from Folder
-                </button>
+                {isOwner && (
+                  <button
+                    onClick={() => handleRemoveCard(card.id!)}
+                    className={styles.removeBtn}
+                  >
+                    Remove from Folder
+                  </button>
+                )}
               </div>
             ))}
           </div>

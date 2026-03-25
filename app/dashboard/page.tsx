@@ -60,6 +60,31 @@ interface FlatCollectionFolder {
   created?: any;
 }
 
+type DashboardFeature = {
+  href: string;
+  label: string;
+  description: string;
+  category: "Core" | "Tools" | "Growth";
+};
+
+const DASHBOARD_FEATURES: DashboardFeature[] = [
+  { href: "/dashboard/collection", label: "Collection", description: "Manage cards, folders, and public visibility.", category: "Core" },
+  { href: "/dashboard/scan", label: "Scan Cards", description: "Add cards quickly with AI-assisted scanning.", category: "Core" },
+  { href: "/dashboard/marketplace", label: "Marketplace", description: "List cards and browse active listings.", category: "Core" },
+  { href: "/auctions/live", label: "Live Auctions", description: "Track active auctions and place bids.", category: "Core" },
+  { href: "/dashboard/watchlist", label: "Watchlist", description: "Monitor saved targets and price moves.", category: "Core" },
+  { href: "/dashboard/inbox", label: "Messages", description: "Chat directly with buyers and sellers.", category: "Core" },
+  { href: "/dashboard/users", label: "Find Users", description: "Discover members and open profiles.", category: "Growth" },
+  { href: "/dashboard/share", label: "Flex Share", description: "Generate share-ready card and collection images.", category: "Growth" },
+  { href: "/dashboard/pricing", label: "Pricing", description: "View plans and upgrade options.", category: "Growth" },
+  { href: "/dashboard/pricing-advisor", label: "Pricing Advisor", description: "Get guidance for smarter listing prices.", category: "Tools" },
+  { href: "/dashboard/seller-tools", label: "Seller Tools", description: "Use seller workflows to improve conversions.", category: "Tools" },
+  { href: "/dashboard/seller-boosts", label: "Seller Boosts", description: "Increase listing visibility and activity.", category: "Tools" },
+  { href: "/dashboard/auto-bid", label: "Auto Bid", description: "Automate bid strategy for live auctions.", category: "Tools" },
+  { href: "/dashboard/analytics-integration", label: "Analytics", description: "Connect tracking and performance integrations.", category: "Tools" },
+  { href: "/dashboard/help", label: "Help Center", description: "Read guides and how valuation works.", category: "Growth" },
+];
+
 const toMillis = (value: any): number => {
   if (!value) return 0;
   if (typeof value.toMillis === "function") return value.toMillis();
@@ -524,6 +549,39 @@ export default function DashboardPage() {
           </p>
         </div>
       </div>
+
+      <section className="panel">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-white">Feature Hub</h2>
+            <p className="text-sm text-white/70">Quick access to current StackTrack features from one place.</p>
+          </div>
+          <Link
+            href="/dashboard/help"
+            className="inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white/90 transition hover:bg-white/20"
+          >
+            Feature Docs
+          </Link>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {DASHBOARD_FEATURES.map((feature) => (
+            <Link
+              key={feature.href}
+              href={feature.href}
+              className="rounded-2xl border border-white/15 bg-black/20 p-4 transition hover:-translate-y-0.5 hover:border-white/30 hover:bg-black/30"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-base font-semibold text-white">{feature.label}</h3>
+                <span className="rounded-full border border-sky-300/30 bg-sky-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-100">
+                  {feature.category}
+                </span>
+              </div>
+              <p className="mt-2 text-sm text-white/70">{feature.description}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       <CardGrid className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         <PortfolioValue

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { auth } from "@/lib/firebase";
 import styles from "./RefreshCollectionButton.module.css";
 
@@ -12,59 +12,59 @@ export function RefreshCollectionButton() {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const checkRefreshStatus = async () => {
-      const user = auth.currentUser;
-      if (!user) return;
+  const checkRefreshStatus = useCallback(async () => {
+    const user = auth.currentUser;
+    if (!user) return;
 
-      try {
-        const token = await user.getIdToken();
-        const response = await fetch(`/api/background-price-updater?userId=${user.uid}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch(`/api/background-price-updater?userId=${user.uid}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-        if (!response.ok) {
-          throw new Error("Failed to load updater status");
-        }
-
-        const payload = await response.json();
-        const latestJob = payload?.latestJob || null;
-
-        setNeedsUpdate(Number(payload?.cardsNeedingUpdate || 0) > 0);
-
-        if (latestJob?.completedAt) {
-          setLastRefresh(new Date(latestJob.completedAt));
-        }
-
-        if (latestJob?.status === "queued") {
-          setJobStatus("queued");
-          setStatusMessage("Background update is queued");
-        } else if (latestJob?.status === "processing") {
-          setJobStatus("processing");
-          setStatusMessage("Background update is running");
-        } else if (latestJob?.status === "completed") {
-          setJobStatus("completed");
-          setStatusMessage(
-            `Last run updated ${Number(latestJob.updatedCards || 0)} card${Number(latestJob.updatedCards || 0) === 1 ? "" : "s"}`
-          );
-        } else {
-          setJobStatus("idle");
-          setStatusMessage(null);
-        }
-      } catch (err) {
-        console.error("Error checking refresh status:", err);
+      if (!response.ok) {
+        throw new Error("Failed to load updater status");
       }
-    };
 
-    checkRefreshStatus();
+      const payload = await response.json();
+      const latestJob = payload?.latestJob || null;
+
+      setNeedsUpdate(Number(payload?.cardsNeedingUpdate || 0) > 0);
+
+      if (latestJob?.completedAt) {
+        setLastRefresh(new Date(latestJob.completedAt));
+      }
+
+      if (latestJob?.status === "queued") {
+        setJobStatus("queued");
+        setStatusMessage("Background update is queued");
+      } else if (latestJob?.status === "processing") {
+        setJobStatus("processing");
+        setStatusMessage("Background update is running");
+      } else if (latestJob?.status === "completed") {
+        setJobStatus("completed");
+        setStatusMessage(
+          `Last run updated ${Number(latestJob.updatedCards || 0)} card${Number(latestJob.updatedCards || 0) === 1 ? "" : "s"}`
+        );
+      } else {
+        setJobStatus("idle");
+        setStatusMessage(null);
+      }
+    } catch (err) {
+      console.error("Error checking refresh status:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    void checkRefreshStatus();
     
     // Check every 5 minutes
     const interval = setInterval(checkRefreshStatus, 5 * 60 * 1000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [checkRefreshStatus]);
 
   const handleRefresh = async () => {
     const user = auth.currentUser;
@@ -97,13 +97,21 @@ export function RefreshCollectionButton() {
       }
 
       const payload = await response.json();
-      setJobStatus("completed");
-      setLastRefresh(new Date());
-      setNeedsUpdate(false);
-      if (payload?.updatedCards > 0) {
-        setStatusMessage(`✅ Updated ${payload.updatedCards} card price${payload.updatedCards === 1 ? "" : "s"}`);
+      if (payload?.processedImmediately) {
+        setJobStatus("completed");
+        setLastRefresh(new Date());
+        setNeedsUpdate(false);
+        if (payload?.updatedCards > 0) {
+          setStatusMessage(`✅ Updated ${payload.updatedCards} card price${payload.updatedCards === 1 ? "" : "s"}`);
+        } else {
+          setStatusMessage("✅ Prices are up to date");
+        }
       } else {
-        setStatusMessage("✅ Prices are up to date");
+        setJobStatus("queued");
+        setStatusMessage("Background update queued. Checking progress...");
+        setTimeout(() => {
+          void checkRefreshStatus();
+        }, 2000);
       }
     } catch (err) {
       console.error("Error refreshing collection:", err);

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useCurrentUser } from "@/lib/useCurrentUser";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import styles from "./user-profile.module.css";
 
 type UserProfileSummary = {
@@ -14,11 +16,17 @@ type UserProfileSummary = {
   lastName?: string;
 };
 
+type PublicCollectionFolder = {
+  id: string;
+  name: string;
+};
+
 export default function UserProfilePage() {
   const params = useParams<{ uid: string }>();
   const router = useRouter();
   const { user, loading: authLoading } = useCurrentUser();
   const [profile, setProfile] = useState<UserProfileSummary | null>(null);
+  const [publicFolders, setPublicFolders] = useState<PublicCollectionFolder[]>([]);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [error, setError] = useState("");
 
@@ -82,11 +90,24 @@ export default function UserProfilePage() {
 
         if (!cancelled) {
           setProfile(payload.result as UserProfileSummary);
+
+          const publicFoldersQuery = query(
+            collection(db, "folders"),
+            where("userId", "==", targetUserId),
+            where("isPublic", "==", true)
+          );
+          const publicFoldersSnapshot = await getDocs(publicFoldersQuery);
+          const nextFolders = publicFoldersSnapshot.docs.map((snapshot) => ({
+            id: snapshot.id,
+            name: String((snapshot.data() as any)?.name || "Collection"),
+          }));
+          setPublicFolders(nextFolders);
         }
       } catch (loadError) {
         console.error("Error loading user profile:", loadError);
         if (!cancelled) {
           setProfile(null);
+          setPublicFolders([]);
           setError("Unable to load user profile.");
         }
       } finally {
@@ -143,6 +164,23 @@ export default function UserProfilePage() {
             <span className={styles.detailValue}>{profile.email || "Not shared"}</span>
           </div>
         </div>
+
+        {publicFolders.length > 0 && (
+          <div className={styles.publicCollections}>
+            <p className={styles.publicCollectionsTitle}>Public Collections</p>
+            <div className={styles.publicCollectionsList}>
+              {publicFolders.map((folder) => (
+                <Link
+                  key={folder.id}
+                  className={styles.publicCollectionLink}
+                  href={`/dashboard/collection/folder/${encodeURIComponent(folder.id)}`}
+                >
+                  {folder.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className={styles.actions}>
           <Link

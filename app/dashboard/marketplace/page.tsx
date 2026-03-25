@@ -17,6 +17,8 @@ import {
   doc
 } from "firebase/firestore";
 import { FLAT_COLLECTIONS } from "@/lib/flatCollections";
+import { formatCurrency } from "@/lib/currency";
+import { useCurrency } from "@/hooks/useCurrency";
 import styles from "./marketplace.module.css";
 
 interface Listing {
@@ -83,6 +85,7 @@ const normalizeListing = (id: string, data: any): Listing => {
 };
 
 export default function MarketplacePage() {
+  const { currency } = useCurrency();
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [listings, setListings] = useState<Listing[]>([]);
@@ -380,6 +383,16 @@ export default function MarketplacePage() {
                     }
                   />
                 )}
+
+                {(listing.listingType === "sell" || listing.listingType === "both") ? (
+                  <div className={styles.listingPrice}>
+                    {Number(listing.price || 0) > 0
+                      ? formatCurrency(Number(listing.price || 0), currency)
+                      : "Price pending"}
+                  </div>
+                ) : listing.listingType === "trade" ? (
+                  <div className={styles.listingPrice}>Trade Only</div>
+                ) : null}
 
                 <div className={styles.listingIdentifier}>
                   {listing.cards && listing.cards.length > 1

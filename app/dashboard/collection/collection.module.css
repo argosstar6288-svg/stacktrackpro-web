@@ -305,6 +305,21 @@
   color: #ff6464;
 }
 
+.visibilityBtn {
+  border: 1px solid rgba(79, 195, 247, 0.35);
+  background: rgba(79, 195, 247, 0.14);
+  color: #b9e8ff;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.visibilityBtn:hover {
+  background: rgba(79, 195, 247, 0.22);
+}
+
 .folderLoading,
 .noFolders {
   padding: 0.75rem;
@@ -321,6 +336,29 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: 600;
+}
+
+.visibilityFilterRow {
+  display: flex;
+  gap: 6px;
+  margin: 0.4rem 0 0.6rem;
+}
+
+.visibilityFilterBtn {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.75);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.visibilityFilterBtnActive {
+  border-color: rgba(79, 195, 247, 0.6);
+  background: rgba(79, 195, 247, 0.2);
+  color: #d7f1ff;
 }
 
 /* Card Grid (for folder view) */
