@@ -26,16 +26,31 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Write Firebase service account key
+      - name: Configure Firebase auth
         shell: bash
         run: |
-          if [ -z "${{ secrets.FIREBASE_SERVICE_ACCOUNT_STACKTRACKPRO }}" ]; then
-            echo "Missing FIREBASE_SERVICE_ACCOUNT_STACKTRACKPRO secret"
+          SA_SECRET='${{ secrets.FIREBASE_SERVICE_ACCOUNT_STACKTRACKPRO }}'
+          TOKEN_SECRET='${{ secrets.FIREBASE_TOKEN }}'
+
+          if [ -n "$SA_SECRET" ]; then
+            # Accept either raw JSON or base64-encoded JSON.
+            if echo "$SA_SECRET" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{JSON.parse(s);process.exit(0)}catch{process.exit(1)}})"; then
+              printf '%s' "$SA_SECRET" > "$RUNNER_TEMP/firebase-key.json"
+            else
+              printf '%s' "$SA_SECRET" | base64 --decode > "$RUNNER_TEMP/firebase-key.json"
+            fi
+
+            node -e "const fs=require('fs'); const p=process.env.RUNNER_TEMP+'/firebase-key.json'; const j=JSON.parse(fs.readFileSync(p,'utf8')); if(!j.client_email||!j.private_key||!j.project_id){ throw new Error('Invalid service account json'); } console.log('Loaded service account for project:', j.project_id);"
+            echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-key.json" >> "$GITHUB_ENV"
+            echo "FIREBASE_AUTH_MODE=service-account" >> "$GITHUB_ENV"
+          elif [ -n "$TOKEN_SECRET" ]; then
+            echo "FIREBASE_TOKEN=$TOKEN_SECRET" >> "$GITHUB_ENV"
+            echo "FIREBASE_AUTH_MODE=token" >> "$GITHUB_ENV"
+            echo "Using FIREBASE_TOKEN authentication"
+          else
+            echo "Missing Firebase auth secrets. Set FIREBASE_SERVICE_ACCOUNT_STACKTRACKPRO or FIREBASE_TOKEN."
             exit 1
           fi
-          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_STACKTRACKPRO }}' > "$RUNNER_TEMP/firebase-key.json"
-          node -e "const fs=require('fs'); const p=process.env.RUNNER_TEMP+'/firebase-key.json'; const j=JSON.parse(fs.readFileSync(p,'utf8')); if(!j.client_email||!j.private_key||!j.project_id){ throw new Error('Invalid service account json'); } console.log('Loaded service account for project:', j.project_id);"
-          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-key.json" >> $GITHUB_ENV
 
       - name: Deploy Hosting + Firestore
         shell: bash
