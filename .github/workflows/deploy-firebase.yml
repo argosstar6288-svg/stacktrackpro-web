@@ -33,4 +33,14 @@ jobs:
           echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-key.json" >> $GITHUB_ENV
 
       - name: Deploy Hosting + Firestore
-        run: npx firebase-tools@latest deploy --project stacktrackpro
+        shell: bash
+        run: |
+          set -o pipefail
+          npx firebase-tools@latest deploy --project stacktrackpro --non-interactive --debug 2>&1 | tee firebase-deploy.log
+
+      - name: Upload deploy log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: firebase-deploy-log
+          path: firebase-deploy.log
