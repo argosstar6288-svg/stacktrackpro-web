@@ -26,14 +26,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
-        run: npm run build
-
       - name: Write Firebase service account key
         shell: bash
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_STACKTRACKPRO }}' > "$RUNNER_TEMP/firebase-key.json"
           echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-key.json" >> $GITHUB_ENV
+
+      - name: Build
+        run: npm run build
 
       - name: Deploy Hosting + Firestore
         run: npx firebase-tools@latest deploy --project stacktrackpro
