@@ -36,6 +36,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -55,23 +57,20 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_STACKTRACKPRO }}
+
       - name: Deploy PR Preview Channel
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         shell: bash
         run: |
-          if [ -z "$FIREBASE_TOKEN" ]; then
-            echo "FIREBASE_TOKEN is not set. Skipping preview deploy."
-            exit 0
-          fi
-
           CHANNEL_ID="pr-${{ github.event.pull_request.number }}"
           firebase hosting:channel:deploy "$CHANNEL_ID" \
             --project stacktrackpro \
             --only hosting \
             --expires 7d \
-            --non-interactive \
-            --token "$FIREBASE_TOKEN" | tee preview-deploy.log
+            --non-interactive | tee preview-deploy.log
 
           PREVIEW_URL=$(grep -Eo 'https://[^ ]+web\.app' preview-deploy.log | tail -n 1 || true)
           if [ -n "$PREVIEW_URL" ]; then
@@ -83,6 +82,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -102,7 +103,10 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_STACKTRACKPRO }}
+
       - name: Deploy to Firebase Hosting + Functions
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-        run: firebase deploy --only hosting,functions --project stacktrackpro --non-interactive --force --token "$FIREBASE_TOKEN"
+        run: firebase deploy --only hosting,functions --project stacktrackpro --non-interactive --force
