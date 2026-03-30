@@ -45,7 +45,9 @@ const MAX_CARDS_PER_BATCH = 50;
 const CONDITION_OPTIONS = ["Mint", "Excellent", "Good", "Fair", "Poor", "Near Mint"];
 
 function getScanErrorMessage(errorData: any): string {
-  const errorMessage = String(errorData?.message || errorData?.error || "Failed to scan");
+  const errorMessage = String(
+    errorData?.message || errorData?.details || errorData?.error || "Failed to scan"
+  );
 
   if (errorData?.quotaExceeded) {
     return errorData?.message || "AI scan limit reached for your account. Upgrade your plan or add cards manually.";
@@ -486,6 +488,49 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
             );
 
             if (!resolvedBlockingError) {
+              const aiOnlyResponse = await fetch("/api/scan-card-v2", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  image,
+                  userId: effectiveUserId,
+                  scanMode: "standard",
+                  useFastPath: false,
+                  aiVisionOnly: true,
+                }),
+              });
+
+              if (aiOnlyResponse.ok) {
+                finalResponse = aiOnlyResponse;
+              } else {
+                let aiOnlyErrorData: any = null;
+                try {
+                  aiOnlyErrorData = await aiOnlyResponse.json();
+                } catch {
+                  aiOnlyErrorData = { error: "Failed to scan" };
+                }
+
+                const aiOnlyMessage = normalizeErrorText(getScanErrorMessage(aiOnlyErrorData));
+                const aiOnlyConfigurationError =
+                  String(aiOnlyErrorData?.error || "").toLowerCase().includes("api key not configured") ||
+                  String(aiOnlyErrorData?.debug || "").toLowerCase().includes("openai_api_key") ||
+                  String(aiOnlyErrorData?.message || "").toLowerCase().includes("not properly configured") ||
+                  String(aiOnlyErrorData?.details || "").toLowerCase().includes("not configured");
+
+                resolvedErrorMessage = aiOnlyMessage || resolvedErrorMessage;
+                resolvedBlockingError =
+                  resolvedBlockingError ||
+                  Boolean(
+                    aiOnlyErrorData?.quotaExceeded ||
+                      aiOnlyErrorData?.providerQuotaExceeded ||
+                      aiOnlyConfigurationError
+                  );
+              }
+            }
+
+            if (!resolvedBlockingError && !finalResponse.ok) {
               const legacyResponse = await fetch("/api/scan-card", {
                 method: "POST",
                 headers: {

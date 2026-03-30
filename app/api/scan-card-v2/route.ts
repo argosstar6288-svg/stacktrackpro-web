@@ -332,10 +332,28 @@ export async function POST(request: NextRequest) {
       } catch (aiError) {
         console.error("[Scan API] AI Vision failed:", aiError);
 
+        const aiMessage = aiError instanceof Error ? aiError.message : "Unknown error";
+        const normalizedAiMessage = String(aiMessage).toLowerCase();
+        const providerQuotaExceeded =
+          normalizedAiMessage.includes("insufficient_quota") ||
+          normalizedAiMessage.includes("exceeded your current quota") ||
+          normalizedAiMessage.includes("billing");
+        const configurationError =
+          normalizedAiMessage.includes("api key not configured") ||
+          normalizedAiMessage.includes("invalid api key") ||
+          normalizedAiMessage.includes("incorrect api key");
+
         return corsResponse(
           {
-            error: "Failed to identify card",
-            details: aiError instanceof Error ? aiError.message : "Unknown error",
+            error: providerQuotaExceeded
+              ? "AI scanning is temporarily unavailable due to service billing limits"
+              : configurationError
+              ? "AI scanning is temporarily unavailable on this deployment"
+              : "Failed to identify card",
+            message: aiMessage,
+            details: aiMessage,
+            providerQuotaExceeded,
+            configurationError,
           },
           500
         );
