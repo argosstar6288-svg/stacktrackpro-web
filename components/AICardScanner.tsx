@@ -462,6 +462,10 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
             }),
           });
 
+          let finalResponse = response;
+          let resolvedErrorMessage = "Failed to identify card";
+          let resolvedBlockingError = false;
+
           if (!response.ok) {
             let errorData: any = null;
             try {
@@ -476,17 +480,63 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
               String(errorData?.debug || "").toLowerCase().includes("openai_api_key") ||
               String(errorData?.message || "").toLowerCase().includes("not properly configured");
 
-            scanOutcomes.push({
-              ok: false,
-              index,
-              message,
-              latencyMs: Math.round(performance.now() - requestStartedAt),
-              blocking: Boolean(errorData?.quotaExceeded || errorData?.providerQuotaExceeded || isConfigurationError),
-            });
-            continue;
+            resolvedErrorMessage = message;
+            resolvedBlockingError = Boolean(
+              errorData?.quotaExceeded || errorData?.providerQuotaExceeded || isConfigurationError
+            );
+
+            if (!resolvedBlockingError) {
+              const legacyResponse = await fetch("/api/scan-card", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  image,
+                  userId: effectiveUserId,
+                }),
+              });
+
+              if (legacyResponse.ok) {
+                finalResponse = legacyResponse;
+              } else {
+                let legacyErrorData: any = null;
+                try {
+                  legacyErrorData = await legacyResponse.json();
+                } catch {
+                  legacyErrorData = { error: "Failed to scan" };
+                }
+
+                const legacyMessage = normalizeErrorText(getScanErrorMessage(legacyErrorData));
+                const legacyConfigurationError =
+                  String(legacyErrorData?.error || "").toLowerCase().includes("api key not configured") ||
+                  String(legacyErrorData?.debug || "").toLowerCase().includes("openai_api_key") ||
+                  String(legacyErrorData?.message || "").toLowerCase().includes("not properly configured");
+
+                resolvedErrorMessage = legacyMessage || resolvedErrorMessage;
+                resolvedBlockingError =
+                  resolvedBlockingError ||
+                  Boolean(
+                    legacyErrorData?.quotaExceeded ||
+                      legacyErrorData?.providerQuotaExceeded ||
+                      legacyConfigurationError
+                  );
+              }
+            }
+
+            if (!finalResponse.ok) {
+              scanOutcomes.push({
+                ok: false,
+                index,
+                message: resolvedErrorMessage,
+                latencyMs: Math.round(performance.now() - requestStartedAt),
+                blocking: resolvedBlockingError,
+              });
+              continue;
+            }
           }
 
-          const result: CardScanResult = await response.json();
+          const result: CardScanResult = await finalResponse.json();
           result.imageUrl = image;
           result.photoUrl = image;
 
