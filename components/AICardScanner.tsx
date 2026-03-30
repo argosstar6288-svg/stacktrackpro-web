@@ -680,7 +680,31 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
             return;
           }
 
-          skippedCards.push(`Card ${outcome.index + 1}: ${"message" in outcome ? outcome.message : "Scan failed"}`);
+          const fallbackImage =
+            selectedOriginalImages[outcome.index] ||
+            selectedImages[outcome.index] ||
+            "";
+          const fallbackLabel = selectedFileLabels[outcome.index] || `Card ${outcome.index + 1}`;
+
+          results.push({
+            name: `Unidentified Card (${fallbackLabel})`,
+            player: "Unknown Player",
+            cardNumber: "",
+            setName: "",
+            year: new Date().getFullYear(),
+            brand: "Unknown",
+            sport: "Other",
+            condition: "Good",
+            isGraded: false,
+            estimatedValue: 0,
+            confidence: 0.05,
+            imageUrl: fallbackImage,
+            photoUrl: fallbackImage,
+          });
+
+          skippedCards.push(
+            `Card ${outcome.index + 1}: ${"message" in outcome ? outcome.message : "Scan failed"} (added as Unidentified Card)`
+          );
         });
 
       if (blockingError) {
@@ -715,7 +739,9 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
       setScannerView(results.length > 1 || bulkMode ? "bulk" : "result");
 
       if (skippedCards.length > 0) {
-        setError(`Successfully scanned ${results.length} card(s). Skipped ${skippedCards.length}: ${skippedCards.join(", ")}`);
+        setError(
+          `Scanned ${results.length} card(s). ${skippedCards.length} used fallback identification and need manual review: ${skippedCards.join(", ")}`
+        );
       }
     } catch (scanError) {
       setError(scanError instanceof Error ? scanError.message : "Failed to scan cards");
