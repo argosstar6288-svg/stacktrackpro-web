@@ -1,0 +1,485 @@
+import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * Scan Pipeline Orchestrator
+ * 
+ * Coordinates between:
+ * 1. Python FastAPI AI Service (YOLO + EasyOCR)
+ * 2. Node.js Matching Engine (Fuse.js identification)
+ * 3. Pricing Engine (eBay + PriceCharting)
+ * 
+ * Flow:
+ * Image → AI Service → OCR Text → Matching Engine → Price Lookup → Result
+ */
+
+
+// Service URLs (configure via environment variables)
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:8000";
+const MATCHING_ENGINE_URL = process.env.MATCHING_ENGINE_URL || "http://localhost:3002";
+const PRICING_ENGINE_URL = MATCHING_ENGINE_URL; // Same server as matching engine
+
+// Timeout configs (in milliseconds) - prevent hanging requests
+const AI_SERVICE_TIMEOUT = 5000;    // 5s max for AI service
+const MATCHING_TIMEOUT = 2000;      // 2s max for matching
+const PRICING_TIMEOUT = 3000;       // 3s max for pricing (non-blocking)
+interface AIScanResponse {
+  success: boolean;
+  detected: boolean;
+  text: string;
+  detections: Array<any>;
+  confidence: number;
+  bounds?: number[];
+  image_shape?: number[];
+  error?: string;
+}
+
+interface MatchingResponse {
+  success: boolean;
+  card?: {
+    id: string;
+    name: string;
+    player: string;
+    team: string;
+    cardNumber: string;
+    year: number;
+    set: string;
+    rarity: string;
+    game: string;
+    price: number;
+  };
+  confidence?: number;
+  autoSelected?: boolean;
+  signals?: {
+    textMatches: number;
+    yoloDetections: number;
+  };
+  error?: string;
+}
+
+interface PricingResponse {
+  success: boolean;
+  estimatedPrice: number;
+  source: string;
+  sources: any;
+  error?: string;
+}
+
+/**
+ * Detect game type from OCR text
+ */
+function detectGameType(text: string): "pokemon" | "sports" | "magic" | "yugioh" {
+  const lower = text.toLowerCase();
+
+  // Pokemon keywords
+  if (
+    lower.includes("pokemon") ||
+    lower.includes("pikachu") ||
+    lower.includes("charizard") ||
+    lower.includes("blastoise") ||
+    lower.includes("hp")
+  ) {
+    return "pokemon";
+  }
+
+  // Yu-Gi-Oh keywords
+  if (
+    lower.includes("yu-gi-oh") ||
+    lower.includes("yugioh") ||
+    lower.includes("blue-eyes") ||
+    lower.includes("dark magician")
+  ) {
+    return "yugioh";
+  }
+
+  // Magic keywords
+  if (
+    lower.includes("magic") ||
+    lower.includes("mana") ||
+    lower.includes("mtg") ||
+    lower.includes("gatherer")
+  ) {
+    return "magic";
+  }
+
+  // Sports keywords
+  if (
+    lower.includes("baseball") ||
+    lower.includes("football") ||
+    lower.includes("basketball") ||
+    lower.includes("hockey") ||
+    lower.match(/\d{4}\s+(topps|panini|fleer|upper deck)/) ||
+    lower.includes("rookie")
+  ) {
+    return "sports";
+  }
+
+  // Default
+  return "pokemon";
+}
+
+/**
+ * POST /api/scan-pipeline
+ * 
+ * Request:
+ * - multipart/form-data with 'file' containing image
+ * - Optional: gameType query param
+ * 
+ * Response:
+ * {
+ *   success: boolean,
+ *   pipeline: {
+ *     aiService: { ... },
+ *     matching: { ... },
+ *     pricing: { ... }
+ *   },
+ *   result: {
+ *     card: { ... },
+ *     estimatedPrice: number,
+ *     confidence: number
+ *   },
+ *   timing: {
+ *     aiService: number,
+ *     matching: number,
+ *     pricing: number,
+ *     total: number
+ *   }
+ * }
+ */
+export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  const timings = {
+    aiService: 0,
+    matching: 0,
+    pricing: 0,
+    total: 0
+  };
+  /**
+   * POST /api/scan-pipeline/fast-match
+   * Fast text-only matching (skip AI service)
+   * Useful for manual text input or quick identification
+   */
+  export async function POST(request: NextRequest) {
+    const url = request.nextUrl.pathname;
+  
+    // Route to fast-match if requested
+    if (url.includes("/fast-match")) {
+      return handleFastMatch(request);
+    }
+
+    // Otherwise use full pipeline
+    return handleFullPipeline(request);
+  }
+
+  async function handleFastMatch(request: NextRequest) {
+    const startTime = Date.now();
+  
+    try {
+      const body = await request.json();
+      const { text, gameType: gameTypeParam } = body;
+
+      if (!text || text.trim().length === 0) {
+        return NextResponse.json(
+          { success: false, error: "Text is required" },
+          { status: 400 }
+        );
+      }
+
+      const gameType = gameTypeParam || detectGameType(text);
+      console.log(`⚡ Fast match: "${text}" (${gameType})`);
+  try {
+      // Direct match without AI service
+      const matchStartTime = Date.now();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), MATCHING_TIMEOUT);
+    // Parse form data
+      try {
+        const matchResponse = await fetch(`${MATCHING_ENGINE_URL}/identify-multi-signal`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text,
+            yoloDetections: [],
+            gameType
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+    const formData = await request.formData();
+        if (!matchResponse.ok) {
+          return NextResponse.json(
+            { success: false, error: "Matching failed" },
+            { status: 500 }
+          );
+        }
+    const file = formData.get("file") as File;
+        const matchData = await matchResponse.json();
+        const totalTime = Date.now() - startTime;
+    const gameTypeParam = request.nextUrl.searchParams.get("gameType");
+        return NextResponse.json(
+          {
+            success: matchData.success,
+            result: matchData.success ? {
+              card: matchData.card,
+              cardName: matchData.card?.name,
+              confidence: matchData.confidence,
+              estimatedPrice: matchData.card?.price || 0,
+              priceSource: "catalog",
+              game: gameType
+            } : null,
+            timing: { total: totalTime }
+          },
+          { status: 200 }
+        );
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+      }
+    } catch (error) {
+      console.error("Fast match error:", error);
+      return NextResponse.json(
+        {
+          success: false,
+          error: error instanceof Error ? error.message : "Fast match failed"
+        },
+        { status: 500 }
+      );
+    }
+  }
+
+  async function handleFullPipeline(request: NextRequest) {
+    const startTime = Date.now();
+
+    if (!file) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "No file provided"
+        },
+        { status: 400 }
+      );
+    }
+
+    // Step 1: Send to AI Service
+    console.log("🤖 Sending to AI Service...");
+    const aiStartTime = Date.now();
+
+    const aiFormData = new FormData();
+    aiFormData.append("file", file);
+
+    const aiResponse = await fetch(`${AI_SERVICE_URL}/scan`, {
+      method: "POST",
+      body: aiFormData
+    });
+
+    timings.aiService = Date.now() - aiStartTime;
+
+    if (!aiResponse.ok) {
+      const errorData = await aiResponse.json();
+      console.error("AI Service error:", errorData);
+      return NextResponse.json(
+        {
+          success: false,
+          error: "AI Service failed",
+          details: errorData
+        },
+        { status: 500 }
+      );
+    }
+
+    const aiData: AIScanResponse = await aiResponse.json();
+    console.log("✅ AI Service response:", {
+      detected: aiData.detected,
+      textLength: aiData.text?.length || 0,
+      detectionsCount: aiData.detections?.length || 0,
+      confidence: aiData.confidence
+    });
+
+    // Step 2: Match using Matching Engine
+    console.log("🧠 Sending to Matching Engine...");
+    const matchStartTime = Date.now();
+
+    // Auto-detect game type from OCR text if not provided
+    const gameType = gameTypeParam || detectGameType(aiData.text);
+    console.log(`🎮 Detected game type: ${gameType}`);
+
+    const matchResponse = await fetch(`${MATCHING_ENGINE_URL}/identify-multi-signal`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        text: aiData.text,
+        yoloDetections: aiData.detections || [],
+        gameType
+      })
+    });
+
+    timings.matching = Date.now() - matchStartTime;
+
+    if (!matchResponse.ok) {
+      const errorData = await matchResponse.json();
+      console.error("Matching Engine error:", errorData);
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Matching Engine failed",
+          pipeline: {
+            aiService: aiData,
+            matching: errorData
+          }
+        },
+        { status: 500 }
+      );
+    }
+
+    const matchData: MatchingResponse = await matchResponse.json();
+    console.log("✅ Matching Engine response:", {
+      success: matchData.success,
+      cardName: matchData.card?.name,
+      confidence: matchData.confidence,
+      autoSelected: matchData.autoSelected
+    });
+
+    // Step 3: Get Pricing
+    let pricingData: PricingResponse | null = null;
+
+    if (matchData.success && matchData.card) {
+      console.log("💰 Fetching pricing...");
+      const pricingStartTime = Date.now();
+
+      try {
+        // Create fetch with timeout using AbortController
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        try {
+          const pricingResponse = await fetch(
+            `${PRICING_ENGINE_URL}/pricing/estimate`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                card: matchData.card,
+                gameType
+              }),
+              signal: controller.signal
+            }
+          );
+          clearTimeout(timeoutId);
+
+          if (pricingResponse.ok) {
+            pricingData = await pricingResponse.json();
+            timings.pricing = Date.now() - pricingStartTime;
+            console.log("✅ Pricing fetched:", {
+              estimatedPrice: pricingData?.estimatedPrice,
+              source: pricingData?.source
+            });
+          }
+        } catch (error) {
+          if (error instanceof Error && error.name === "AbortError") {
+            console.warn("⚠️ Pricing timeout (5s)");
+          } else {
+            console.warn("⚠️ Pricing fetch failed (non-blocking):", error);
+          }
+          // Continue without pricing data
+        }
+      } catch (outerError) {
+        console.warn("⚠️ Pricing endpoint error:", outerError);
+        // Continue without pricing data
+      }
+    }
+
+    timings.total = Date.now() - startTime;
+
+    // Success response
+    return NextResponse.json(
+      {
+        success: matchData.success,
+        result: {
+          card: matchData.card,
+          cardName: matchData.card?.name,
+          confidence: matchData.confidence,
+          autoSelected: matchData.autoSelected,
+          estimatedPrice: pricingData?.estimatedPrice || matchData.card?.price || 0,
+          priceSource: pricingData?.source || "catalog",
+          game: gameType
+        },
+        pipeline: {
+          aiService: {
+            success: aiData.success,
+            detected: aiData.detected,
+            textLength: aiData.text?.length || 0,
+            detectionsCount: aiData.detections?.length || 0,
+            confidence: aiData.confidence
+          },
+          matching: {
+            success: matchData.success,
+            cardFound: !!matchData.card,
+            confidence: matchData.confidence,
+            signals: matchData.signals
+          },
+          pricing: pricingData ? {
+            success: pricingData.success,
+            source: pricingData.source,
+            price: pricingData.estimatedPrice
+          } : null
+        },
+        timing: timings,
+        metadata: {
+          timestamp: new Date().toISOString(),
+          services: {
+            ai: AI_SERVICE_URL,
+            matching: MATCHING_ENGINE_URL
+          }
+        }
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Pipeline error:", error);
+    timings.total = Date.now() - startTime;
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Pipeline orchestration failed",
+        message: error instanceof Error ? error.message : String(error),
+        timing: timings
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * GET /api/scan-pipeline/health
+ * Check health of all services
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const [aiHealth, matchingHealth] = await Promise.all([
+      fetch(`${AI_SERVICE_URL}/health`).then(r => r.json()).catch(() => ({ status: "unavailable" })),
+      fetch(`${MATCHING_ENGINE_URL}/health`).then(r => r.json()).catch(() => ({ status: "unavailable" }))
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      services: {
+        ai: aiHealth,
+        matching: matchingHealth
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Health check failed",
+        message: error instanceof Error ? error.message : String(error)
+      },
+      { status: 500 }
+    );
+  }
+}
