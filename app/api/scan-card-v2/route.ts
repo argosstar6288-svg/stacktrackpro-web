@@ -48,6 +48,29 @@ interface CardScanResult {
   confidence: number;
 }
 
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  label: string
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error(`${label} timeout after ${timeoutMs}ms`));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
+}
+
 function resolveGamesForScan(input: {
   sport?: string;
   name?: string;
@@ -495,10 +518,13 @@ Return ONLY raw JSON (no markdown). If the card is TCG and not a sports card, se
  */
 export async function POST(request: NextRequest) {
   const startTime = performance.now();
+  const isInstantRequestTimeoutMs = 12_000;
+  const standardRequestTimeoutMs = 20_000;
 
   try {
     const { image, userId, scanMode, useFastPath = true, aiVisionOnly = false } = await request.json();
     const isInstantMode = scanMode === "instant";
+    const requestTimeoutMs = isInstantMode ? isInstantRequestTimeoutMs : standardRequestTimeoutMs;
 
     console.log("[Scan API] Request received", {
       mode: isInstantMode ? "instant" : "standard",
@@ -585,9 +611,13 @@ export async function POST(request: NextRequest) {
       const pipelineStart = performance.now();
 
       try {
-        const pipelineResult = await hybridScanPipeline(image, {
-          timeoutMs: isInstantMode ? 800 : 1500,
-        });
+        const pipelineResult = await withTimeout(
+          hybridScanPipeline(image, {
+            timeoutMs: isInstantMode ? 800 : 1500,
+          }),
+          isInstantMode ? 2500 : 4000,
+          "hybrid pipeline"
+        );
 
         timings.hybrid = performance.now() - pipelineStart;
 
@@ -619,7 +649,14 @@ export async function POST(request: NextRequest) {
     // === Step 2: Local OCR->DNA fallback for all catalog types ===
     if (!scanResult) {
       const localDnaStart = performance.now();
-      const localDnaResult = await findCatalogMatchFromOCR(image);
+      const localDnaResult = await withTimeout(
+        findCatalogMatchFromOCR(image),
+        isInstantMode ? 2500 : 5000,
+        "local DNA"
+      ).catch((err) => {
+        console.warn("[Scan API] Local DNA timed out or failed:", err);
+        return null;
+      });
       timings.local_dna = performance.now() - localDnaStart;
       if (localDnaResult) {
         scanResult = localDnaResult;
@@ -633,7 +670,14 @@ export async function POST(request: NextRequest) {
     // === Step 3: OCR text + Fuse fuzzy fallback ===
     if (!scanResult) {
       const fuseStart = performance.now();
-      const fuseResult = await findCatalogMatchWithFuse(image);
+      const fuseResult = await withTimeout(
+        findCatalogMatchWithFuse(image),
+        isInstantMode ? 2000 : 4000,
+        "local fuse"
+      ).catch((err) => {
+        console.warn("[Scan API] Local Fuse timed out or failed:", err);
+        return null;
+      });
       timings.local_fuse = performance.now() - fuseStart;
       if (fuseResult) {
         scanResult = fuseResult;
@@ -650,7 +694,11 @@ export async function POST(request: NextRequest) {
       const aiStart = performance.now();
 
       try {
-        scanResult = await callOpenAIVision(image, isInstantMode);
+        scanResult = await withTimeout(
+          callOpenAIVision(image, isInstantMode),
+          isInstantMode ? 8000 : 12000,
+          "openai vision"
+        );
         timings.ai_vision = performance.now() - aiStart;
         scanMethod = "ai_vision";
 
@@ -675,13 +723,15 @@ export async function POST(request: NextRequest) {
               ? "AI scanning is temporarily unavailable due to service billing limits"
               : configurationError
               ? "AI scanning is temporarily unavailable on this deployment"
+              : normalizedAiMessage.includes("timeout")
+              ? "Scanning timed out. Please try a clearer, closer photo."
               : "Failed to identify card",
             message: aiMessage,
             details: aiMessage,
             providerQuotaExceeded,
             configurationError,
           },
-          500
+          normalizedAiMessage.includes("timeout") ? 504 : 500
         );
       }
     }
@@ -699,14 +749,18 @@ export async function POST(request: NextRequest) {
 
     // === Override AI estimate with PriceCharting market value ===
     try {
-      const pcPrice = await fetchPriceChartingValue({
-        name: scanResult.name,
-        player: scanResult.player,
-        year: scanResult.year,
-        brand: scanResult.brand,
-        sport: scanResult.sport,
-        condition: scanResult.condition,
-      });
+      const pcPrice = await withTimeout(
+        fetchPriceChartingValue({
+          name: scanResult.name,
+          player: scanResult.player,
+          year: scanResult.year,
+          brand: scanResult.brand,
+          sport: scanResult.sport,
+          condition: scanResult.condition,
+        }),
+        2000,
+        "pricecharting"
+      );
       if (pcPrice != null && pcPrice > 0) {
         scanResult.estimatedValue = pcPrice;
         console.log(`[Scan API] PriceCharting price $${pcPrice} used for ${scanResult.name}`);
@@ -717,6 +771,16 @@ export async function POST(request: NextRequest) {
 
     // === Return result ===
     const totalTime = performance.now() - startTime;
+    if (totalTime > requestTimeoutMs) {
+      return corsResponse(
+        {
+          error: "Scan request timed out",
+          message: "Scanning took too long. Please retry with a clearer, cropped image.",
+        },
+        504
+      );
+    }
+
     timings.total = totalTime;
 
     console.log(

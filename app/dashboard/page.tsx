@@ -347,6 +347,20 @@ export default function DashboardPage() {
         setMarketplaceListings(normalizedMarketplace);
         setAuctionItems(normalizedAuctions);
         setWatchlistItems(normalizedWatchlist);
+
+        // Auto-refresh collection prices in background so card values match PriceCharting
+        if (normalizedCards.length > 0 && user?.uid) {
+          try {
+            // Trigger background refresh without blocking UI
+            fetch("/api/background-price-updater?userId=" + encodeURIComponent(user.uid),{
+              method: "GET",
+            }).catch(() => {
+              // Silently ignore background refresh errors
+            });
+          } catch (err) {
+            // Silently ignore
+          }
+        }
       } catch (error) {
         console.error("Error loading dashboard preview data:", error);
       } finally {

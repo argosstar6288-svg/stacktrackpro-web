@@ -441,6 +441,9 @@ export default function CollectionAddPage() {
           });
         }
 
+        // Use scanner's PriceCharting value for both value and marketPrice
+        const pricechartingValue = Number(record.scanResult?.estimatedValue || master?.avgPrice || 0);
+
         batch.set(cardRef, {
           userId: uid,
           cardID: record.cardID,
@@ -448,8 +451,9 @@ export default function CollectionAddPage() {
           setID: record.setID,
           lookup: resolvedLookup,
           name: resolvedName,
-          value: Number(record.scanResult?.estimatedValue || master?.avgPrice || 0),
-          marketPrice: Number(master?.avgPrice || record.scanResult?.estimatedValue || 0),
+          value: pricechartingValue,
+          marketPrice: pricechartingValue,
+          priceSource: record.scanResult?.estimatedValue ? "pricecharting" : "unknown",
           priceLastUpdated: new Date().toISOString(),
           rarity: "Uncommon",
           player: record.selectedMatch.player || record.scanResult?.player || "",
@@ -463,6 +467,8 @@ export default function CollectionAddPage() {
           addedAt: serverTimestamp(),
         });
 
+        const userCardPrice = Number(record.scanResult?.estimatedValue || master?.avgPrice || 0);
+
         batch.set(
           doc(db, FLAT_COLLECTIONS.userCards, record.userCardID),
           {
@@ -473,7 +479,8 @@ export default function CollectionAddPage() {
             cardNumber: resolvedNumber,
             brand: resolvedSet,
             condition: record.scanResult?.condition || "Good",
-            value: Number(record.scanResult?.estimatedValue || master?.avgPrice || 0),
+            value: userCardPrice,
+            marketPrice: userCardPrice,
             imageUrl,
             photoUrl: imageUrl,
             legacyCardDocID: cardRef.id,
