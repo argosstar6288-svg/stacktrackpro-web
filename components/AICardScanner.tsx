@@ -136,6 +136,7 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
   const { canScan, scansRemaining, incrementScanCount, subscriptionPlan } = useFeatureAccess();
 
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [selectedOriginalImages, setSelectedOriginalImages] = useState<string[]>([]);
   const [selectedFileLabels, setSelectedFileLabels] = useState<string[]>([]);
   const [scanResults, setScanResults] = useState<CardScanResult[]>([]);
   const [scannerView, setScannerView] = useState<ScannerView>("scanner");
@@ -238,6 +239,7 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
     setError("");
 
     const validImages: string[] = [];
+    const validOriginalImages: string[] = [];
     const labels: string[] = [];
     let hasError = false;
 
@@ -256,15 +258,15 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
         }
 
         const reader = new FileReader();
-        return new Promise<{ dataUrl: string; label: string } | null>((resolve) => {
+        return new Promise<{ dataUrl: string; originalDataUrl: string; label: string } | null>((resolve) => {
           reader.onloadend = async () => {
             const originalImage = reader.result as string;
             const label = file.name.replace(/\.[^/.]+$/, "") || "Scanned card";
             try {
               const enhanced = await enhanceImage(originalImage);
-              resolve({ dataUrl: enhanced, label });
+              resolve({ dataUrl: enhanced, originalDataUrl: originalImage, label });
             } catch {
-              resolve({ dataUrl: originalImage, label });
+              resolve({ dataUrl: originalImage, originalDataUrl: originalImage, label });
             }
           };
           reader.readAsDataURL(file);
@@ -275,6 +277,7 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
     processedImages.forEach((item) => {
       if (item) {
         validImages.push(item.dataUrl);
+        validOriginalImages.push(item.originalDataUrl);
         labels.push(item.label);
       }
     });
@@ -283,11 +286,16 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
       const useSingle = Boolean(options?.forceSingle);
       const didExceedLimit = !useSingle && validImages.length > MAX_CARDS_PER_BATCH;
       const cappedImages = didExceedLimit ? validImages.slice(0, MAX_CARDS_PER_BATCH) : validImages;
+      const cappedOriginalImages = didExceedLimit
+        ? validOriginalImages.slice(0, MAX_CARDS_PER_BATCH)
+        : validOriginalImages;
       const cappedLabels = didExceedLimit ? labels.slice(0, MAX_CARDS_PER_BATCH) : labels;
       const nextImages = useSingle ? [validImages[0]] : cappedImages;
+      const nextOriginalImages = useSingle ? [validOriginalImages[0]] : cappedOriginalImages;
       const nextLabels = useSingle ? [labels[0]] : cappedLabels;
 
       setSelectedImages(nextImages);
+      setSelectedOriginalImages(nextOriginalImages);
       setSelectedFileLabels(nextLabels);
       setBulkMode(options?.forceBulk ? true : useSingle ? false : validImages.length > 1);
       setScannerView("scanner");
@@ -327,6 +335,7 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
   const resetForAnotherScan = () => {
     setScannerView("scanner");
     setSelectedImages([]);
+    setSelectedOriginalImages([]);
     setSelectedFileLabels([]);
     setScanResults([]);
     setError("");
@@ -448,6 +457,7 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
 
       for (let index = 0; index < selectedImages.length; index += 1) {
         const image = selectedImages[index];
+        const originalImage = selectedOriginalImages[index] || image;
         try {
           const requestStartedAt = performance.now();
           const response = await fetch("/api/scan-card-v2", {
@@ -569,6 +579,37 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
               }
             }
 
+            if (!finalResponse.ok && originalImage !== image) {
+              const originalRetryResponse = await fetch("/api/scan-card-v2", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  image: originalImage,
+                  userId: effectiveUserId,
+                  scanMode: "standard",
+                  useFastPath: false,
+                  aiVisionOnly: true,
+                }),
+              });
+
+              if (originalRetryResponse.ok) {
+                finalResponse = originalRetryResponse;
+              } else {
+                let originalRetryErrorData: any = null;
+                try {
+                  originalRetryErrorData = await originalRetryResponse.json();
+                } catch {
+                  originalRetryErrorData = { error: "Failed to scan" };
+                }
+                const originalRetryMessage = normalizeErrorText(getScanErrorMessage(originalRetryErrorData));
+                if (originalRetryMessage) {
+                  resolvedErrorMessage = originalRetryMessage;
+                }
+              }
+            }
+
             if (!finalResponse.ok) {
               scanOutcomes.push({
                 ok: false,
@@ -582,8 +623,8 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
           }
 
           const result: CardScanResult = await finalResponse.json();
-          result.imageUrl = image;
-          result.photoUrl = image;
+          result.imageUrl = originalImage || image;
+          result.photoUrl = originalImage || image;
 
           if (!result.name) {
             const nameParts = [
