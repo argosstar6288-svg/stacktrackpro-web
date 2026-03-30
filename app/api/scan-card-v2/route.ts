@@ -518,8 +518,8 @@ Return ONLY raw JSON (no markdown). If the card is TCG and not a sports card, se
  */
 export async function POST(request: NextRequest) {
   const startTime = performance.now();
-  const isInstantRequestTimeoutMs = 12_000;
-  const standardRequestTimeoutMs = 20_000;
+  const isInstantRequestTimeoutMs = 7_000;
+  const standardRequestTimeoutMs = 12_000;
 
   try {
     const { image, userId, scanMode, useFastPath = true, aiVisionOnly = false } = await request.json();
@@ -615,7 +615,7 @@ export async function POST(request: NextRequest) {
           hybridScanPipeline(image, {
             timeoutMs: isInstantMode ? 800 : 1500,
           }),
-          isInstantMode ? 2500 : 4000,
+          isInstantMode ? 1800 : 3000,
           "hybrid pipeline"
         );
 
@@ -647,11 +647,11 @@ export async function POST(request: NextRequest) {
     }
 
     // === Step 2: Local OCR->DNA fallback for all catalog types ===
-    if (!scanResult) {
+    if (!scanResult && !isInstantMode) {
       const localDnaStart = performance.now();
       const localDnaResult = await withTimeout(
         findCatalogMatchFromOCR(image),
-        isInstantMode ? 2500 : 5000,
+        isInstantMode ? 1600 : 3000,
         "local DNA"
       ).catch((err) => {
         console.warn("[Scan API] Local DNA timed out or failed:", err);
@@ -668,11 +668,11 @@ export async function POST(request: NextRequest) {
     }
 
     // === Step 3: OCR text + Fuse fuzzy fallback ===
-    if (!scanResult) {
+    if (!scanResult && !isInstantMode) {
       const fuseStart = performance.now();
       const fuseResult = await withTimeout(
         findCatalogMatchWithFuse(image),
-        isInstantMode ? 2000 : 4000,
+        isInstantMode ? 1200 : 2500,
         "local fuse"
       ).catch((err) => {
         console.warn("[Scan API] Local Fuse timed out or failed:", err);
@@ -696,7 +696,7 @@ export async function POST(request: NextRequest) {
       try {
         scanResult = await withTimeout(
           callOpenAIVision(image, isInstantMode),
-          isInstantMode ? 8000 : 12000,
+          isInstantMode ? 3000 : 7000,
           "openai vision"
         );
         timings.ai_vision = performance.now() - aiStart;

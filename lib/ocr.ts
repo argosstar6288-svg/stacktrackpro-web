@@ -340,6 +340,12 @@ export async function extractText(
     return extractTextMock(imageData);
   }
 
+  // Server-side Tesseract is currently unreliable in this environment due to
+  // worker module resolution failures. Skip it unless explicitly enabled.
+  if (typeof window === "undefined" && process.env.ENABLE_SERVER_TESSERACT !== "true") {
+    return emptyOCRResult();
+  }
+
   try {
     return await extractTextTesseract(imageData);
   } catch (error) {

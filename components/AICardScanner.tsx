@@ -42,6 +42,8 @@ type ScannerView = "scanner" | "result" | "bulk";
 
 const TARGET_SCAN_IMAGE_SIZE = 800;
 const MAX_CARDS_PER_BATCH = 50;
+const PRIMARY_SCAN_TIMEOUT_MS = 5000;
+const FALLBACK_SCAN_TIMEOUT_MS = 3500;
 
 const CONDITION_OPTIONS = ["Mint", "Excellent", "Good", "Fair", "Poor", "Near Mint"];
 
@@ -119,6 +121,45 @@ function normalizeErrorText(rawMessage: string): string {
   }
 
   return rawMessage;
+}
+
+function isNonRetryableScanError(message: string): boolean {
+  const normalized = String(message || "").toLowerCase();
+  return (
+    normalized.includes("unsupported image") ||
+    normalized.includes("couldn't read this image") ||
+    normalized.includes("image_parse_error") ||
+    normalized.includes("quota") ||
+    normalized.includes("temporarily unavailable on this deployment") ||
+    normalized.includes("api key not configured") ||
+    normalized.includes("timed out")
+  );
+}
+
+async function postScanRequest(
+  payload: Record<string, unknown>,
+  timeoutMs: number
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch("/api/scan-card-v2", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Scanning timed out. Please try a clearer, closer photo.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function toConfidencePercent(value: unknown): number {
@@ -480,19 +521,14 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
         const originalImage = selectedOriginalImages[index] || image;
         try {
           const requestStartedAt = performance.now();
-          const response = await fetch("/api/scan-card-v2", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              image,
-              userId: effectiveUserId,
-              scanMode: "standard",
-              useFastPath: true,
-              aiVisionOnly: false,
-            }),
-          });
+          const scanMode = "instant";
+          const response = await postScanRequest({
+            image,
+            userId: effectiveUserId,
+            scanMode,
+            useFastPath: true,
+            aiVisionOnly: false,
+          }, PRIMARY_SCAN_TIMEOUT_MS);
 
           let finalResponse = response;
           let resolvedErrorMessage = "Failed to identify card";
@@ -511,26 +547,28 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
               String(errorData?.error || "").toLowerCase().includes("api key not configured") ||
               String(errorData?.debug || "").toLowerCase().includes("openai_api_key") ||
               String(errorData?.message || "").toLowerCase().includes("not properly configured");
+            const isTimeoutError =
+              String(errorData?.error || "").toLowerCase().includes("timed out") ||
+              String(errorData?.message || "").toLowerCase().includes("timed out") ||
+              String(errorData?.details || "").toLowerCase().includes("timed out") ||
+              Number(response.status) === 504;
 
             resolvedErrorMessage = message;
             resolvedBlockingError = Boolean(
-              errorData?.quotaExceeded || errorData?.providerQuotaExceeded || isConfigurationError
+              errorData?.quotaExceeded || errorData?.providerQuotaExceeded || isConfigurationError || isTimeoutError
             );
 
-            if (!resolvedBlockingError) {
-              const aiOnlyResponse = await fetch("/api/scan-card-v2", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
+            if (!resolvedBlockingError && !isNonRetryableScanError(resolvedErrorMessage)) {
+              const aiOnlyResponse = await postScanRequest(
+                {
                   image,
                   userId: effectiveUserId,
-                  scanMode: "standard",
+                  scanMode,
                   useFastPath: false,
                   aiVisionOnly: true,
-                }),
-              });
+                },
+                FALLBACK_SCAN_TIMEOUT_MS
+              );
 
               if (aiOnlyResponse.ok) {
                 finalResponse = aiOnlyResponse;
@@ -557,76 +595,6 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
                       aiOnlyErrorData?.providerQuotaExceeded ||
                       aiOnlyConfigurationError
                   );
-              }
-            }
-
-            if (!resolvedBlockingError && !finalResponse.ok) {
-              const legacyResponse = await fetch("/api/scan-card", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  image,
-                  userId: effectiveUserId,
-                }),
-              });
-
-              if (legacyResponse.ok) {
-                finalResponse = legacyResponse;
-              } else {
-                let legacyErrorData: any = null;
-                try {
-                  legacyErrorData = await legacyResponse.json();
-                } catch {
-                  legacyErrorData = { error: "Failed to scan" };
-                }
-
-                const legacyMessage = normalizeErrorText(getScanErrorMessage(legacyErrorData));
-                const legacyConfigurationError =
-                  String(legacyErrorData?.error || "").toLowerCase().includes("api key not configured") ||
-                  String(legacyErrorData?.debug || "").toLowerCase().includes("openai_api_key") ||
-                  String(legacyErrorData?.message || "").toLowerCase().includes("not properly configured");
-
-                resolvedErrorMessage = legacyMessage || resolvedErrorMessage;
-                resolvedBlockingError =
-                  resolvedBlockingError ||
-                  Boolean(
-                    legacyErrorData?.quotaExceeded ||
-                      legacyErrorData?.providerQuotaExceeded ||
-                      legacyConfigurationError
-                  );
-              }
-            }
-
-            if (!finalResponse.ok && originalImage !== image) {
-              const originalRetryResponse = await fetch("/api/scan-card-v2", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  image: originalImage,
-                  userId: effectiveUserId,
-                  scanMode: "standard",
-                  useFastPath: false,
-                  aiVisionOnly: true,
-                }),
-              });
-
-              if (originalRetryResponse.ok) {
-                finalResponse = originalRetryResponse;
-              } else {
-                let originalRetryErrorData: any = null;
-                try {
-                  originalRetryErrorData = await originalRetryResponse.json();
-                } catch {
-                  originalRetryErrorData = { error: "Failed to scan" };
-                }
-                const originalRetryMessage = normalizeErrorText(getScanErrorMessage(originalRetryErrorData));
-                if (originalRetryMessage) {
-                  resolvedErrorMessage = originalRetryMessage;
-                }
               }
             }
 
