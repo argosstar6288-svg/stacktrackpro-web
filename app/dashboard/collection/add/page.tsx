@@ -26,6 +26,7 @@ import AICardScanner from "../../../../components/AICardScanner";
 import styles from "./collection-add.module.css";
 
 const PLACEHOLDER_IMAGE_URL = "/placeholder-card.svg";
+const MAX_SCANNED_CARDS_PER_BATCH = 50;
 
 interface PossibleMatch {
   id: string;
@@ -663,6 +664,12 @@ export default function CollectionAddPage() {
     if (!results.length) {
       setShowScanner(false);
       setError("No scan results were returned.");
+      return;
+    }
+
+    if (results.length > MAX_SCANNED_CARDS_PER_BATCH) {
+      setShowScanner(false);
+      setError(`You can scan up to ${MAX_SCANNED_CARDS_PER_BATCH} cards at a time.`);
       return;
     }
 

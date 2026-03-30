@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  addDoc,
-  collection,
-  getDocs,
   limit,
   query,
-  serverTimestamp,
   where,
 } from "firebase/firestore";
 import { getAuth as getAdminAuth } from "firebase-admin/auth";
 import { buildPriceIntelligence } from "@/lib/priceIntelligence";
-import { db } from "@/lib/firebase-server";
 import { adminDb, adminServerTimestamp } from "@/lib/firebase-admin";
 
 const FIREBASE_WEB_API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "";
@@ -181,6 +176,32 @@ export async function processQueuedJobs(maxJobs = 1, filterUserId?: string) {
         ...(snapshot.data() as any),
       }));
 
+      const userCardsSnapshot = await adminDb
+        .collection("userCards")
+        .where("userID", "==", job.userId)
+        .get();
+
+      const userCardsByLegacyId = new Map<string, string[]>();
+      const userCardsByCardId = new Map<string, string[]>();
+
+      for (const snapshot of userCardsSnapshot.docs) {
+        const data = snapshot.data() as any;
+        const legacyCardDocID = String(data?.legacyCardDocID || "").trim();
+        const cardID = String(data?.cardID || "").trim();
+
+        if (legacyCardDocID) {
+          const list = userCardsByLegacyId.get(legacyCardDocID) || [];
+          list.push(snapshot.id);
+          userCardsByLegacyId.set(legacyCardDocID, list);
+        }
+
+        if (cardID) {
+          const list = userCardsByCardId.get(cardID) || [];
+          list.push(snapshot.id);
+          userCardsByCardId.set(cardID, list);
+        }
+      }
+
       const targetCards = Array.isArray(job.cardIds) && job.cardIds.length > 0
         ? cards.filter((card) => job.cardIds?.includes(card.id))
         : cards;
@@ -223,6 +244,24 @@ export async function processQueuedJobs(maxJobs = 1, filterUserId?: string) {
           priceSource: lookup.source || "pricecharting",
           updatedAt: adminServerTimestamp(),
         });
+
+        const relatedUserCardDocIds = new Set<string>([
+          ...(userCardsByLegacyId.get(card.id) || []),
+          ...(userCardsByCardId.get(String(card.cardID || "").trim()) || []),
+        ]);
+
+        if (relatedUserCardDocIds.size > 0) {
+          await Promise.all(
+            Array.from(relatedUserCardDocIds).map((userCardDocId) =>
+              adminDb.collection("userCards").doc(userCardDocId).update({
+                value: currentPrice,
+                marketPrice: currentPrice,
+                priceLastUpdated: new Date().toISOString(),
+                updatedAt: adminServerTimestamp(),
+              })
+            )
+          );
+        }
 
         updatedCards += 1;
 
@@ -315,12 +354,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden: user mismatch" }, { status: 403 });
     }
 
-    const jobRef = await addDoc(collection(db, "priceUpdateJobs"), {
+    const jobRef = await adminDb.collection("priceUpdateJobs").add({
       userId,
       cardIds,
       status: "queued",
       source: "user",
-      requestedAt: serverTimestamp(),
+      requestedAt: adminServerTimestamp(),
     });
 
     // Process the queued job immediately (inline) rather than waiting for a cron
@@ -378,9 +417,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden: user mismatch" }, { status: 403 });
     }
 
-    const jobsSnapshot = await getDocs(
-      query(collection(db, "priceUpdateJobs"), where("userId", "==", userId), limit(20))
-    );
+    const jobsSnapshot = await adminDb
+      .collection("priceUpdateJobs")
+      .where("userId", "==", userId)
+      .limit(20)
+      .get();
 
     const jobs = jobsSnapshot.docs
       .map((snapshot) => ({ id: snapshot.id, ...(snapshot.data() as any) }))
@@ -388,7 +429,7 @@ export async function GET(request: NextRequest) {
 
     const latestJob = jobs[0] || null;
 
-    const cardsSnapshot = await getDocs(query(collection(db, "cards"), where("userId", "==", userId)));
+    const cardsSnapshot = await adminDb.collection("cards").where("userId", "==", userId).get();
     const cards = cardsSnapshot.docs.map((snapshot) => snapshot.data() as any);
 
     const now = Date.now();

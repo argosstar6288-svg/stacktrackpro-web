@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase-server";
 import { getEffectiveSubscription } from "@/lib/subscriptionAccess";
+import { fetchPriceChartingValue } from "@/lib/pricecharting";
 
 interface CardScanResult {
   name: string;
@@ -385,6 +386,24 @@ CONFIDENCE GUIDE:
     result.condition = result.condition || "Good";
     result.brand = result.brand || "Unknown";
     result.isGraded = result.isGraded || false;
+
+    // Override AI estimate with real PriceCharting market value when available
+    try {
+      const pcPrice = await fetchPriceChartingValue({
+        name: result.name,
+        player: result.player,
+        year: result.year,
+        brand: result.brand,
+        sport: result.sport,
+        condition: result.condition,
+      });
+      if (pcPrice != null && pcPrice > 0) {
+        result.estimatedValue = pcPrice;
+        console.log(`[AI Scan] PriceCharting price $${pcPrice} used for ${result.name}`);
+      }
+    } catch (pcErr) {
+      console.warn("[AI Scan] PriceCharting lookup failed:", pcErr);
+    }
 
     // Increment AI scan usage counter
     try {

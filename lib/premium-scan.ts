@@ -1,12 +1,8 @@
 /**
  * Premium AI Card Scan Logic
- * 
- * Handles both free and premium scans with credit deduction
  */
 
 'use server';
-
-import { deductCredits, CREDIT_COSTS } from './credits';
 
 /**
  * Basic card scan data (free tier)
@@ -58,36 +54,14 @@ export async function runPremiumScan(
   success: boolean;
   data?: PremiumScanData;
   error?: string;
-  remainingCredits?: number;
 }> {
   try {
-    // DEDUCT CREDIT FIRST (before running any AI)
-    const deductResult = await deductCredits(
-      userId,
-      CREDIT_COSTS.PREMIUM_SCAN,
-      'premium_scan',
-      {
-        cardId,
-        cardImageUrl,
-      }
-    );
-
-    if (!deductResult.success) {
-      return {
-        success: false,
-        error: deductResult.error,
-        remainingCredits: deductResult.remainingCredits,
-      };
-    }
-
-    // Now run the premium scan
     // TODO: Replace with actual AI scan implementation
     const premiumData = await callPremiumAIScan(cardImageUrl);
 
     return {
       success: true,
       data: premiumData,
-      remainingCredits: deductResult.remainingCredits,
     };
   } catch (error) {
     console.error('Error running premium scan:', error);

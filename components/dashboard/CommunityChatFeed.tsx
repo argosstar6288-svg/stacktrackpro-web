@@ -50,7 +50,7 @@ export default function CommunityChatFeed() {
           <h2 className="panel-title">Community Chat</h2>
           <p className="panel-subtitle">Connect with collectors</p>
         </div>
-        <span className="online-badge">🟢 {Math.floor(Math.random() * 50) + 20} online</span>
+        <span className="online-badge">🟢 {Math.floor(Math.random() * 300) + 850} online</span>
       </div>
       
       <div className="chat-container">

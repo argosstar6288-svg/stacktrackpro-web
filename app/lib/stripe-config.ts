@@ -12,9 +12,6 @@ export interface StripeConfig {
     premiumMonthly: string;
     premiumYearly: string;
     lifetime: string;
-    credits10: string;
-    credits50: string;
-    credits200: string;
   };
 }
 
@@ -27,9 +24,6 @@ export const stripeConfig: StripeConfig = {
     premiumMonthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM_MONTHLY || '',
     premiumYearly: process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM_YEARLY || '',
     lifetime: process.env.NEXT_PUBLIC_STRIPE_PRICE_LIFETIME || '',
-    credits10: process.env.STRIPE_PRICE_10_CREDITS || '',
-    credits50: process.env.STRIPE_PRICE_50_CREDITS || '',
-    credits200: process.env.STRIPE_PRICE_200_CREDITS || '',
   },
 };
 
@@ -70,18 +64,6 @@ export function validateStripeConfig(): {
     missing.push('NEXT_PUBLIC_STRIPE_PRICE_LIFETIME');
   }
 
-  if (!stripeConfig.priceIds.credits10) {
-    missing.push('STRIPE_PRICE_10_CREDITS');
-  }
-
-  if (!stripeConfig.priceIds.credits50) {
-    missing.push('STRIPE_PRICE_50_CREDITS');
-  }
-
-  if (!stripeConfig.priceIds.credits200) {
-    missing.push('STRIPE_PRICE_200_CREDITS');
-  }
-
   return {
     valid: missing.length === 0,
     missing,
@@ -114,18 +96,4 @@ export function getPriceId(
   return '';
 }
 
-/**
- * Get price ID for credit packs
- */
-export function getCreditPriceId(credits: 10 | 50 | 200): string {
-  switch (credits) {
-    case 10:
-      return stripeConfig.priceIds.credits10;
-    case 50:
-      return stripeConfig.priceIds.credits50;
-    case 200:
-      return stripeConfig.priceIds.credits200;
-    default:
-      return '';
-  }
-}
+

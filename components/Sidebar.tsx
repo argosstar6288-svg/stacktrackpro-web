@@ -16,6 +16,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: "⌂" },
   { href: "/dashboard/collection", label: "My Collection", icon: "▣" },
   { href: "/dashboard/marketplace", label: "Marketplace", icon: "◫" },
+  { href: "/dashboard/breaks", label: "Breaks", icon: "◍" },
   { href: "/auctions/live", label: "Auctions", icon: "◌" },
   { href: "/dashboard/inbox", label: "Messages", icon: "✉" },
   { href: "/dashboard/pricing", label: "Pricing", icon: "◈" },

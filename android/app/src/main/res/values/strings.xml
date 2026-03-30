@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">StackTrack Pro</string>
+    <string name="title_activity_main">StackTrack Pro</string>
+    <string name="package_name">com.stacktrackpro.app</string>
+    <string name="custom_url_scheme">com.stacktrackpro.app</string>
+</resources>

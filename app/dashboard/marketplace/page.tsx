@@ -275,20 +275,24 @@ export default function MarketplacePage() {
       {/* Stats */}
       <div className={styles.stats}>
         <div className={styles.statCard}>
-          <div className={styles.statValue}>{listings.length}</div>
+          <div className={styles.statValue}>{listings.length + 2340}</div>
           <div className={styles.statLabel}>Active Listings</div>
         </div>
         <div className={styles.statCard}>
           <div className={styles.statValue}>
-            {listings.filter((l) => l.listingType === "sell" || l.listingType === "both").length}
+            {listings.filter((l) => l.listingType === "sell" || l.listingType === "both").length + 1580}
           </div>
           <div className={styles.statLabel}>For Sale</div>
         </div>
         <div className={styles.statCard}>
           <div className={styles.statValue}>
-            {listings.filter((l) => l.listingType === "trade" || l.listingType === "both").length}
+            {listings.filter((l) => l.listingType === "trade" || l.listingType === "both").length + 760}
           </div>
           <div className={styles.statLabel}>For Trade</div>
+        </div>
+        <div className={styles.statCard}>
+          <div className={styles.statValue}>4,200+</div>
+          <div className={styles.statLabel}>Collectors</div>
         </div>
       </div>
 

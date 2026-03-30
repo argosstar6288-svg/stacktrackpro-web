@@ -1,0 +1,268 @@
+﻿node.exe : No Firebase app associated with site stacktrackpro, injecting project default config.
+At C:\Users\argos\AppData\Roaming\npm\firebase.ps1:24 char:5
++     & "node$exe"  "$basedir/node_modules/firebase-tools/lib/bin/fireb ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (No Firebase app...default config.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  You can link a Web app to a Hosting site here 
+https://console.firebase.google.com/project/stacktrackpro/settings/general/web
+
+   Thank you for trying our [3mearly preview[23m of Next.js support on Firebase Hosting.
+   [31mDuring the preview, support is best-effort and breaking changes can be expected. Proceed with caution.[39m[33m
+   The integration is known to work with Next.js version [3m12 - 15.0[23m. You may encounter errors.[39m
+
+   [1mDocumentation:[22m https://firebase.google.com/docs/hosting/frameworks/nextjs
+   [1mFile a bug:[22m https://github.com/firebase/firebase-tools/issues/new?template=bug_report.md
+   [1mSubmit a feature request:[22m https://github.com/firebase/firebase-tools/issues/new?template=feature_request.md
+
+   We'd love to learn from you. Express your interest in helping us shape the future of Firebase Hosting: https://goo.gle/41enW5X
+
+ΓÜá turbopack.root should be absolute, using: C:\Users\argos\Documents\stacktrackpro\web
+
+Γû▓ Next.js 16.1.6 (Turbopack)
+
+- Environments: .env.production.local, .env.local, .env.production
+
+
+  Creating an optimized production build ...
+
+Γ£ô Compiled successfully in 50s
+
+  Running TypeScript ...
+
+  Collecting page data using 3 workers ...
+
+  Generating static pages using 3 workers (0/108) ...
+
+  Generating static pages using 3 workers (27/108) 
+
+  Generating static pages using 3 workers (54/108) 
+
+  Generating static pages using 3 workers (81/108) 
+
+Γ£ô Generating static pages using 3 workers (108/108) in 4.5s
+
+  Finalizing page optimization ...
+
+
+
+Route (app)
+Γöî Γùï /
+Γö£ Γùï /_not-found
+Γö£ Γùï /admin/engagement-analytics
+Γö£ Γùï /admin/fraud-detection
+Γö£ Γùï /admin/payout-approvals
+Γö£ Γùï /admin/referral-analytics
+Γö£ Γùï /admin/revenue-dashboard
+Γö£ Γùï /admin/seller-analytics
+Γö£ Γùï /admin/user-analytics
+Γö£ ╞Æ /api/admin/bulk-price-update
+Γö£ ╞Æ /api/admin/cache-management
+Γö£ ╞Æ /api/admin/run-background-updater
+Γö£ ╞Æ /api/background-price-updater
+Γö£ ╞Æ /api/breaks
+Γö£ ╞Æ /api/breaks/[id]
+Γö£ ╞Æ /api/breaks/[id]/hits
+Γö£ ╞Æ /api/breaks/[id]/join
+Γö£ ╞Æ /api/cache-card
+Γö£ ╞Æ /api/card-alerts
+Γö£ ╞Æ /api/catalog/dna-match
+Γö£ ╞Æ /api/catalog/id-lookup
+Γö£ ╞Æ /api/catalog/import
+Γö£ ╞Æ /api/catalog/search
+Γö£ ╞Æ /api/catalog/update-prices
+Γö£ ╞Æ /api/create-subscription-checkout
+Γö£ ╞Æ /api/cron/process-price-updates
+Γö£ ╞Æ /api/list-card
+Γö£ ╞Æ /api/message-eligibility
+Γö£ ╞Æ /api/price-lookup
+Γö£ ╞Æ /api/refresh-collection-values
+Γö£ ╞Æ /api/scan-and-sell
+Γö£ ╞Æ /api/scan-card
+Γö£ ╞Æ /api/scan-card-v2
+Γö£ ╞Æ /api/search-users
+Γö£ Γùï /auction
+Γö£ Γùï /auction-rules
+Γö£ Γùï /auction/id
+Γö£ Γùï /auctions
+Γö£ ╞Æ /auctions/[auctionId]
+Γö£ Γùï /auctions/create
+Γö£ Γùï /auctions/live
+Γö£ Γùï /auth
+Γö£ Γùï /catalogue
+Γö£ Γùï /chat
+Γö£ Γùï /collection
+Γö£ Γùï /community-chat
+Γö£ Γùï /create-account
+Γö£ Γùï /dashboard
+Γö£ Γùï /dashboard/admin
+Γö£ Γùï /dashboard/admin/ai-card-match
+Γö£ Γùï /dashboard/admin/catalog
+Γö£ Γùï /dashboard/admin/csv-image-upload
+Γö£ Γùï /dashboard/admin/disputes
+Γö£ Γùï /dashboard/admin/dna-match
+Γö£ Γùï /dashboard/admin/pokemon-tcg-import
+Γö£ Γùï /dashboard/admin/price-update
+Γö£ Γùï /dashboard/admin/system-check
+Γö£ Γùï /dashboard/admin/universal-id
+Γö£ Γùï /dashboard/ai
+Γö£ Γùï /dashboard/analytics-integration
+Γö£ Γùï /dashboard/auto-bid
+Γö£ Γùï /dashboard/billing
+Γö£ Γùï /dashboard/breaks
+Γö£ ╞Æ /dashboard/breaks/[id]
+Γö£ Γùï /dashboard/breaks/create
+Γö£ Γùï /dashboard/buyer-recommendations
+Γö£ ╞Æ /dashboard/cards/[id]
+Γö£ Γùï /dashboard/collection
+Γö£ Γùï /dashboard/collection/add
+Γö£ ╞Æ /dashboard/collection/folder/[id]
+Γö£ Γùï /dashboard/discover
+Γö£ Γùï /dashboard/earnings
+Γö£ Γùï /dashboard/founding-wall
+Γö£ Γùï /dashboard/help
+Γö£ Γùï /dashboard/help/how-values-work
+Γö£ Γùï /dashboard/inbox
+Γö£ Γùï /dashboard/market
+Γö£ Γùï /dashboard/marketplace
+Γö£ ╞Æ /dashboard/marketplace/[id]
+Γö£ Γùï /dashboard/marketplace/create
+Γö£ Γùï /dashboard/notifications
+Γö£ Γùï /dashboard/payouts
+Γö£ Γùï /dashboard/portfolio
+Γö£ Γùï /dashboard/pricing
+Γö£ Γùï /dashboard/pricing-advisor
+Γö£ Γùï /dashboard/profile
+Γö£ ╞Æ /dashboard/profile/[uid]
+Γö£ Γùï /dashboard/referral-leaderboard
+Γö£ Γùï /dashboard/scan
+Γö£ Γùï /dashboard/seller-boosts
+Γö£ Γùï /dashboard/seller-tools
+Γö£ Γùï /dashboard/settings
+Γö£ Γùï /dashboard/share
+Γö£ Γùï /dashboard/subscriptions
+Γö£ Γùï /dashboard/users
+Γö£ Γùï /dashboard/watchlist
+Γö£ Γùï /env-test
+Γö£ Γùï /firebase-test
+Γö£ Γùï /inbox
+Γö£ Γùï /legal
+Γö£ Γùï /legal/auction-rules
+Γö£ Γùï /legal/community-guidelines
+Γö£ Γùï /legal/founding-member
+Γö£ Γùï /legal/payout
+Γö£ Γùï /legal/privacy
+Γö£ Γùï /legal/refund-dispute
+Γö£ Γùï /legal/terms
+Γö£ Γùï /login
+Γö£ Γùï /marketplace
+Γö£ Γùï /overview
+Γö£ Γùï /robots.txt
+Γö£ Γùï /scan
+Γö£ ΓùÅ /seo/auction/[id]
+Γö£ Γùï /signup
+Γö£ Γùï /sitemap.xml
+Γö£ Γùï /test-auth
+Γöö Γùï /verify-age
+
+
+
+
+Γùï  (Static)   prerendered as static content
+ΓùÅ  (SSG)      prerendered as static HTML (uses generateStaticParams)
+╞Æ  (Dynamic)  server-rendered on demand
+
+
+
+Building a Cloud Function to run this application. This is needed due to:
+ ΓÇó use of fallback /seo/auction/[id]
+ ΓÇó non-static component /api/admin/bulk-price-update/route
+ ΓÇó non-static component /api/admin/cache-management/route
+ ΓÇó non-static component /api/admin/run-background-updater/route
+ ΓÇó non-static component /api/background-price-updater/route
+ ΓÇó and 28 other reasons, use --debug to see more
+
+npm warn Unknown project config "node-linker". This will stop working in the next major version of npm.
+npm warn Unknown project config "node-linker". This will stop working in the next major version of npm.
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'firebase-frameworks@0.11.8',
+npm warn EBADENGINE   required: { node: '^16.0.0 || ^18.0.0 || ^20.0.0 || ^22.0.0' },
+npm warn EBADENGINE   current: { node: 'v24.13.0', npm: '11.9.0' }
+npm warn EBADENGINE }
+
+added 423 packages in 2m
+
+44 packages are looking for funding
+  run `npm fund` for details
+
+[1m[37m===[39m Deploying to 'stacktrackpro'...[22m
+
+[36m[1mi [22m[39m deploying [1mfirestore, functions, hosting[22m
+[36m[1mi  firestore:[22m[39m ensuring required API [1mfirestore.googleapis.com[22m is enabled...
+[36m[1mi  firestore:[22m[39m ensuring required API [1mfirestore.googleapis.com[22m is enabled...
+[36m[1mi [22m[39m [1m[36mfirestore:[39m[22m reading indexes from [1mfirestore.indexes.json[22m...
+[36m[1mi  cloud.firestore:[22m[39m checking [1mfirestore.rules[22m for compilation errors...
+[33m[1m! [22m[39m [W] 11:14 - Unused function: isFounder.
+[33m[1m! [22m[39m [W] 12:14 - Invalid function name: get.
+[33m[1m! [22m[39m [W] 13:14 - Invalid function name: get.
+[32m[1m+  cloud.firestore:[22m[39m rules file [1mfirestore.rules[22m compiled successfully
+[36m[1mi  functions:[22m[39m preparing codebase [1mdefault[22m for deployment
+[36m[1mi  functions:[22m[39m preparing codebase [1mfirebase-frameworks-stacktrackpro[22m for deployment
+[36m[1mi  functions:[22m[39m ensuring required API [1mcloudfunctions.googleapis.com[22m is enabled...
+[36m[1mi  functions:[22m[39m ensuring required API [1mcloudbuild.googleapis.com[22m is enabled...
+[36m[1mi  artifactregistry:[22m[39m ensuring required API [1martifactregistry.googleapis.com[22m is enabled...
+[33m[1m!  functions:[22m[39m Runtime Node.js 20 will be deprecated on 2026-04-30 and will be decommissioned on 2026-10-30, after which you will not be able to deploy without upgrading. Consider upgrading now to avoid disruption. See https://cloud.google.com/functions/docs/runtime-support for full details on the lifecycle policy
+[33m[1m! [22m[39m [1m[33mfunctions: [39m[22mpackage.json indicates an outdated version of firebase-functions. Please upgrade using [1mnpm install --save firebase-functions@latest[22m in your functions directory.
+[33m[1m! [22m[39m [1m[33mfunctions: [39m[22mPlease note that there will be breaking changes when you upgrade.
+[36m[1mi  functions:[22m[39m Loading and analyzing source code for codebase default to determine what to deploy
+[36m[1mi  functions:[22m[39m You are using a version of firebase-functions SDK (4.9.0) that does not have support for the newest Firebase Extensions features. Please update firebase-functions SDK to >=5.1.0 to use them correctly
+Serving at port 8703
+
+[33m[1m! [22m[39m [1m[33mfunctions: [39m[22mpackage.json indicates an outdated version of firebase-functions. Please upgrade using [1mnpm install --save firebase-functions@latest[22m in your functions directory.
+[33m[1m! [22m[39m [1m[33mfunctions: [39m[22mPlease note that there will be breaking changes when you upgrade.
+[36m[1mi  functions:[22m[39m Loading and analyzing source code for codebase firebase-frameworks-stacktrackpro to determine what to deploy
+Serving at port 8233
+
+[36m[1mi  extensions:[22m[39m ensuring required API [1mfirebaseextensions.googleapis.com[22m is enabled...
+[36m[1mi [22m[39m [36m[1mfunctions: [22m[39mLoaded environment variables from .env.
+[36m[1mi [22m[39m [36m[1mfunctions: [22m[39mLoaded environment variables from .env.
+[36m[1mi  functions:[22m[39m preparing [1mfunctions[22m directory for uploading...
+[36m[1mi [22m[39m [36m[1mfunctions:[22m[39m packaged [1mC:\Users\argos\Documents\stacktrackpro\web\functions[22m (75.19 KB) for uploading
+[36m[1mi  functions:[22m[39m preparing [1m.firebase\stacktrackpro\functions[22m directory for uploading...
+[36m[1mi [22m[39m [36m[1mfunctions:[22m[39m packaged [1mC:\Users\argos\Documents\stacktrackpro\web\.firebase\stacktrackpro\functions[22m (26.2 MB) for uploading
+[36m[1mi  functions:[22m[39m ensuring required API [1mrun.googleapis.com[22m is enabled...
+[36m[1mi  functions:[22m[39m ensuring required API [1meventarc.googleapis.com[22m is enabled...
+[36m[1mi  functions:[22m[39m ensuring required API [1mpubsub.googleapis.com[22m is enabled...
+[36m[1mi  functions:[22m[39m ensuring required API [1mstorage.googleapis.com[22m is enabled...
+[36m[1mi  functions:[22m[39m generating the service identity for [1mpubsub.googleapis.com[22m...
+[36m[1mi  functions:[22m[39m generating the service identity for [1meventarc.googleapis.com[22m...
+[36m[1mi  firestore:[22m[39m latest version of [1mfirestore.rules[22m already up to date, skipping upload...
+[36m[1mi [22m[39m [1m[36mfirestore: [39m[22mdeploying indexes...
+[32m[1m+ [22m[39m [1m[32mfirestore:[39m[22m deployed indexes in [1mfirestore.indexes.json[22m successfully for (default) database
+[32m[1m+  functions:[22m[39m [1m.firebase\stacktrackpro\functions[22m source uploaded successfully
+[32m[1m+  functions:[22m[39m [1mfunctions[22m source uploaded successfully
+[36m[1mi  hosting[stacktrackpro]:[22m[39m beginning deploy...
+[36m[1mi  hosting[stacktrackpro]:[22m[39m found 251 files in [1m.firebase\stacktrackpro\hosting[22m
+[32m[1m+  hosting[stacktrackpro]:[22m[39m file upload complete
+[32m[1m+  firestore:[22m[39m released rules [1mfirestore.rules[22m to [1mcloud.firestore[22m
+[36m[1mi  functions:[22m[39m creating Node.js 20 (1st Gen) function [1mcancelSubscription(us-central1)[22m...
+[36m[1mi  functions:[22m[39m creating Node.js 20 (1st Gen) function [1mcreateCheckoutSession(us-central1)[22m...
+[36m[1mi  functions:[22m[39m creating Node.js 20 (1st Gen) function [1mgetPortalSession(us-central1)[22m...
+[36m[1mi  functions:[22m[39m creating Node.js 20 (1st Gen) function [1mhandleStripeWebhook(us-central1)[22m...
+[36m[1mi  functions:[22m[39m creating Node.js 20 (1st Gen) function [1mreactivateSubscription(us-central1)[22m...
+[36m[1mi  functions:[22m[39m creating Node.js 20 (1st Gen) function [1msendWelcomeEmail(us-central1)[22m...
+[36m[1mi  functions:[22m[39m creating Node.js 20 (1st Gen) function [1msetUserSubscription(us-central1)[22m...
+[36m[1mi  functions:[22m[39m updating Node.js 24 (2nd Gen) function [1mfirebase-frameworks-stacktrackpro:ssrstacktrackpro(us-central1)[22m...
+[32m[1m+ [22m[39m [1m[32mfunctions[createCheckoutSession(us-central1)][39m[22m Successful create operation.
+[32m[1m+ [22m[39m [1m[32mfunctions[getPortalSession(us-central1)][39m[22m Successful create operation.
+[32m[1m+ [22m[39m [1m[32mfunctions[sendWelcomeEmail(us-central1)][39m[22m Successful create operation.
+[32m[1m+ [22m[39m [1m[32mfunctions[reactivateSubscription(us-central1)][39m[22m Successful create operation.
+[32m[1m+ [22m[39m [1m[32mfunctions[handleStripeWebhook(us-central1)][39m[22m Successful create operation.
+[32m[1m+ [22m[39m [1m[32mfunctions[setUserSubscription(us-central1)][39m[22m Successful create operation.
+[32m[1m+ [22m[39m [1m[32mfunctions[cancelSubscription(us-central1)][39m[22m Successful create operation.
+[32m[1m+ [22m[39m [1m[32mfunctions[firebase-frameworks-stacktrackpro:ssrstacktrackpro(us-central1)][39m[22m Successful update operation.
+[1mFunction URL[22m (handleStripeWebhook(us-central1)): https://us-central1-stacktrackpro.cloudfunctions.net/handleStripeWebhook
+[1mFunction URL[22m (firebase-frameworks-stacktrackpro:ssrstacktrackpro(us-central1)): https://ssrstacktrackpro-6n7of5xwlq-uc.a.run.app
+[33m[1m!  functions:[22m[39m No cleanup policy detected for repositories in us-central1. This may result in a small monthly bill as container images accumulate over time.
+[34m?[39m [1mHow many days do you want to keep container images before they're deleted?[22m [2m(1)[22m

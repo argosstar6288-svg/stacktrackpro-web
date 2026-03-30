@@ -51,8 +51,17 @@ function normalizedSimilarity(a?: string, b?: string): number {
 
 function rankByConfidenceFusion(
   matches: CardLookupMatch[],
-  cardInfo: ExtractedCardInfo
+  cardInfo: ExtractedCardInfo,
+  ocrText?: string
 ): CardLookupMatch[] {
+  const normalizedOCRText = String(ocrText || "").toLowerCase();
+
+  const hasShadowlessSignal = normalizedOCRText.includes("shadowless");
+  const hasFirstEditionSignal =
+    normalizedOCRText.includes("1st edition") || normalizedOCRText.includes("first edition");
+  const hasHoloSignal =
+    normalizedOCRText.includes("holo") || normalizedOCRText.includes("holographic");
+
   return [...matches]
     .map((match) => {
       const imageSimilarity = Math.max(0, Math.min(1, match.matchScore || 0));
@@ -60,12 +69,22 @@ function rankByConfidenceFusion(
       const setMatch = normalizedSimilarity(cardInfo.setName, match.setName || match.brand);
 
       // Rarity proxy: exact card number agreement is the strongest rarity/print discriminator we have.
-      const raritySignal =
+      const raritySignalFromNumber =
         cardInfo.cardNumber && match.cardNumber
           ? cardInfo.cardNumber.trim().toLowerCase() === match.cardNumber.trim().toLowerCase()
             ? 1
             : 0
           : 0.5;
+
+      const normalizedMatchName = String(match.name || "").toLowerCase();
+      const variantSignal =
+        (hasShadowlessSignal && normalizedMatchName.includes("shadowless")) ||
+        (hasFirstEditionSignal && (normalizedMatchName.includes("1st") || normalizedMatchName.includes("first edition"))) ||
+        (hasHoloSignal && normalizedMatchName.includes("holo"))
+          ? 1
+          : 0.5;
+
+      const raritySignal = raritySignalFromNumber * 0.7 + variantSignal * 0.3;
 
       const fusedScore =
         0.4 * imageSimilarity +
@@ -145,7 +164,7 @@ export async function fastScanPipeline(
     timings.match = performance.now() - matchStart;
     console.log(`[Scan] Matching: ${Math.round(timings.match)}ms, matches: ${matches.length}`);
 
-    const rankedMatches = rankByConfidenceFusion(matches, cardInfo);
+    const rankedMatches = rankByConfidenceFusion(matches, cardInfo, ocr.fullText);
     const topMatches = rankedMatches.slice(0, 3);
     const selectedCard = selectBestMatch(topMatches);
 

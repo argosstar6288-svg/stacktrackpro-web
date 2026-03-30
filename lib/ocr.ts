@@ -28,19 +28,38 @@ export interface ExtractedCardInfo {
   sport?: string;
 }
 
+interface OCRZoneText {
+  top: string;
+  middle: string;
+  bottom: string;
+}
+
 /**
  * Extract card information patterns from OCR text
  */
 export function extractCardInfoFromText(text: string): ExtractedCardInfo {
+  return extractCardInfoFromTextWithZones(text);
+}
+
+function extractCardInfoFromTextWithZones(
+  text: string,
+  zones?: OCRZoneText
+): ExtractedCardInfo {
   const lines = text
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line.length > 0);
 
+  const topLines = String(zones?.top || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const bottomText = String(zones?.bottom || "");
+
   const info: ExtractedCardInfo = {};
 
   // Pattern: Card number (e.g., "4/102", "58/102", "001/150")
-  const numberMatch = text.match(/(\d+\/\d+)/);
+  const numberMatch = (bottomText || text).match(/(\d+\/\d+)/);
   if (numberMatch) {
     info.cardNumber = numberMatch[1];
   }
@@ -79,15 +98,16 @@ export function extractCardInfoFromText(text: string): ExtractedCardInfo {
   ];
 
   for (const set of setPatterns) {
-    if (text.toUpperCase().includes(set.toUpperCase())) {
+    if ((bottomText || text).toUpperCase().includes(set.toUpperCase())) {
       info.setName = set;
       break;
     }
   }
 
   // First line is often the card name
-  if (lines.length > 0) {
-    const firstLine = lines[0];
+  const candidateNameLine = topLines[0] || lines[0];
+  if (candidateNameLine) {
+    const firstLine = candidateNameLine;
     // Exclude numbers-only and very short strings
     if (
       !/^\d+$/.test(firstLine) &&
@@ -146,8 +166,59 @@ export function calculateOCRConfidence(ocrResult: OCRResult): number {
       ? (confidences[medianIndex - 1] + confidences[medianIndex]) / 2
       : confidences[medianIndex];
 
-  // Normalize to 0-1 range and apply minimum threshold
-  return Math.max(0.3, median / 100);
+  // Normalize to 0-1 range and apply minimum threshold.
+  // Tesseract can provide confidence as 0-100 while some mocks already use 0-1.
+  const normalizedMedian = median > 1 ? median / 100 : median;
+  return Math.max(0.2, Math.min(1, normalizedMedian));
+}
+
+function deriveZoneTextFromBlocks(ocrResult: OCRResult): OCRZoneText {
+  if (!ocrResult.blocks?.length) {
+    return { top: "", middle: "", bottom: "" };
+  }
+
+  const maxY = ocrResult.blocks.reduce((max, block) => {
+    const y = Math.max(block.bbox.y0 || 0, block.bbox.y1 || 0);
+    return Math.max(max, y);
+  }, 0);
+
+  if (maxY <= 0) {
+    return {
+      top: ocrResult.blocks.slice(0, 4).map((b) => b.text).join("\n"),
+      middle: ocrResult.blocks.map((b) => b.text).join("\n"),
+      bottom: ocrResult.blocks.slice(-4).map((b) => b.text).join("\n"),
+    };
+  }
+
+  const top: string[] = [];
+  const middle: string[] = [];
+  const bottom: string[] = [];
+
+  for (const block of ocrResult.blocks) {
+    const yMid = ((block.bbox.y0 || 0) + (block.bbox.y1 || 0)) / 2;
+    const ratio = yMid / maxY;
+    if (ratio <= 0.25) {
+      top.push(block.text);
+    } else if (ratio >= 0.65) {
+      bottom.push(block.text);
+    } else {
+      middle.push(block.text);
+    }
+  }
+
+  return {
+    top: top.join("\n"),
+    middle: middle.join("\n"),
+    bottom: bottom.join("\n"),
+  };
+}
+
+function emptyOCRResult(): OCRResult {
+  return {
+    fullText: "",
+    confidence: 0,
+    blocks: [],
+  };
 }
 
 /**
@@ -218,18 +289,34 @@ export async function extractTextTesseract(
 
     // Parse Tesseract result into our format
     const text = result.data.text;
-    const confidence = result.data.confidence / 100;
+    const confidence = Number(result.data.confidence || 0) / 100;
 
     // Extract blocks if available
      // Create blocks array by splitting text into lines
-     const blocks = text
-       .split("\n")
-       .map((line: string) => ({
-         text: line.trim(),
-         confidence,
-         bbox: { x0: 0, y0: 0, x1: 0, y1: 0 },
-       }))
-       .filter(b => b.text.length > 0);
+    const lineBlocks = Array.isArray((result.data as any).lines)
+      ? (result.data as any).lines
+      : [];
+    const blocks = lineBlocks.length
+      ? lineBlocks
+          .map((line: any) => ({
+            text: String(line?.text || "").trim(),
+            confidence: Number.isFinite(line?.confidence) ? Number(line.confidence) : Number(result.data.confidence || 0),
+            bbox: {
+              x0: Number(line?.bbox?.x0 || 0),
+              y0: Number(line?.bbox?.y0 || 0),
+              x1: Number(line?.bbox?.x1 || 0),
+              y1: Number(line?.bbox?.y1 || 0),
+            },
+          }))
+          .filter((block: { text: string }) => block.text.length > 0)
+      : text
+          .split("\n")
+          .map((line: string) => ({
+            text: line.trim(),
+            confidence: Number(result.data.confidence || 0),
+            bbox: { x0: 0, y0: 0, x1: 0, y1: 0 },
+          }))
+          .filter((block: { text: string }) => block.text.length > 0);
 
     return {
       fullText: text,
@@ -256,8 +343,8 @@ export async function extractText(
   try {
     return await extractTextTesseract(imageData);
   } catch (error) {
-    console.warn("[OCR] Falling back to mock OCR:", error);
-    return extractTextMock(imageData);
+    console.warn("[OCR] Tesseract failed, returning empty OCR result:", error);
+    return emptyOCRResult();
   }
 }
 
@@ -294,7 +381,8 @@ export async function ocrPipeline(
   const ocr = await extractText(processedImage, options.useMock);
 
   // Parse extracted text
-  const cardInfo = extractCardInfoFromText(ocr.fullText);
+  const zones = deriveZoneTextFromBlocks(ocr);
+  const cardInfo = extractCardInfoFromTextWithZones(ocr.fullText, zones);
 
   // Calculate confidence
   const confidence = calculateOCRConfidence(ocr);

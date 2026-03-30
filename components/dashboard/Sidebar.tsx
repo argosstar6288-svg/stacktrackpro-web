@@ -14,6 +14,7 @@ const navItems = [
   { icon: "📷", label: "Scan Card", href: "/dashboard/scan" },
   { icon: "📂", label: "Collection", href: "/dashboard/collection" },
   { icon: "🛒", label: "Marketplace", href: "/dashboard/marketplace" },
+  { icon: "📦", label: "Breaks", href: "/dashboard/breaks" },
   { icon: "🔥", label: "Auctions", href: "/auctions/live" },
   { icon: "📈", label: "Price Trends", href: "/dashboard/market" },
   { icon: "💳", label: "Pricing", href: "/dashboard/pricing" },
