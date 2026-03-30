@@ -3,6 +3,7 @@ import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
 import { hybridScanPipeline } from "@/lib/scanPipeline";
 import { db } from "@/lib/firebase-server";
 import { getEffectiveSubscription } from "@/lib/subscriptionAccess";
+import { fetchPriceChartingValue } from "@/lib/pricecharting";
 
 /**
  * Optimized Card Scan API
@@ -82,62 +83,87 @@ async function callOpenAIVision(
 - Edges: card number, text details
 Return ONLY raw JSON (no markdown).`;
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: instant ? "gpt-4o-mini" : "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: systemPrompt,
-        },
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: instant
-                ? "Quickly identify this card."
-                : "Analyze this card thoroughly and extract all visible information.",
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: image,
-                detail: instant ? "low" : "high",
+  const callVision = async (detail: "high" | "low") => {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: instant ? "gpt-4o-mini" : "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: systemPrompt,
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: instant
+                  ? "Quickly identify this card. Return JSON only."
+                  : "Analyze this card thoroughly and extract all visible information. Return JSON only.",
               },
-            },
-          ],
-        },
-      ],
-      max_tokens: instant ? 260 : 800,
-      temperature: instant ? 0.2 : 0.4,
-    }),
-  });
+              {
+                type: "image_url",
+                image_url: {
+                  url: image,
+                  detail,
+                },
+              },
+            ],
+          },
+        ],
+        max_tokens: instant ? 260 : 800,
+        temperature: instant ? 0.2 : 0.4,
+      }),
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`OpenAI API error: ${error.error?.message || response.statusText}`);
+    if (!response.ok) {
+      let message = response.statusText;
+      try {
+        const error = await response.json();
+        message = error.error?.message || message;
+      } catch {
+        // Keep HTTP status text when error payload is not JSON.
+      }
+      throw new Error(`OpenAI API error: ${message}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    if (!content || typeof content !== "string") {
+      throw new Error("No response from OpenAI");
+    }
+
+    const cleanedContent = content
+      .replace(/```json\s*/gi, "")
+      .replace(/```\s*/g, "")
+      .trim();
+
+    try {
+      return JSON.parse(cleanedContent) as Record<string, any>;
+    } catch {
+      const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("Failed to parse AI response as JSON");
+      }
+      return JSON.parse(jsonMatch[0]) as Record<string, any>;
+    }
+  };
+
+  let result: Record<string, any>;
+  try {
+    result = await callVision(instant ? "low" : "high");
+  } catch (highDetailError) {
+    if (instant) {
+      throw highDetailError;
+    }
+    // Retry once at lower detail for difficult or oversized images.
+    result = await callVision("low");
   }
-
-  const data = await response.json();
-  const content = data.choices[0]?.message?.content;
-
-  if (!content) {
-    throw new Error("No response from OpenAI");
-  }
-
-  // Parse JSON response
-  const cleanedContent = content
-    .replace(/```json\s*/g, "")
-    .replace(/```\s*/g, "")
-    .trim();
-
-  const result = JSON.parse(cleanedContent);
 
   // Normalize result
   return {
@@ -185,6 +211,17 @@ export async function POST(request: NextRequest) {
     // Validate inputs
     if (!image) {
       return corsResponse({ error: "No image provided" }, 400);
+    }
+
+    if (typeof image !== "string") {
+      return corsResponse({ error: "Invalid image payload" }, 400);
+    }
+
+    if (!image.startsWith("data:image/")) {
+      return corsResponse(
+        { error: "Invalid image format. Please upload a JPG or PNG image." },
+        400
+      );
     }
 
     if (!userId) {
@@ -252,7 +289,6 @@ export async function POST(request: NextRequest) {
       try {
         const pipelineResult = await hybridScanPipeline(image, {
           timeoutMs: isInstantMode ? 800 : 1500,
-          aiVisionApi: "/api/scan-card/vision",
         });
 
         timings.hybrid = performance.now() - pipelineStart;
@@ -315,6 +351,24 @@ export async function POST(request: NextRequest) {
       });
     } catch (e) {
       console.warn("[Scan API] Failed to update counter:", e);
+    }
+
+    // === Override AI estimate with PriceCharting market value ===
+    try {
+      const pcPrice = await fetchPriceChartingValue({
+        name: scanResult.name,
+        player: scanResult.player,
+        year: scanResult.year,
+        brand: scanResult.brand,
+        sport: scanResult.sport,
+        condition: scanResult.condition,
+      });
+      if (pcPrice != null && pcPrice > 0) {
+        scanResult.estimatedValue = pcPrice;
+        console.log(`[Scan API] PriceCharting price $${pcPrice} used for ${scanResult.name}`);
+      }
+    } catch (pcErr) {
+      console.warn("[Scan API] PriceCharting lookup failed:", pcErr);
     }
 
     // === Return result ===

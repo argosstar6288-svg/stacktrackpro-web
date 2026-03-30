@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useFeatureAccess } from "../hooks/useFeatureAccess";
 import { useCurrency } from "@/hooks/useCurrency";
 import { formatCurrency } from "@/lib/currency";
+import { auth } from "@/lib/firebase";
 import styles from "./AICardScanner.module.css";
 
 interface CardScanResult {
@@ -39,6 +40,7 @@ interface AICardScannerProps {
 type ScannerView = "scanner" | "result" | "bulk";
 
 const TARGET_SCAN_IMAGE_SIZE = 800;
+const MAX_CARDS_PER_BATCH = 50;
 
 const CONDITION_OPTIONS = ["Mint", "Excellent", "Good", "Fair", "Poor", "Near Mint"];
 
@@ -141,6 +143,7 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
   const [selectedCondition, setSelectedCondition] = useState("Near Mint");
   const [lastScanLatencyMs, setLastScanLatencyMs] = useState<number | null>(null);
   const [error, setError] = useState("");
+  const [selling, setSelling] = useState(false);
   const [scanProgress, setScanProgress] = useState({ current: 0, total: 0 });
 
   const captureInputRef = useRef<HTMLInputElement | null>(null);
@@ -276,8 +279,11 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
 
     if (validImages.length > 0) {
       const useSingle = Boolean(options?.forceSingle);
-      const nextImages = useSingle ? [validImages[0]] : validImages;
-      const nextLabels = useSingle ? [labels[0]] : labels;
+      const didExceedLimit = !useSingle && validImages.length > MAX_CARDS_PER_BATCH;
+      const cappedImages = didExceedLimit ? validImages.slice(0, MAX_CARDS_PER_BATCH) : validImages;
+      const cappedLabels = didExceedLimit ? labels.slice(0, MAX_CARDS_PER_BATCH) : labels;
+      const nextImages = useSingle ? [validImages[0]] : cappedImages;
+      const nextLabels = useSingle ? [labels[0]] : cappedLabels;
 
       setSelectedImages(nextImages);
       setSelectedFileLabels(nextLabels);
@@ -286,7 +292,9 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
       setScanResults([]);
       setLastScanLatencyMs(null);
       setSelectedCondition("Near Mint");
-      if (hasError) {
+      if (didExceedLimit) {
+        setError(`You can scan up to ${MAX_CARDS_PER_BATCH} cards at a time. Extra files were skipped.`);
+      } else if (hasError) {
         setError("Some files were skipped.");
       }
     }
@@ -348,8 +356,65 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
     router.push(`/dashboard/marketplace?search=${query}`);
   };
 
+  const handleSellInMarketplace = async () => {
+    if (!primaryResult) return;
+    if (!userId) {
+      setError("Sign in to list scanned cards in the marketplace.");
+      return;
+    }
+
+    try {
+      setSelling(true);
+      setError("");
+
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
+      const response = await fetch("/api/scan-and-sell", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          image: primaryPreviewImage || undefined,
+          price: Number(primaryResult.estimatedValue || 0),
+          condition: selectedCondition,
+          scanResult: {
+            ...primaryResult,
+            condition: selectedCondition,
+            imageUrl: primaryResult.imageUrl || primaryPreviewImage,
+            photoUrl: primaryResult.photoUrl || primaryPreviewImage,
+          },
+        }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.error || "Failed to create marketplace listing");
+      }
+
+      if (!payload?.listingId) {
+        throw new Error("Listing was created without an id");
+      }
+
+      router.push(`/dashboard/marketplace/${encodeURIComponent(payload.listingId)}`);
+    } catch (sellError) {
+      setError(sellError instanceof Error ? sellError.message : "Failed to create marketplace listing");
+    } finally {
+      setSelling(false);
+    }
+  };
+
   async function handleScan() {
     if (selectedImages.length === 0) return;
+
+    if (selectedImages.length > MAX_CARDS_PER_BATCH) {
+      setError(`You can scan up to ${MAX_CARDS_PER_BATCH} cards at a time.`);
+      return;
+    }
 
     if (!canScan) {
       setError(
@@ -361,6 +426,13 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
     setScanning(true);
     setError("");
     setScanProgress({ current: 0, total: selectedImages.length });
+
+    const effectiveUserId = userId || auth.currentUser?.uid || "";
+    if (!effectiveUserId) {
+      setScanning(false);
+      setError("Sign in to scan cards so we can process your request.");
+      return;
+    }
 
     const results: CardScanResult[] = [];
     const skippedCards: string[] = [];
@@ -383,7 +455,7 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
             },
             body: JSON.stringify({
               image,
-              userId,
+              userId: effectiveUserId,
               scanMode: "standard",
               useFastPath: true,
               aiVisionOnly: false,
@@ -701,6 +773,14 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
           <div className={styles.resultActions}>
             <button type="button" className={styles.primaryCta} onClick={handleAddToCollection}>
               Add to Collection
+            </button>
+            <button
+              type="button"
+              className={styles.primaryCta}
+              onClick={handleSellInMarketplace}
+              disabled={selling}
+            >
+              {selling ? "Listing..." : "Sell in Marketplace"}
             </button>
             <button type="button" className={styles.secondaryCta} onClick={resetForAnotherScan}>
               Scan Another
