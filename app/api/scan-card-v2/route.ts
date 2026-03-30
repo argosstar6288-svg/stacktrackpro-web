@@ -16,6 +16,7 @@ import { ocrPipeline } from "@/lib/ocr";
 import { cleanScanInputForSearch, matchCardDNA } from "@/lib/card-dna";
 import { getEffectiveSubscription } from "@/lib/subscriptionAccess";
 import { fetchPriceChartingValue } from "@/lib/pricecharting";
+import Fuse from "fuse.js";
 
 /**
  * Optimized Card Scan API
@@ -187,6 +188,147 @@ async function findCatalogMatchFromOCR(image: string): Promise<CardScanResult | 
     };
   } catch (error) {
     console.warn("[Scan API] OCR->DNA fallback failed:", error);
+    return null;
+  }
+}
+
+async function findCatalogMatchWithFuse(image: string): Promise<CardScanResult | null> {
+  try {
+    const { ocr, cardInfo } = await ocrPipeline(image, {
+      useMock: false,
+      preprocessFirst: true,
+    });
+
+    const cleanedScan = cleanScanInputForSearch({
+      name: cardInfo.name,
+      cardNumber: cardInfo.cardNumber,
+      year: cardInfo.year,
+      set: cardInfo.setName,
+      sport: cardInfo.sport,
+    });
+
+    const gamesToSearch = resolveGamesForScan({
+      sport: cleanedScan.sport,
+      name: cleanedScan.name,
+      setName: cleanedScan.set,
+    });
+
+    const rawText = String(ocr?.fullText || "").toLowerCase();
+    const textTokens = rawText
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter((token) => token.length > 2)
+      .slice(0, 6);
+
+    const candidatesById = new Map<string, any>();
+
+    for (const game of gamesToSearch) {
+      const cardsRef = collection(db, "cardCatalog", game, "cards");
+
+      if (cleanedScan.cardNumber) {
+        const numberSnapshot = await getDocs(
+          query(cardsRef, where("cardNumber", "==", cleanedScan.cardNumber), firestoreLimit(80))
+        );
+        numberSnapshot.docs.forEach((docSnap) => {
+          const data = docSnap.data() as any;
+          const key = `${game}:${docSnap.id}`;
+          candidatesById.set(key, {
+            catalogId: docSnap.id,
+            game,
+            ...data,
+          });
+        });
+      }
+
+      for (const token of textTokens.slice(0, 3)) {
+        try {
+          const tokenSnapshot = await getDocs(
+            query(cardsRef, where("searchTerms", "array-contains", token), firestoreLimit(120))
+          );
+          tokenSnapshot.docs.forEach((docSnap) => {
+            const data = docSnap.data() as any;
+            const key = `${game}:${docSnap.id}`;
+            candidatesById.set(key, {
+              catalogId: docSnap.id,
+              game,
+              ...data,
+            });
+          });
+        } catch {
+          // Ignore token query failures and continue with other signals.
+        }
+      }
+
+      if (candidatesById.size === 0 && cleanedScan.year) {
+        try {
+          const yearSnapshot = await getDocs(
+            query(cardsRef, where("year", "==", cleanedScan.year), firestoreLimit(120))
+          );
+          yearSnapshot.docs.forEach((docSnap) => {
+            const data = docSnap.data() as any;
+            const key = `${game}:${docSnap.id}`;
+            candidatesById.set(key, {
+              catalogId: docSnap.id,
+              game,
+              ...data,
+            });
+          });
+        } catch {
+          // Ignore year query failures.
+        }
+      }
+    }
+
+    const candidates = Array.from(candidatesById.values());
+    if (candidates.length === 0) {
+      return null;
+    }
+
+    const fuse = new Fuse(candidates, {
+      keys: ["name", "player", "team", "brand", "set.name", "setName", "cardNumber"],
+      threshold: 0.4,
+      includeScore: true,
+      ignoreLocation: true,
+      minMatchCharLength: 2,
+    });
+
+    const queryText = [cleanedScan.name, cleanedScan.cardNumber, cleanedScan.set, rawText]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+
+    if (!queryText) {
+      return null;
+    }
+
+    const results = fuse.search(queryText, { limit: 3 });
+    const best = results[0];
+
+    if (!best || typeof best.score !== "number") {
+      return null;
+    }
+
+    const confidence = Math.max(0.35, Math.min(0.92, 1 - best.score));
+    if (confidence < 0.45) {
+      return null;
+    }
+
+    const cardData = best.item;
+    return {
+      name: cardData.name || cleanedScan.name || "Trading Card",
+      player: cardData.player || cleanedScan.player || "Unknown Player",
+      cardNumber: cardData.cardNumber || cleanedScan.cardNumber || "",
+      setName: cardData.set?.name || cardData.setName || cleanedScan.set || "",
+      year: Number(cardData.year || cleanedScan.year) || new Date().getFullYear(),
+      brand: cardData.brand || cleanedScan.brand || "Unknown",
+      sport: cardData.sport || cleanedScan.sport || "Other",
+      condition: "Good",
+      isGraded: false,
+      estimatedValue: Number(cardData.pricing?.averagePrice || cardData.averagePrice || 0),
+      confidence,
+    };
+  } catch (error) {
+    console.warn("[Scan API] OCR->Fuse fallback failed:", error);
     return null;
   }
 }
@@ -488,7 +630,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // === Step 3: Fall back to OpenAI Vision ===
+    // === Step 3: OCR text + Fuse fuzzy fallback ===
+    if (!scanResult) {
+      const fuseStart = performance.now();
+      const fuseResult = await findCatalogMatchWithFuse(image);
+      timings.local_fuse = performance.now() - fuseStart;
+      if (fuseResult) {
+        scanResult = fuseResult;
+        scanMethod = "local_fuse";
+        console.log(
+          `[Scan API] ✓ OCR->Fuse fallback succeeded: ${scanResult.name} (${Math.round(timings.local_fuse)}ms)`
+        );
+      }
+    }
+
+    // === Step 4: Fall back to OpenAI Vision ===
     if (!scanResult) {
       console.log("[Scan API] Using OpenAI Vision API...");
       const aiStart = performance.now();

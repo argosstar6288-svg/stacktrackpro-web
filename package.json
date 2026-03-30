@@ -7,6 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "android:add": "npx cap add android",
+    "android:sync": "npx cap sync android",
+    "android:open": "npx cap open android",
+    "android:copy": "npx cap copy android",
     "catalog:import": "node scripts/import-card-catalog.js",
     "catalog:import:pokemon": "node scripts/import-card-catalog.js --source=pokemon",
     "catalog:import:magic": "node scripts/import-card-catalog.js --source=magic",
@@ -22,8 +26,12 @@
     "firebase:test-key": "node test-api-key.js"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/cli": "^8.3.0",
+    "@capacitor/core": "^8.3.0",
     "firebase": "^12.9.0",
     "firebase-admin": "^13.6.1",
+    "fuse.js": "^7.1.0",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
