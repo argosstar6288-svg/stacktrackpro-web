@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  increment,
+  collection,
+  query,
+  where,
+  getDocs,
+  limit as firestoreLimit,
+} from "firebase/firestore";
 import { hybridScanPipeline } from "@/lib/scanPipeline";
 import { db } from "@/lib/firebase-server";
+import { ocrPipeline } from "@/lib/ocr";
+import { cleanScanInputForSearch, matchCardDNA } from "@/lib/card-dna";
 import { getEffectiveSubscription } from "@/lib/subscriptionAccess";
 import { fetchPriceChartingValue } from "@/lib/pricecharting";
 
@@ -33,6 +45,150 @@ interface CardScanResult {
   grade?: string;
   estimatedValue: number;
   confidence: number;
+}
+
+function resolveGamesForScan(input: {
+  sport?: string;
+  name?: string;
+  setName?: string;
+}): string[] {
+  const sport = String(input.sport || "").toLowerCase();
+  const name = String(input.name || "").toLowerCase();
+  const setName = String(input.setName || "").toLowerCase();
+  const combined = `${sport} ${name} ${setName}`;
+
+  if (["baseball", "basketball", "football", "hockey", "soccer", "sports"].includes(sport)) {
+    return ["sports"];
+  }
+
+  if (combined.includes("pokemon") || combined.includes("charizard") || combined.includes("pikachu")) {
+    return ["pokemon"];
+  }
+
+  if (combined.includes("yugioh") || combined.includes("yu-gi-oh") || combined.includes("blue eyes")) {
+    return ["yugioh"];
+  }
+
+  if (combined.includes("magic") || combined.includes("mtg") || combined.includes("planeswalker")) {
+    return ["magic"];
+  }
+
+  return ["pokemon", "yugioh", "magic", "sports"];
+}
+
+async function findCatalogMatchFromOCR(image: string): Promise<CardScanResult | null> {
+  try {
+    const { cardInfo } = await ocrPipeline(image, {
+      useMock: false,
+      preprocessFirst: true,
+    });
+
+    const cleanedScan = cleanScanInputForSearch({
+      name: cardInfo.name,
+      cardNumber: cardInfo.cardNumber,
+      year: cardInfo.year,
+      set: cardInfo.setName,
+      sport: cardInfo.sport,
+    });
+
+    const gamesToSearch = resolveGamesForScan({
+      sport: cleanedScan.sport,
+      name: cleanedScan.name,
+      setName: cleanedScan.set,
+    });
+
+    const tokenFromName = String(cleanedScan.name || "")
+      .split(" ")
+      .find((token) => token.length > 1);
+
+    const catalogCards: any[] = [];
+    for (const game of gamesToSearch) {
+      const cardsRef = collection(db, "cardCatalog", game, "cards");
+      let q;
+
+      if (cleanedScan.cardNumber) {
+        q = query(cardsRef, where("cardNumber", "==", cleanedScan.cardNumber), firestoreLimit(80));
+      } else if (tokenFromName && cleanedScan.year) {
+        q = query(
+          cardsRef,
+          where("searchTerms", "array-contains", tokenFromName),
+          where("year", "==", cleanedScan.year),
+          firestoreLimit(160)
+        );
+      } else if (tokenFromName) {
+        q = query(cardsRef, where("searchTerms", "array-contains", tokenFromName), firestoreLimit(200));
+      } else if (cleanedScan.year) {
+        q = query(cardsRef, where("year", "==", cleanedScan.year), firestoreLimit(200));
+      } else {
+        continue;
+      }
+
+      const snapshot = await getDocs(q);
+      snapshot.docs.forEach((docSnap) => {
+        const data = docSnap.data() as any;
+        catalogCards.push({
+          catalogId: docSnap.id,
+          stacktrackId: data.stacktrackId || "",
+          name: data.name || "",
+          game: data.game || game,
+          set: data.set || data.setName || {},
+          cardNumber: data.cardNumber,
+          year: data.year,
+          player: data.player,
+          team: data.team,
+          sport: data.sport,
+          brand: data.brand,
+          type: data.type,
+          variant: data.variant || data.dna?.variant || null,
+          dna: data.dna,
+          images: data.images || { small: null, large: null },
+          pricing: data.pricing,
+        });
+      });
+    }
+
+    if (catalogCards.length === 0) {
+      return null;
+    }
+
+    const matches = matchCardDNA(
+      {
+        name: cleanedScan.name,
+        cardNumber: cleanedScan.cardNumber,
+        year: cleanedScan.year,
+        set: cleanedScan.set,
+        brand: cleanedScan.brand,
+        sport: cleanedScan.sport,
+        type: cleanedScan.type,
+        team: cleanedScan.team,
+        player: cleanedScan.player,
+      },
+      catalogCards
+    );
+
+    const best = matches[0];
+    if (!best || best.percentage < 55) {
+      return null;
+    }
+
+    const cardData = best.cardData || {};
+    return {
+      name: cardData.name || cleanedScan.name || "Trading Card",
+      player: cardData.player || cleanedScan.player || "Unknown Player",
+      cardNumber: cardData.cardNumber || cleanedScan.cardNumber || "",
+      setName: cardData.set?.name || cardData.setName || cleanedScan.set || "",
+      year: Number(cardData.year || cleanedScan.year) || new Date().getFullYear(),
+      brand: cardData.brand || cleanedScan.brand || "Unknown",
+      sport: cardData.sport || cleanedScan.sport || "Other",
+      condition: "Good",
+      isGraded: false,
+      estimatedValue: Number(cardData.pricing?.averagePrice || cardData.averagePrice || 0),
+      confidence: Math.max(0.55, Math.min(0.95, best.percentage / 100)),
+    };
+  } catch (error) {
+    console.warn("[Scan API] OCR->DNA fallback failed:", error);
+    return null;
+  }
 }
 
 function corsResponse(data: any, status: number = 200): NextResponse {
@@ -318,7 +474,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // === Step 2: Fall back to OpenAI Vision ===
+    // === Step 2: Local OCR->DNA fallback for all catalog types ===
+    if (!scanResult) {
+      const localDnaStart = performance.now();
+      const localDnaResult = await findCatalogMatchFromOCR(image);
+      timings.local_dna = performance.now() - localDnaStart;
+      if (localDnaResult) {
+        scanResult = localDnaResult;
+        scanMethod = "local_dna";
+        console.log(
+          `[Scan API] ✓ OCR->DNA fallback succeeded: ${scanResult.name} (${Math.round(timings.local_dna)}ms)`
+        );
+      }
+    }
+
+    // === Step 3: Fall back to OpenAI Vision ===
     if (!scanResult) {
       console.log("[Scan API] Using OpenAI Vision API...");
       const aiStart = performance.now();
