@@ -184,6 +184,13 @@ export async function matchByCardNumber(
           firestoreLimit(5)
         )
       ),
+      getDocs(
+        query(
+          collection(db, "cardCatalog", "yugioh", "cards"),
+          where("cardNumber", "==", cardNumber),
+          firestoreLimit(5)
+        )
+      ),
     ]);
 
     const allResults: CardLookupMatch[] = [];
@@ -244,18 +251,35 @@ export async function matchByName(
     // Search in all game catalogs
     const games = ["pokemon", "sports", "magic", "yugioh"];
     const allResults: CardLookupMatch[] = [];
+    const normalizedTokens = name
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((token) => token.length > 1);
+    const primaryToken = normalizedTokens[0] || name.substring(0, 2).toLowerCase();
 
     for (const game of games) {
       try {
         // Build search (simplified - in production use searchTerms array)
-        const snapshot = await getDocs(
-          query(
-            collection(db, "cardCatalog", game, "cards"),
-            where("name", ">=", name.substring(0, 2).toUpperCase()),
-            where("name", "<=", name.substring(0, 2).toUpperCase() + "~"),
-            firestoreLimit(20)
-          )
-        );
+        let snapshot;
+        try {
+          snapshot = await getDocs(
+            query(
+              collection(db, "cardCatalog", game, "cards"),
+              where("searchTerms", "array-contains", primaryToken),
+              firestoreLimit(40)
+            )
+          );
+        } catch {
+          // Fallback when searchTerms index is unavailable.
+          snapshot = await getDocs(
+            query(
+              collection(db, "cardCatalog", game, "cards"),
+              where("name", ">=", name.substring(0, 2).toUpperCase()),
+              where("name", "<=", name.substring(0, 2).toUpperCase() + "~"),
+              firestoreLimit(20)
+            )
+          );
+        }
 
         snapshot.docs.forEach((doc) => {
           const data = doc.data();

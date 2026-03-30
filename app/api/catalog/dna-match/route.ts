@@ -35,6 +35,49 @@ function corsResponse(data: any, status = 200) {
   });
 }
 
+function resolveGamesToSearch(input: {
+  sport?: string;
+  name?: string;
+  type?: string;
+  set?: string;
+  brand?: string;
+}): string[] {
+  const sport = String(input.sport || "").toLowerCase().trim();
+  const name = String(input.name || "").toLowerCase();
+  const type = String(input.type || "").toLowerCase();
+  const set = String(input.set || "").toLowerCase();
+  const brand = String(input.brand || "").toLowerCase();
+  const combined = `${sport} ${name} ${type} ${set} ${brand}`;
+
+  const sportsValues = new Set([
+    "baseball",
+    "basketball",
+    "football",
+    "hockey",
+    "soccer",
+    "sports",
+  ]);
+
+  if (sportsValues.has(sport)) {
+    return ["sports"];
+  }
+
+  if (combined.includes("pokemon") || combined.includes("pikachu") || combined.includes("charizard")) {
+    return ["pokemon"];
+  }
+
+  if (combined.includes("yugioh") || combined.includes("yu-gi-oh") || combined.includes("blue eyes")) {
+    return ["yugioh"];
+  }
+
+  if (combined.includes("magic") || combined.includes("mtg") || combined.includes("planeswalker")) {
+    return ["magic"];
+  }
+
+  // Default to all major catalogs when not clearly sports.
+  return ["pokemon", "magic", "yugioh", "sports"];
+}
+
 export async function OPTIONS() {
   return corsResponse({}, 200);
 }
@@ -82,16 +125,7 @@ export async function POST(request: NextRequest) {
     console.log("[DNA Match] Filters:", filters);
 
     // Determine which game catalogs to search
-    let gamesToSearch: string[] = [];
-    if (sport) {
-      gamesToSearch = ["sports"];
-    } else if (name && !player) {
-      // TCG card - search Pokemon, Magic, Yu-Gi-Oh
-      gamesToSearch = ["pokemon", "magic", "yugioh"];
-    } else {
-      // Unknown - search all
-      gamesToSearch = ["pokemon", "magic", "yugioh", "sports"];
-    }
+    const gamesToSearch = resolveGamesToSearch({ sport, name, type, set, brand });
 
     // Fetch potential matches from catalog
     const catalogCards: any[] = [];

@@ -76,12 +76,12 @@ async function callOpenAIVision(
   }
 
   const systemPrompt = instant
-    ? "You are a fast card identifier. Return ONLY valid raw JSON with: name, player, cardNumber, setName, year, brand, sport, condition, estimatedValue, confidence (0-1), isGraded, gradingCompany, grade."
-    : `You are an expert sports card identifier. Scan the entire card systematically:
-- Top: year, brand, set name
-- Center: player, team, number
-- Edges: card number, text details
-Return ONLY raw JSON (no markdown).`;
+    ? "You are a fast trading-card identifier for sports cards, Pokemon, Yu-Gi-Oh, Magic, and other TCGs. Return ONLY valid raw JSON with: name, player, cardNumber, setName, year, brand, sport, condition, estimatedValue, confidence (0-1), isGraded, gradingCompany, grade."
+    : `You are an expert trading-card identifier for sports cards and all major TCGs (Pokemon, Yu-Gi-Oh, Magic, One Piece, etc.). Scan the entire card systematically:
+- Top: card name, year, brand, set name
+- Center: character/player, art clues, team/faction
+- Bottom: card number, rarity, symbols, set code
+Return ONLY raw JSON (no markdown). If the card is TCG and not a sports card, set sport to "TCG" or "Other".`;
 
   const callVision = async (detail: "high" | "low") => {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -167,7 +167,7 @@ Return ONLY raw JSON (no markdown).`;
 
   // Normalize result
   return {
-    name: result.name || "Sports Card",
+    name: result.name || "Trading Card",
     player: result.player || "Unknown Player",
     cardNumber: result.cardNumber || "",
     setName: result.setName || result.brand || "",
