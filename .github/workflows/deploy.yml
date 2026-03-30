@@ -14,9 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GCP_PROJECT_ID: stacktrackpro
-  GCP_WORKLOAD_IDENTITY_PROVIDER: projects/1043025959147/locations/global/workloadIdentityPools/github/providers/stacktrackpro
-  GCP_DEPLOY_SERVICE_ACCOUNT: stacktrack-deployer@stacktrackpro.iam.gserviceaccount.com
+  FIREBASE_PROJECT_ID: stacktrackpro
 
 jobs:
   build:
@@ -41,9 +39,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     if: github.event_name == 'pull_request'
-    permissions:
-      contents: read
-      id-token: write
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -63,26 +58,12 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
-      - name: Validate OIDC Configuration
-        shell: bash
-        run: |
-          if [[ "${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}" == *"REPLACE_WITH_PROJECT_NUMBER"* ]]; then
-            echo "GCP_WORKLOAD_IDENTITY_PROVIDER is not finalized in deploy.yml"
-            exit 1
-          fi
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ env.GCP_DEPLOY_SERVICE_ACCOUNT }}
-
       - name: Deploy PR Preview Channel
         shell: bash
         run: |
           CHANNEL_ID="pr-${{ github.event.pull_request.number }}"
           firebase hosting:channel:deploy "$CHANNEL_ID" \
-            --project "${{ env.GCP_PROJECT_ID }}" \
+            --project "${{ env.FIREBASE_PROJECT_ID }}" \
             --only hosting \
             --expires 7d \
             --non-interactive | tee preview-deploy.log
@@ -92,14 +73,13 @@ jobs:
             echo "### Firebase Preview URL" >> "$GITHUB_STEP_SUMMARY"
             echo "$PREVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
           fi
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_CI_TOKEN }}
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    permissions:
-      contents: read
-      id-token: write
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -119,19 +99,7 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
-      - name: Validate OIDC Configuration
-        shell: bash
-        run: |
-          if [[ "${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}" == *"REPLACE_WITH_PROJECT_NUMBER"* ]]; then
-            echo "GCP_WORKLOAD_IDENTITY_PROVIDER is not finalized in deploy.yml"
-            exit 1
-          fi
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ env.GCP_DEPLOY_SERVICE_ACCOUNT }}
-
       - name: Deploy to Firebase Hosting + Functions
-        run: firebase deploy --only hosting,functions --project "${{ env.GCP_PROJECT_ID }}" --non-interactive --force
+        run: firebase deploy --only hosting,functions --project "${{ env.FIREBASE_PROJECT_ID }}" --non-interactive --force
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_CI_TOKEN }}
