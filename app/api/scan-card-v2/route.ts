@@ -748,25 +748,27 @@ export async function POST(request: NextRequest) {
     }
 
     // === Override AI estimate with PriceCharting market value ===
-    try {
-      const pcPrice = await withTimeout(
-        fetchPriceChartingValue({
-          name: scanResult.name,
-          player: scanResult.player,
-          year: scanResult.year,
-          brand: scanResult.brand,
-          sport: scanResult.sport,
-          condition: scanResult.condition,
-        }),
-        2000,
-        "pricecharting"
-      );
-      if (pcPrice != null && pcPrice > 0) {
-        scanResult.estimatedValue = pcPrice;
-        console.log(`[Scan API] PriceCharting price $${pcPrice} used for ${scanResult.name}`);
+    if (!isInstantMode) {
+      try {
+        const pcPrice = await withTimeout(
+          fetchPriceChartingValue({
+            name: scanResult.name,
+            player: scanResult.player,
+            year: scanResult.year,
+            brand: scanResult.brand,
+            sport: scanResult.sport,
+            condition: scanResult.condition,
+          }),
+          2000,
+          "pricecharting"
+        );
+        if (pcPrice != null && pcPrice > 0) {
+          scanResult.estimatedValue = pcPrice;
+          console.log(`[Scan API] PriceCharting price $${pcPrice} used for ${scanResult.name}`);
+        }
+      } catch (pcErr) {
+        console.warn("[Scan API] PriceCharting lookup failed:", pcErr);
       }
-    } catch (pcErr) {
-      console.warn("[Scan API] PriceCharting lookup failed:", pcErr);
     }
 
     // === Return result ===

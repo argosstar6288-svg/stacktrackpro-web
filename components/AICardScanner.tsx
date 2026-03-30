@@ -40,7 +40,7 @@ interface AICardScannerProps {
 
 type ScannerView = "scanner" | "result" | "bulk";
 
-const TARGET_SCAN_IMAGE_SIZE = 800;
+const TARGET_SCAN_IMAGE_SIZE = 640;
 const MAX_CARDS_PER_BATCH = 50;
 const PRIMARY_SCAN_TIMEOUT_MS = 5000;
 const FALLBACK_SCAN_TIMEOUT_MS = 3500;
@@ -265,22 +265,22 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
 
         workingContext.putImageData(imageData, 0, 0);
 
-        const maxLength = 3_500_000;
-        let quality = 0.85;
+        const maxLength = 1_200_000;
+        let quality = 0.8;
         let currentCanvas = workingCanvas;
         let outputUrl = currentCanvas.toDataURL("image/jpeg", quality);
 
-        while (outputUrl.length > maxLength && currentCanvas.width > 900) {
+        while (outputUrl.length > maxLength && currentCanvas.width > 640) {
           const nextCanvas = document.createElement("canvas");
           const nextContext = nextCanvas.getContext("2d");
           if (!nextContext) break;
 
-          nextCanvas.width = Math.round(currentCanvas.width * 0.8);
-          nextCanvas.height = Math.round(currentCanvas.height * 0.8);
+          nextCanvas.width = Math.round(currentCanvas.width * 0.75);
+          nextCanvas.height = Math.round(currentCanvas.height * 0.75);
           nextContext.drawImage(currentCanvas, 0, 0, nextCanvas.width, nextCanvas.height);
 
           currentCanvas = nextCanvas;
-          quality = Math.max(0.6, quality - 0.1);
+          quality = Math.max(0.55, quality - 0.1);
           outputUrl = currentCanvas.toDataURL("image/jpeg", quality);
         }
 
