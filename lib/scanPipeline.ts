@@ -19,6 +19,8 @@ import { preprocessImageClient } from "./imagePreprocessing";
 export interface ScanPipelineResult {
   success: boolean;
   card: CardLookupMatch | null;
+  topMatches?: CardLookupMatch[];
+  autoSelected?: boolean;
   cardInfo: ExtractedCardInfo;
   confidence: number;
   timings: {
@@ -29,6 +31,54 @@ export interface ScanPipelineResult {
   };
   error?: string;
   fallbackToAI?: boolean;
+}
+
+function normalizedSimilarity(a?: string, b?: string): number {
+  const left = String(a || "").trim().toLowerCase();
+  const right = String(b || "").trim().toLowerCase();
+  if (!left || !right) return 0;
+  if (left === right) return 1;
+  if (left.includes(right) || right.includes(left)) return 0.85;
+
+  const leftWords = left.split(/\s+/).filter(Boolean);
+  const rightWords = right.split(/\s+/).filter(Boolean);
+  if (leftWords.length === 0 || rightWords.length === 0) return 0;
+
+  const rightSet = new Set(rightWords);
+  const overlap = leftWords.filter((w) => rightSet.has(w)).length;
+  return overlap / Math.max(leftWords.length, rightWords.length);
+}
+
+function rankByConfidenceFusion(
+  matches: CardLookupMatch[],
+  cardInfo: ExtractedCardInfo
+): CardLookupMatch[] {
+  return [...matches]
+    .map((match) => {
+      const imageSimilarity = Math.max(0, Math.min(1, match.matchScore || 0));
+      const nameMatch = normalizedSimilarity(cardInfo.name, match.name);
+      const setMatch = normalizedSimilarity(cardInfo.setName, match.setName || match.brand);
+
+      // Rarity proxy: exact card number agreement is the strongest rarity/print discriminator we have.
+      const raritySignal =
+        cardInfo.cardNumber && match.cardNumber
+          ? cardInfo.cardNumber.trim().toLowerCase() === match.cardNumber.trim().toLowerCase()
+            ? 1
+            : 0
+          : 0.5;
+
+      const fusedScore =
+        0.4 * imageSimilarity +
+        0.3 * nameMatch +
+        0.2 * setMatch +
+        0.1 * raritySignal;
+
+      return {
+        ...match,
+        matchScore: Math.max(match.matchScore, fusedScore),
+      };
+    })
+    .sort((a, b) => b.matchScore - a.matchScore);
 }
 
 /**
@@ -95,7 +145,9 @@ export async function fastScanPipeline(
     timings.match = performance.now() - matchStart;
     console.log(`[Scan] Matching: ${Math.round(timings.match)}ms, matches: ${matches.length}`);
 
-    const selectedCard = selectBestMatch(matches);
+    const rankedMatches = rankByConfidenceFusion(matches, cardInfo);
+    const topMatches = rankedMatches.slice(0, 3);
+    const selectedCard = selectBestMatch(topMatches);
 
     if (!selectedCard) {
       return {
@@ -117,6 +169,8 @@ export async function fastScanPipeline(
     return {
       success: true,
       card: selectedCard,
+      topMatches,
+      autoSelected: selectedCard.matchScore >= 0.92,
       cardInfo,
       confidence: Math.max(confidence, selectedCard.matchScore),
       timings,

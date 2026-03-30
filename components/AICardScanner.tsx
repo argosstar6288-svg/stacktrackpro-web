@@ -6,6 +6,7 @@ import { useFeatureAccess } from "../hooks/useFeatureAccess";
 import { useCurrency } from "@/hooks/useCurrency";
 import { formatCurrency } from "@/lib/currency";
 import { auth } from "@/lib/firebase";
+import { detectCardBounds, cropCanvas } from "@/lib/imagePreprocessing";
 import styles from "./AICardScanner.module.css";
 
 interface CardScanResult {
@@ -190,7 +191,26 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
         canvas.height = targetHeight;
         context.drawImage(img, 0, 0, targetWidth, targetHeight);
 
-        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        let workingCanvas = canvas;
+        try {
+          const bounds = detectCardBounds(canvas);
+          if (bounds) {
+            const areaRatio = (bounds.width * bounds.height) / (canvas.width * canvas.height);
+            if (areaRatio > 0.35 && areaRatio < 0.98) {
+              workingCanvas = cropCanvas(canvas, bounds);
+            }
+          }
+        } catch {
+          workingCanvas = canvas;
+        }
+
+        const workingContext = workingCanvas.getContext("2d");
+        if (!workingContext) {
+          resolve(dataUrl);
+          return;
+        }
+
+        const imageData = workingContext.getImageData(0, 0, workingCanvas.width, workingCanvas.height);
         const data = imageData.data;
 
         const contrast = 1.2;
@@ -202,11 +222,11 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
           data[i + 2] = Math.min(255, Math.max(0, contrast * (data[i + 2] - 128) + 128 + brightness));
         }
 
-        context.putImageData(imageData, 0, 0);
+        workingContext.putImageData(imageData, 0, 0);
 
         const maxLength = 3_500_000;
         let quality = 0.85;
-        let currentCanvas = canvas;
+        let currentCanvas = workingCanvas;
         let outputUrl = currentCanvas.toDataURL("image/jpeg", quality);
 
         while (outputUrl.length > maxLength && currentCanvas.width > 900) {

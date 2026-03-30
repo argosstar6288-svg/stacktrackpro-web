@@ -249,7 +249,7 @@ export async function extractText(
   imageData: string | HTMLCanvasElement,
   useMock: boolean = false
 ): Promise<OCRResult> {
-  if (useMock || typeof window === "undefined") {
+  if (useMock) {
     return extractTextMock(imageData);
   }
 
