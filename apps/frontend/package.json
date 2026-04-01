@@ -1,0 +1,10 @@
+{
+  "name": "@stacktrack/frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "cd ../.. && npm run dev",
+    "build": "cd ../.. && npm run build",
+    "start": "cd ../.. && npm run start"
+  }
+}

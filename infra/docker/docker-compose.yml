@@ -1,0 +1,29 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ../../apps/backend
+      dockerfile: Dockerfile
+    env_file:
+      - ../../apps/backend/.env
+    ports:
+      - "4000:4000"
+    depends_on:
+      - redis
+      - mongo
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:

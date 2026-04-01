@@ -1,0 +1,29 @@
+name: Deploy StackTrack
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Root
+        run: npm install
+
+      - name: Install Backend
+        run: npm install --workspace @stacktrack/backend
+
+      - name: Build Frontend
+        run: npm run build
+
+      - name: Deploy
+        run: curl -X POST ${{ secrets.DEPLOY_WEBHOOK }}

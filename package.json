@@ -2,6 +2,9 @@
   "name": "web",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -23,7 +26,10 @@
     "stripe:list": "node scripts/list-stripe-prices.js",
     "stripe:create-yearly": "node scripts/create-yearly-prices.js",
     "openai:test": "node test-openai.js",
-    "firebase:test-key": "node test-api-key.js"
+    "firebase:test-key": "node test-api-key.js",
+    "backend:dev": "npm run dev --workspace @stacktrack/backend",
+    "backend:start": "npm run start --workspace @stacktrack/backend",
+    "workers:start": "node infra/scripts/run-workers.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.0",
