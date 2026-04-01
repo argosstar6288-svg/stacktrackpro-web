@@ -251,7 +251,7 @@ export default function DashboardPage() {
               rarity: "Uncommon",
               condition: (entry.condition as Card["condition"]) || "Good",
               value: Number(entry.value ?? master?.avgPrice ?? 0),
-              marketPrice: Number(master?.avgPrice ?? entry.value ?? 0),
+              marketPrice: Number((entry as any).marketPrice ?? entry.value ?? master?.avgPrice ?? 0),
               imageUrl: cardImage,
               photoUrl: cardImage,
               folderId: entry.folder,
@@ -351,11 +351,23 @@ export default function DashboardPage() {
         // Auto-refresh collection prices in background so card values match PriceCharting
         if (normalizedCards.length > 0 && user?.uid) {
           try {
-            // Trigger background refresh without blocking UI
-            fetch("/api/background-price-updater?userId=" + encodeURIComponent(user.uid),{
-              method: "GET",
+            // Trigger authenticated background refresh without blocking UI.
+            user.getIdToken().then((token) => {
+              fetch("/api/background-price-updater", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                  mode: "enqueue",
+                  userId: user.uid,
+                }),
+              }).catch(() => {
+                // Silently ignore background refresh errors
+              });
             }).catch(() => {
-              // Silently ignore background refresh errors
+              // Silently ignore token fetch errors
             });
           } catch (err) {
             // Silently ignore

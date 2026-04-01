@@ -18,6 +18,7 @@ interface CardItemProps {
     year?: number | string;
     condition?: string;
     value?: number;
+    marketPrice?: number;
     price?: number;
     player?: string;
     sport?: string;
@@ -126,9 +127,9 @@ export default function CardItem({ card, badge, showPrice = true, onClick, class
           <p className={styles.condition}>{card.condition}</p>
         )}
 
-        {showPrice && (card.value || card.price) && (
+        {showPrice && (card.marketPrice || card.value || card.price) && (
           <p className={styles.price}>
-            {formatCurrency(Number(card.value || card.price || 0), currency)}
+            {formatCurrency(Number(card.marketPrice || card.value || card.price || 0), currency)}
           </p>
         )}
       </div>
