@@ -518,8 +518,10 @@ Return ONLY raw JSON (no markdown). If the card is TCG and not a sports card, se
  */
 export async function POST(request: NextRequest) {
   const startTime = performance.now();
-  const isInstantRequestTimeoutMs = 7_000;
+  const isInstantRequestTimeoutMs = 10_000;
   const standardRequestTimeoutMs = 12_000;
+  const isInstantOpenAIVisionTimeoutMs = 6_500;
+  const standardOpenAIVisionTimeoutMs = 7_000;
 
   try {
     const { image, userId, scanMode, useFastPath = true, aiVisionOnly = false } = await request.json();
@@ -696,7 +698,7 @@ export async function POST(request: NextRequest) {
       try {
         scanResult = await withTimeout(
           callOpenAIVision(image, isInstantMode),
-          isInstantMode ? 3000 : 7000,
+          isInstantMode ? isInstantOpenAIVisionTimeoutMs : standardOpenAIVisionTimeoutMs,
           "openai vision"
         );
         timings.ai_vision = performance.now() - aiStart;
