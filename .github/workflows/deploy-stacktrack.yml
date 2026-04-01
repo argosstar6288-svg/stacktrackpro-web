@@ -61,5 +61,18 @@ jobs:
         if: steps.build_frontend.conclusion == 'failure'
         run: exit 1
 
+      - name: Validate deploy webhook secret
+        run: |
+          if [ -z "${DEPLOY_WEBHOOK}" ]; then
+            echo "DEPLOY_WEBHOOK secret is missing; skipping webhook deployment."
+            echo "missing=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "missing=false" >> "$GITHUB_OUTPUT"
+          fi
+        id: deploy_webhook_check
+        env:
+          DEPLOY_WEBHOOK: ${{ secrets.DEPLOY_WEBHOOK }}
+
       - name: Deploy
+        if: steps.deploy_webhook_check.outputs.missing != 'true'
         run: curl -X POST ${{ secrets.DEPLOY_WEBHOOK }}
