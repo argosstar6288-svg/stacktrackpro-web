@@ -225,3 +225,20 @@ jobs:
         run: firebase deploy --only hosting,functions --project "${{ env.FIREBASE_PROJECT_ID }}" --non-interactive --force
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_CI_TOKEN }}
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          echo "## Deploy Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Workflow: Deploy StackTrack" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Build step: ${{ steps.build_project.conclusion }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Firebase token missing: ${{ steps.firebase_token_check.outputs.missing }}" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.firebase_token_check.outputs.missing }}" = "true" ]; then
+            echo "- Deploy step: skipped (missing FIREBASE_CI_TOKEN)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- Deploy step: attempted" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "- URL: https://stacktrackpro.com" >> "$GITHUB_STEP_SUMMARY"
+          echo "- URL: https://stacktrackpro.web.app" >> "$GITHUB_STEP_SUMMARY"

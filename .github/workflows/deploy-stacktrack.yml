@@ -76,3 +76,20 @@ jobs:
       - name: Deploy
         if: steps.deploy_webhook_check.outputs.missing != 'true'
         run: curl -X POST ${{ secrets.DEPLOY_WEBHOOK }}
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          echo "## Deploy Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Workflow: Deploy StackTrack (webhook)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Build step: ${{ steps.build_frontend.conclusion }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Webhook missing: ${{ steps.deploy_webhook_check.outputs.missing }}" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.deploy_webhook_check.outputs.missing }}" = "true" ]; then
+            echo "- Deploy step: skipped (missing DEPLOY_WEBHOOK)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- Deploy step: attempted" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "- URL: https://stacktrackpro.com" >> "$GITHUB_STEP_SUMMARY"
+          echo "- URL: https://stacktrackpro.web.app" >> "$GITHUB_STEP_SUMMARY"
