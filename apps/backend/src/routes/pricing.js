@@ -1,6 +1,6 @@
 import express from "express";
 import { getCache, setCache } from "../services/cache.js";
-import { fetchSoldListings, cleanListings, calculatePrice } from "../services/pricingService.js";
+import { fetchPrice } from "../services/pricingService.js";
 
 export const pricingRouter = express.Router();
 
@@ -17,9 +17,7 @@ pricingRouter.get("/price", async (req, res) => {
       return res.json({ ...cached, cached: true });
     }
 
-    const raw = await fetchSoldListings(card);
-    const cleaned = cleanListings(raw);
-    const price = calculatePrice(cleaned);
+    const price = await fetchPrice(card);
 
     if (!price) {
       return res.status(404).json({ error: "No pricing data found" });
@@ -28,9 +26,13 @@ pricingRouter.get("/price", async (req, res) => {
     await setCache(key, price, 12 * 60 * 60);
     return res.json({ ...price, cached: false });
   } catch (error) {
+    const upstreamErrors = error?.response?.data?.errors;
+
     return res.status(500).json({
       error: "Failed to fetch price",
-      details: error instanceof Error ? error.message : "Unknown error",
+      details:
+        upstreamErrors?.[0]?.message ||
+        (error instanceof Error ? error.message : "Unknown error"),
     });
   }
 });

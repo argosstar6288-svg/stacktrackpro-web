@@ -5,10 +5,8 @@ export function startPriceRefreshWorker() {
   const missingCreds =
     !env.ebayClientId ||
     !env.ebayClientSecret ||
-    !env.ebayRefreshToken ||
     env.ebayClientId === "x" ||
-    env.ebayClientSecret === "x" ||
-    env.ebayRefreshToken === "x";
+    env.ebayClientSecret === "x";
 
   if (missingCreds) {
     console.warn("[worker:price-refresh] skipped: missing valid eBay credentials");

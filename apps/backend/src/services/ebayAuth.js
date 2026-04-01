@@ -8,10 +8,9 @@ let tokenCache = {
 
 export async function refreshToken() {
   const res = await axios.post(
-    "https://api.ebay.com/identity/v1/oauth2/token",
+    `${env.ebayIdentityBaseUrl}/identity/v1/oauth2/token`,
     new URLSearchParams({
-      grant_type: "refresh_token",
-      refresh_token: env.ebayRefreshToken,
+      grant_type: "client_credentials",
       scope: "https://api.ebay.com/oauth/api_scope",
     }),
     {

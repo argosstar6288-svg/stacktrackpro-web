@@ -1,4 +1,5 @@
 import axios from "axios";
+import { env } from "../config/env.js";
 import { getAccessToken } from "./ebayAuth.js";
 
 function normalizePrice(item) {
@@ -38,7 +39,7 @@ export async function fetchSoldListings(cardName) {
   const accessToken = await getAccessToken();
 
   const response = await axios.get(
-    "https://api.ebay.com/buy/browse/v1/item_summary/search",
+    `${env.ebayBrowseBaseUrl}/buy/browse/v1/item_summary/search`,
     {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -53,4 +54,14 @@ export async function fetchSoldListings(cardName) {
   );
 
   return response.data?.itemSummaries || [];
+}
+
+export async function fetchPrice(cardName) {
+  try {
+    const raw = await fetchSoldListings(cardName);
+    const cleaned = cleanListings(raw);
+    return calculatePrice(cleaned);
+  } catch {
+    return null;
+  }
 }

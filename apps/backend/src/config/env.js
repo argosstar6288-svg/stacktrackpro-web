@@ -1,11 +1,16 @@
 import dotenv from "dotenv";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 
-dotenv.config();
+const __dirname = dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: join(__dirname, "../../.env") });
+
+const ebayEnvRaw = (process.env.EBAY_ENV || "sandbox").toLowerCase();
+const ebayEnv = ebayEnvRaw === "production" ? "production" : "sandbox";
 
 const required = [
   "EBAY_CLIENT_ID",
   "EBAY_CLIENT_SECRET",
-  "EBAY_REFRESH_TOKEN",
   "MONGO_URI",
   "REDIS_URL",
   "JWT_SECRET",
@@ -14,6 +19,15 @@ const required = [
 export const env = {
   nodeEnv: process.env.NODE_ENV || "development",
   port: Number(process.env.PORT || 4000),
+  ebayEnv,
+  ebayIdentityBaseUrl:
+    ebayEnv === "production"
+      ? "https://api.ebay.com"
+      : "https://api.sandbox.ebay.com",
+  ebayBrowseBaseUrl:
+    ebayEnv === "production"
+      ? "https://api.ebay.com"
+      : "https://api.sandbox.ebay.com",
   ebayClientId: process.env.EBAY_CLIENT_ID || "",
   ebayClientSecret: process.env.EBAY_CLIENT_SECRET || "",
   ebayRefreshToken: process.env.EBAY_REFRESH_TOKEN || "",
