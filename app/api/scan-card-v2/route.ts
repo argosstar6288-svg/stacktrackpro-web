@@ -396,13 +396,11 @@ async function callOpenAIVision(
     throw new Error("OpenAI API key not configured");
   }
 
+  const jsonSchema = `{"name":"<string>","player":"<string or null>","cardNumber":"<string>","setName":"<string>","year":<integer>,"brand":"<string>","sport":"Pokemon|Yu-Gi-Oh|Magic|Baseball|Basketball|Football|Soccer|Hockey|Other","condition":"Poor|Fair|Good|Very Good|Excellent|Near Mint|Mint","estimatedValue":<float>,"confidence":<0.0-1.0>,"isGraded":<boolean>,"gradingCompany":"<string or null>","grade":"<string or null>"}`;
+
   const systemPrompt = instant
-    ? "You are a fast trading-card identifier for sports cards, Pokemon, Yu-Gi-Oh, Magic, and other TCGs. Return ONLY valid raw JSON with: name, player, cardNumber, setName, year, brand, sport, condition, estimatedValue, confidence (0-1), isGraded, gradingCompany, grade."
-    : `You are an expert trading-card identifier for sports cards and all major TCGs (Pokemon, Yu-Gi-Oh, Magic, One Piece, etc.). Scan the entire card systematically:
-- Top: card name, year, brand, set name
-- Center: character/player, art clues, team/faction
-- Bottom: card number, rarity, symbols, set code
-Return ONLY raw JSON (no markdown). If the card is TCG and not a sports card, set sport to "TCG" or "Other".`;
+    ? `You are a trading-card identifier. Return ONLY a single raw JSON object (no markdown, no explanation) matching this exact schema: ${jsonSchema}`
+    : `You are an expert trading-card identifier. Read the entire card: top (name, year, set), center (player/character, art), bottom (card number, rarity, symbols). Return ONLY a single raw JSON object (no markdown, no explanation) matching this exact schema: ${jsonSchema}`;
 
   const callVision = async (detail: "high" | "low") => {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -412,7 +410,7 @@ Return ONLY raw JSON (no markdown). If the card is TCG and not a sports card, se
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: instant ? "gpt-4o-mini" : "gpt-4o",
+        model: "gpt-4o",
         messages: [
           {
             role: "system",
@@ -424,8 +422,8 @@ Return ONLY raw JSON (no markdown). If the card is TCG and not a sports card, se
               {
                 type: "text",
                 text: instant
-                  ? "Quickly identify this card. Return JSON only."
-                  : "Analyze this card thoroughly and extract all visible information. Return JSON only.",
+                  ? "Identify this trading card. Return JSON only."
+                  : "Identify this trading card with full detail. Return JSON only.",
               },
               {
                 type: "image_url",
@@ -437,8 +435,8 @@ Return ONLY raw JSON (no markdown). If the card is TCG and not a sports card, se
             ],
           },
         ],
-        max_tokens: instant ? 260 : 800,
-        temperature: instant ? 0.2 : 0.4,
+        max_tokens: instant ? 450 : 900,
+        temperature: 0.1,
       }),
     });
 
@@ -649,11 +647,11 @@ export async function POST(request: NextRequest) {
     }
 
     // === Step 2: Local OCR->DNA fallback for all catalog types ===
-    if (!scanResult && !isInstantMode) {
+    if (!scanResult) {
       const localDnaStart = performance.now();
       const localDnaResult = await withTimeout(
         findCatalogMatchFromOCR(image),
-        isInstantMode ? 1600 : 3000,
+        isInstantMode ? 1200 : 3000,
         "local DNA"
       ).catch((err) => {
         console.warn("[Scan API] Local DNA timed out or failed:", err);
@@ -670,11 +668,11 @@ export async function POST(request: NextRequest) {
     }
 
     // === Step 3: OCR text + Fuse fuzzy fallback ===
-    if (!scanResult && !isInstantMode) {
+    if (!scanResult) {
       const fuseStart = performance.now();
       const fuseResult = await withTimeout(
         findCatalogMatchWithFuse(image),
-        isInstantMode ? 1200 : 2500,
+        isInstantMode ? 900 : 2500,
         "local fuse"
       ).catch((err) => {
         console.warn("[Scan API] Local Fuse timed out or failed:", err);
