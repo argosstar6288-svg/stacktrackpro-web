@@ -270,9 +270,19 @@ export function calculatePortfolioStats(cards: Card[]) {
     };
   }
 
-  const cardValues = cards.map(card => getCardValue(card));
+  const cardValues = cards.map((card, index) => {
+    const val = getCardValue(card);
+    // Debug logging
+    if (val > 1000 || index < 3) {
+      console.log(`Card ${index}: "${card.name}" | marketPrice: ${(card as any).marketPrice} | value: ${card.value} | extracted: ${val}`);
+    }
+    return val;
+  });
+  
   const totalValue = cardValues.reduce((sum, val) => sum + val, 0);
   const highestValue = Math.max(...cardValues);
+  
+  console.log(`Stats calculation: ${cards.length} cards | total: ${totalValue} | highest: ${highestValue}`);
   
   return {
     cardCount: cards.length,
