@@ -16,6 +16,28 @@ interface CollectionManagerProps {
   folderId?: string;
 }
 
+// Helper to extract numeric value from card (matching lib/cards.ts logic)
+function getCardValueForSort(card: Card): number {
+  const parseValue = (val: any): number => {
+    if (val == null) return 0;
+    if (typeof val === 'number') return val > 0 ? val : 0;
+    if (typeof val === 'string') {
+      const cleaned = val.replace(/[$€£¥₹]/g, '').replace(/,/g, '').trim();
+      const num = parseFloat(cleaned);
+      return !isNaN(num) && num > 0 ? num : 0;
+    }
+    return 0;
+  };
+  
+  const marketPrice = parseValue((card as any).marketPrice);
+  if (marketPrice > 0) return marketPrice;
+  
+  const value = parseValue(card.value);
+  if (value > 0) return value;
+  
+  return 0;
+}
+
 // Data source search functions
 async function searchPokemonTCG(cleanName: string, cardNumber?: string): Promise<string | null> {
   try {
@@ -786,11 +808,11 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
   const sortedCards = [...filteredCards].sort((a, b) => {
     if (sortBy === "name") return a.name.localeCompare(b.name);
     if (sortBy === "value") {
-      const aValue = Number((a as any).marketPrice ?? a.value ?? 0);
-      const bValue = Number((b as any).marketPrice ?? b.value ?? 0);
-      // Handle NaN cases
-      if (isNaN(aValue)) return 1;
-      if (isNaN(bValue)) return -1;
+      const aValue = getCardValueForSort(a);
+      const bValue = getCardValueForSort(b);
+      // Handle NaN/0 cases - push to end
+      if (aValue <= 0) return 1;
+      if (bValue <= 0) return -1;
       return bValue - aValue;
     }
     if (sortBy === "date") return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
@@ -1026,10 +1048,10 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
                     <td>{card.brand}</td>
                     <td>{card.condition}</td>
                     <td style={{ color: "#ff7a47", fontWeight: "bold" }}>
-                      ${Number((card as any).marketPrice ?? card.value ?? 0).toLocaleString()}
+                      ${getCardValueForSort(card).toLocaleString()}
                     </td>
                     <td style={{ color: "#9fd3ff", fontWeight: 600 }}>
-                      ${Number((card as any).predicted30DayValue ?? (card as any).marketPrice ?? card.value ?? 0).toLocaleString()}
+                      ${getCardValueForSort(card).toLocaleString()}
                     </td>
                     <td>
                       {(card as any).rarityTier || (card.rarity === "Legendary" ? "Ultra Rare" : card.rarity === "Rare" ? "Rare" : "Common")}

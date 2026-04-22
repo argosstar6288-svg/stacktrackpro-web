@@ -236,19 +236,37 @@ export async function deleteCard(cardId: string): Promise<void> {
 }
 // Helper function to safely extract card value
 function getCardValue(card: Card): number {
+  // Helper to parse value from string or number
+  const parseValue = (val: any): number => {
+    if (val == null) return 0;
+    
+    // Already a number
+    if (typeof val === 'number') {
+      return val > 0 ? val : 0;
+    }
+    
+    // String - extract numeric value
+    if (typeof val === 'string') {
+      // Remove currency symbols and whitespace
+      const cleaned = val
+        .replace(/[$€£¥₹]/g, '')  // Remove currency symbols
+        .replace(/,/g, '')         // Remove commas
+        .trim();
+      
+      const num = parseFloat(cleaned);
+      return !isNaN(num) && num > 0 ? num : 0;
+    }
+    
+    return 0;
+  };
+  
   // Try marketPrice first (current market value from PriceCharting)
-  const marketPrice = (card as any).marketPrice;
-  if (marketPrice != null && !isNaN(marketPrice)) {
-    const val = Number(marketPrice);
-    if (val > 0) return val;
-  }
+  const marketPrice = parseValue((card as any).marketPrice);
+  if (marketPrice > 0) return marketPrice;
   
   // Fall back to regular value
-  const value = card.value;
-  if (value != null && !isNaN(value)) {
-    const val = Number(value);
-    if (val > 0) return val;
-  }
+  const value = parseValue(card.value);
+  if (value > 0) return value;
   
   return 0;
 }
@@ -272,9 +290,9 @@ export function calculatePortfolioStats(cards: Card[]) {
 
   const cardValues = cards.map((card, index) => {
     const val = getCardValue(card);
-    // Debug logging
-    if (val > 1000 || index < 3) {
-      console.log(`Card ${index}: "${card.name}" | marketPrice: ${(card as any).marketPrice} | value: ${card.value} | extracted: ${val}`);
+    // Debug logging - log all high-value cards and first few
+    if (val > 1000 || val === 0 && card.value) {
+      console.log(`Card ${index}: "${card.name}" | marketPrice: ${(card as any).marketPrice} (type: ${typeof (card as any).marketPrice}) | value: ${card.value} (type: ${typeof card.value}) | extracted: ${val}`);
     }
     return val;
   });
@@ -282,7 +300,7 @@ export function calculatePortfolioStats(cards: Card[]) {
   const totalValue = cardValues.reduce((sum, val) => sum + val, 0);
   const highestValue = Math.max(...cardValues);
   
-  console.log(`Stats calculation: ${cards.length} cards | total: ${totalValue} | highest: ${highestValue}`);
+  console.log(`Stats calculation: ${cards.length} cards total | ${cardValues.filter(v => v > 0).length} with values | total: $${totalValue} | highest: $${highestValue}`);
   
   return {
     cardCount: cards.length,
