@@ -1,16 +1,31 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 import styles from "./RefreshCollectionButton.module.css";
 
 export function RefreshCollectionButton() {
+  const router = useRouter();
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [needsUpdate, setNeedsUpdate] = useState(false);
   const [jobStatus, setJobStatus] = useState<"idle" | "queued" | "processing" | "completed">("idle");
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [hasRequestedRefresh, setHasRequestedRefresh] = useState(false);
+
+  const syncVisibleCollection = useCallback(() => {
+    if (typeof window === "undefined") return;
+
+    const path = window.location.pathname;
+    if (path.includes("/dashboard/collection") || path.includes("/dashboard/portfolio") || path === "/dashboard") {
+      setTimeout(() => {
+        router.refresh();
+        window.location.reload();
+      }, 900);
+    }
+  }, [router]);
 
   const checkRefreshStatus = useCallback(async () => {
     const user = auth.currentUser;
@@ -46,8 +61,13 @@ export function RefreshCollectionButton() {
       } else if (latestJob?.status === "completed") {
         setJobStatus("completed");
         setStatusMessage(
-          `Last run updated ${Number(latestJob.updatedCards || 0)} card${Number(latestJob.updatedCards || 0) === 1 ? "" : "s"}`
+          `Last run updated ${Number(latestJob.updatedCards || 0)} card${Number(latestJob.updatedCards || 0) === 1 ? "" : "s"} from PriceCharting and shows them in CAD`
         );
+
+        if (hasRequestedRefresh) {
+          setHasRequestedRefresh(false);
+          syncVisibleCollection();
+        }
       } else {
         setJobStatus("idle");
         setStatusMessage(null);
@@ -55,7 +75,7 @@ export function RefreshCollectionButton() {
     } catch (err) {
       console.error("Error checking refresh status:", err);
     }
-  }, []);
+  }, [hasRequestedRefresh, syncVisibleCollection]);
 
   useEffect(() => {
     void checkRefreshStatus();
@@ -75,7 +95,8 @@ export function RefreshCollectionButton() {
 
     setIsRefreshing(true);
     setError(null);
-    setStatusMessage("Fetching latest market prices...");
+    setHasRequestedRefresh(true);
+    setStatusMessage("Fetching latest PriceCharting prices and converting totals to CAD...");
 
     try {
       const token = await user.getIdToken();
@@ -102,10 +123,11 @@ export function RefreshCollectionButton() {
         setLastRefresh(new Date());
         setNeedsUpdate(false);
         if (payload?.updatedCards > 0) {
-          setStatusMessage(`✅ Updated ${payload.updatedCards} card price${payload.updatedCards === 1 ? "" : "s"}`);
+          setStatusMessage(`✅ Updated ${payload.updatedCards} card price${payload.updatedCards === 1 ? "" : "s"} from PriceCharting and refreshed CAD values`);
         } else {
-          setStatusMessage("✅ Prices are up to date");
+          setStatusMessage("✅ Prices are already up to date with PriceCharting");
         }
+        syncVisibleCollection();
       } else {
         setJobStatus("queued");
         setStatusMessage("Background update queued. Checking progress...");

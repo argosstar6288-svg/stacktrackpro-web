@@ -1,5 +1,6 @@
 import { db } from "./firebase";
 import { buildCardLookup, buildMasterCardID, buildSetID, inferGameID, type StackTrackGameID } from "./cardSchema";
+import { fetchPriceChartingValue } from "./pricecharting";
 import {
   collection,
   query,
@@ -234,14 +235,15 @@ export async function deleteCard(cardId: string): Promise<void> {
   }
 }
 // Calculate portfolio stats
-export async function calculatePortfolioStats(userId: string) {
-  const cards = await getUserCards(userId);
-  const totalValue = cards.reduce((sum, card) => sum + (card.value || 0), 0);
+export function calculatePortfolioStats(cards: Card[]) {
+  const totalValue = cards.reduce((sum, card) => sum + Number((card as any).marketPrice ?? card.value ?? 0), 0);
+  const highestValue = cards.length > 0 ? Math.max(...cards.map(card => Number((card as any).marketPrice ?? card.value ?? 0))) : 0;
   
   return {
-    totalCards: cards.length,
+    cardCount: cards.length,
     totalValue,
     averageValue: cards.length > 0 ? Math.round(totalValue / cards.length) : 0,
+    highestValue,
     rarityBreakdown: {
       common: cards.filter(c => c.rarity === "Common").length,
       uncommon: cards.filter(c => c.rarity === "Uncommon").length,
@@ -249,6 +251,12 @@ export async function calculatePortfolioStats(userId: string) {
       legendary: cards.filter(c => c.rarity === "Legendary").length,
     },
   };
+}
+
+// Async version for backward compatibility
+export async function calculatePortfolioStatsAsync(userId: string) {
+  const cards = await getUserCards(userId);
+  return calculatePortfolioStats(cards);
 }
 
 // Hook to fetch user cards
@@ -305,7 +313,7 @@ export function usePortfolioStats() {
 
       try {
         setLoading(true);
-        const portfolioStats = await calculatePortfolioStats(user.uid);
+        const portfolioStats = await calculatePortfolioStatsAsync(user.uid);
         setStats(portfolioStats);
         setError(null);
       } catch (err) {
@@ -522,29 +530,25 @@ export function useUserFolders() {
 // ==================== COLLECTION VALUE REFRESH ====================
 
 /**
- * Simulates fetching current market price for a card
- * In production, this would call a real market data API
+ * Fetch the latest PriceCharting market value for a card.
+ * Values are stored in USD and converted to CAD at display time.
  */
 async function fetchMarketPrice(card: Card): Promise<number> {
-  // Simulate market price fluctuation (-5% to +10% of current value)
-  const fluctuation = (Math.random() * 0.15) - 0.05; // -5% to +10%
-  const newValue = Math.max(1, Math.round(card.value * (1 + fluctuation)));
-  
-  // Add some realistic price movement based on rarity
-  let rarityMultiplier = 1;
-  switch (card.rarity) {
-    case "Legendary":
-      rarityMultiplier = 1.02; // Legendary cards tend to appreciate
-      break;
-    case "Rare":
-      rarityMultiplier = 1.01;
-      break;
-    case "Common":
-      rarityMultiplier = 0.99; // Common cards depreciate slightly
-      break;
+  const livePrice = await fetchPriceChartingValue({
+    name: card.name,
+    player: card.player,
+    year: card.year,
+    brand: card.brand,
+    sport: card.sport,
+    game: card.gameID,
+    condition: card.condition,
+  });
+
+  if (typeof livePrice === "number" && livePrice > 0) {
+    return Number(livePrice.toFixed(2));
   }
-  
-  return Math.round(newValue * rarityMultiplier);
+
+  return Number(card.marketPrice ?? card.value ?? 0);
 }
 
 /**
@@ -568,9 +572,12 @@ export async function refreshUserCollectionValues(userId: string): Promise<{
       const newValue = await fetchMarketPrice(card);
       
       // Only update if value changed
-      if (newValue !== card.value) {
+      if (newValue !== Number(card.marketPrice ?? card.value ?? 0)) {
         await updateDoc(doc(db, "cards", card.id), {
           value: newValue,
+          marketPrice: newValue,
+          priceSource: "pricecharting",
+          priceLastUpdated: new Date().toISOString(),
           lastValueUpdate: serverTimestamp(),
         });
         updatedCards++;

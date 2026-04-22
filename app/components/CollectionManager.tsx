@@ -785,7 +785,11 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
 
   const sortedCards = [...filteredCards].sort((a, b) => {
     if (sortBy === "name") return a.name.localeCompare(b.name);
-    if (sortBy === "value") return b.value - a.value;
+    if (sortBy === "value") {
+      const aValue = Number((a as any).marketPrice ?? a.value ?? 0);
+      const bValue = Number((b as any).marketPrice ?? b.value ?? 0);
+      return bValue - aValue;
+    }
     if (sortBy === "date") return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
     return 0;
   });

@@ -7,6 +7,7 @@ import {
 import { getAuth as getAdminAuth } from "firebase-admin/auth";
 import { buildPriceIntelligence } from "@/lib/priceIntelligence";
 import { adminDb, adminServerTimestamp } from "@/lib/firebase-admin";
+import { fetchPriceChartingValue } from "@/lib/pricecharting";
 
 const FIREBASE_WEB_API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "";
 const PRICECHARTING_API_KEY = process.env.PRICECHARTING_API_KEY || "";
@@ -88,63 +89,25 @@ async function lookupPriceFromPriceCharting(card: any): Promise<{
     return { found: false, error: "PRICECHARTING_API_KEY missing" };
   }
 
-  const name = String(card?.name || "").trim();
-  if (!name) return { found: false, error: "Card missing name" };
+  const suggestedPrice = await fetchPriceChartingValue({
+    name: String(card?.name || "").trim(),
+    player: card?.player,
+    year: card?.year,
+    brand: card?.brand,
+    sport: card?.sport,
+    game: card?.gameID || card?.game,
+    condition: card?.condition,
+  });
 
-  let searchQuery = name;
-  if (card?.player) searchQuery = `${card.player} ${searchQuery}`;
-  if (card?.year) searchQuery = `${card.year} ${searchQuery}`;
-  if (card?.brand) searchQuery = `${card.brand} ${searchQuery}`;
-
-  const consoleName = card?.sport ? `${card.sport} Cards` : "Baseball Cards";
-
-  const url = new URL("https://www.pricecharting.com/api/product");
-  url.searchParams.append("t", PRICECHARTING_API_KEY);
-  url.searchParams.append("q", searchQuery);
-  url.searchParams.append("console", consoleName);
-
-  try {
-    const response = await fetch(url.toString(), {
-      method: "GET",
-      headers: { "User-Agent": "StackTrackPro/1.0" },
-    });
-
-    if (!response.ok) {
-      return { found: false, error: `PriceCharting error ${response.status}` };
-    }
-
-    const data = await response.json();
-    if (data?.status === "error") {
-      return { found: false, error: data?.["error-message"] || "not found" };
-    }
-
-    const loose = data?.["loose-price"] ? data["loose-price"] / 100 : null;
-    const complete = data?.["cib-price"] ? data["cib-price"] / 100 : null;
-    const mint = data?.["new-price"] ? data["new-price"] / 100 : null;
-
-    let suggestedPrice = loose;
-    const cardCondition = String(card?.condition || "").toLowerCase();
-    if (cardCondition === "mint" && mint != null) {
-      suggestedPrice = mint;
-    } else if (complete != null) {
-      suggestedPrice = complete;
-    }
-
-    if (suggestedPrice == null) {
-      return { found: false, error: "No usable price returned" };
-    }
-
-    return {
-      found: true,
-      suggestedPrice: Number(suggestedPrice),
-      source: "pricecharting",
-    };
-  } catch (error) {
-    return {
-      found: false,
-      error: error instanceof Error ? error.message : "Unknown lookup error",
-    };
+  if (suggestedPrice == null) {
+    return { found: false, error: "No usable price returned" };
   }
+
+  return {
+    found: true,
+    suggestedPrice: Number(suggestedPrice),
+    source: "pricecharting",
+  };
 }
 
 export async function processQueuedJobs(maxJobs = 1, filterUserId?: string) {

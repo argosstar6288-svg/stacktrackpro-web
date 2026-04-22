@@ -3,7 +3,7 @@ import { DEFAULT_CURRENCY } from "@/lib/currency";
 
 const CURRENCY_STORAGE_KEY = "user-currency";
 const CURRENCY_EVENT_NAME = "currencyChange";
-const ALLOWED_CURRENCIES = new Set([DEFAULT_CURRENCY]);
+const ALLOWED_CURRENCIES = new Set(["CAD", "USD"]);
 
 export function useCurrency() {
   const [currency, setCurrencyState] = useState<string>(DEFAULT_CURRENCY);

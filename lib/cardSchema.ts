@@ -1,4 +1,4 @@
-export type StackTrackGameID = "pokemon" | "magic" | "yugioh" | "sports" | "marvel" | "other";
+export type StackTrackGameID = "pokemon" | "magic" | "yugioh" | "one-piece" | "sports" | "marvel" | "other";
 
 export interface GameDocument {
   gameID: StackTrackGameID;
@@ -145,6 +145,10 @@ export function inferGameID(input: {
     return "yugioh";
   }
 
+  if (combined.includes("one_piece") || combined.includes("onepiece") || combined.includes("monkey_d_luffy") || combined.includes("roronoa_zoro")) {
+    return "one-piece";
+  }
+
   if (combined.includes("marvel")) {
     return "marvel";
   }
@@ -153,8 +157,8 @@ export function inferGameID(input: {
     return "sports";
   }
 
-  if (game === "pokemon" || game === "magic" || game === "yugioh" || game === "sports" || game === "marvel") {
-    return game;
+  if (game === "pokemon" || game === "magic" || game === "yugioh" || game === "one_piece" || game === "one-piece" || game === "sports" || game === "marvel") {
+    return game === "one_piece" ? "one-piece" : game;
   }
 
   return "other";

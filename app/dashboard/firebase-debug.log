@@ -1,0 +1,270 @@
+[debug] [2026-04-22T04:29:46.803Z] ----------------------------------------------------------------------
+[debug] [2026-04-22T04:29:46.809Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\argos\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only hosting
+[debug] [2026-04-22T04:29:46.810Z] CLI Version:   15.5.1
+[debug] [2026-04-22T04:29:46.810Z] Platform:      win32
+[debug] [2026-04-22T04:29:46.810Z] Node Version:  v24.13.0
+[debug] [2026-04-22T04:29:46.810Z] Time:          Tue Apr 21 2026 22:29:46 GMT-0600 (Mountain Daylight Time)
+[debug] [2026-04-22T04:29:46.810Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-04-22T04:29:46.813Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-04-22T04:29:52.724Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-22T04:29:52.725Z] > authorizing via signed-in user (argos.star6288@gmail.com)
+[debug] [2026-04-22T04:29:52.725Z] [iam] checking project stacktrackpro for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-04-22T04:29:52.726Z] Checked if tokens are valid: false, expires at: 1776390815657
+[debug] [2026-04-22T04:29:52.726Z] Checked if tokens are valid: false, expires at: 1776390815657
+[debug] [2026-04-22T04:29:52.726Z] > refreshing access token with scopes: []
+[debug] [2026-04-22T04:29:52.727Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-04-22T04:29:52.727Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-04-22T04:29:52.879Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-04-22T04:29:52.880Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-04-22T04:29:52.889Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/stacktrackpro:testIamPermissions [none]
+[debug] [2026-04-22T04:29:52.890Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/stacktrackpro:testIamPermissions  x-goog-user-project=stacktrackpro
+[debug] [2026-04-22T04:29:52.890Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/stacktrackpro:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-04-22T04:29:52.911Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-04-22T04:29:52.911Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-04-22T04:29:53.074Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/stacktrackpro:testIamPermissions 200
+[debug] [2026-04-22T04:29:53.074Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/stacktrackpro:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-04-22T04:29:53.075Z] Checked if tokens are valid: true, expires at: 1776835791880
+[debug] [2026-04-22T04:29:53.075Z] Checked if tokens are valid: true, expires at: 1776835791880
+[debug] [2026-04-22T04:29:53.075Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/stacktrackpro [none]
+[debug] [2026-04-22T04:29:53.393Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/stacktrackpro 200
+[debug] [2026-04-22T04:29:53.393Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/stacktrackpro {"projectId":"stacktrackpro","projectNumber":"1043025959147","displayName":"StackTrackPro","name":"projects/stacktrackpro","resources":{"hostingSite":"stacktrackpro"},"state":"ACTIVE","etag":"1_af08ead2-e11d-48b1-b918-5d822955cc45"}
+[debug] [2026-04-22T04:29:59.577Z] defaultcredentials: writing to file C:\Users\argos\AppData\Roaming\firebase\argos_star6288_gmail.com_application_default_credentials.json
+[debug] [2026-04-22T04:29:59.580Z] Checked if tokens are valid: true, expires at: 1776835791880
+[debug] [2026-04-22T04:29:59.580Z] Checked if tokens are valid: true, expires at: 1776835791880
+[debug] [2026-04-22T04:29:59.581Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/stacktrackpro/sites pageToken=&pageSize=10
+[debug] [2026-04-22T04:30:00.907Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/stacktrackpro/sites 200
+[debug] [2026-04-22T04:30:00.907Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/stacktrackpro/sites {"sites":[{"name":"projects/stacktrackpro/sites/stacktrackpro","defaultUrl":"https://stacktrackpro.web.app","type":"DEFAULT_SITE"}]}
+[debug] [2026-04-22T04:30:00.908Z] Checked if tokens are valid: true, expires at: 1776835791880
+[debug] [2026-04-22T04:30:00.908Z] Checked if tokens are valid: true, expires at: 1776835791880
+[debug] [2026-04-22T04:30:00.908Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/stacktrackpro/sites 
+[debug] [2026-04-22T04:30:01.998Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/stacktrackpro/sites 200
+[debug] [2026-04-22T04:30:01.998Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/stacktrackpro/sites {"sites":[{"name":"projects/stacktrackpro/sites/stacktrackpro","defaultUrl":"https://stacktrackpro.web.app","type":"DEFAULT_SITE"}]}
+[debug] [2026-04-22T04:30:01.998Z] Checked if tokens are valid: true, expires at: 1776835791880
+[debug] [2026-04-22T04:30:01.999Z] Checked if tokens are valid: true, expires at: 1776835791880
+[debug] [2026-04-22T04:30:01.999Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/stacktrackpro/webApps/-/config [none]
+[debug] [2026-04-22T04:30:02.513Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/stacktrackpro/webApps/-/config 200
+[debug] [2026-04-22T04:30:02.513Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/stacktrackpro/webApps/-/config {"projectId":"stacktrackpro","appId":"1:1043025959147:web:e0b19fcb3eaa54328646ae","storageBucket":"stacktrackpro.firebasestorage.app","apiKey":"AIzaSyCN4I_INUKp1qyqLiATrH0HXFZU4Y5Iumg","authDomain":"stacktrackpro.firebaseapp.com","messagingSenderId":"1043025959147","measurementId":"G-Y8RJP36WQY","projectNumber":"1043025959147","version":"2"}
+[info] 
+   Thank you for trying our early preview of Next.js support on Firebase Hosting.
+   During the preview, support is best-effort and breaking changes can be expected. Proceed with caution.
+   The integration is known to work with Next.js version 12 - 15.0. You may encounter errors.
+
+   Documentation: https://firebase.google.com/docs/hosting/frameworks/nextjs
+   File a bug: https://github.com/firebase/firebase-tools/issues/new?template=bug_report.md
+   Submit a feature request: https://github.com/firebase/firebase-tools/issues/new?template=feature_request.md
+
+   We'd love to learn from you. Express your interest in helping us shape the future of Firebase Hosting: https://goo.gle/41enW5X
+
+[debug] [2026-04-22T04:30:16.834Z] Checked if tokens are valid: true, expires at: 1776835791880
+[debug] [2026-04-22T04:30:16.834Z] Checked if tokens are valid: true, expires at: 1776835791880
+[debug] [2026-04-22T04:30:16.834Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/stacktrackpro/sites/stacktrackpro [none]
+[debug] [2026-04-22T04:30:17.956Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/stacktrackpro/sites/stacktrackpro 200
+[debug] [2026-04-22T04:30:17.956Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/stacktrackpro/sites/stacktrackpro {"name":"projects/stacktrackpro/sites/stacktrackpro","defaultUrl":"https://stacktrackpro.web.app","type":"DEFAULT_SITE"}
+[info] ⚠ turbopack.root should be absolute, using: C:\Users\argos\Documents\stacktrackpro\web
+
+[info] ▲ Next.js 16.1.6 (Turbopack)
+
+[info] - Environments: .env.production.local, .env.local, .env.production
+
+
+[info]   Creating an optimized production build ...
+
+[info] ✓ Compiled successfully in 31.6s
+
+[info]   Running TypeScript ...
+
+[info]   Collecting page data using 3 workers ...
+
+[info]   Generating static pages using 3 workers (0/114) ...
+
+[info]   Generating static pages using 3 workers (28/114) 
+
+[info]   Generating static pages using 3 workers (56/114) 
+
+[info]   Generating static pages using 3 workers (85/114) 
+
+[info] ✓ Generating static pages using 3 workers (114/114) in 2.9s
+
+[info]   Finalizing page optimization ...
+
+[info] 
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /admin/engagement-analytics
+├ ○ /admin/fraud-detection
+├ ○ /admin/payout-approvals
+├ ○ /admin/referral-analytics
+├ ○ /admin/revenue-dashboard
+├ ○ /admin/seller-analytics
+├ ○ /admin/user-analytics
+├ ƒ /api/admin/bulk-price-update
+├ ƒ /api/admin/cache-management
+├ ƒ /api/admin/run-background-updater
+├ ƒ /api/background-price-updater
+├ ƒ /api/breaks
+├ ƒ /api/breaks/[id]
+├ ƒ /api/breaks/[id]/hits
+├ ƒ /api/breaks/[id]/join
+├ ƒ /api/cache-card
+├ ƒ /api/card-alerts
+├ ƒ /api/catalog/dna-match
+├ ƒ /api/catalog/id-lookup
+├ ƒ /api/catalog/import
+├ ƒ /api/catalog/search
+├ ƒ /api/catalog/update-prices
+├ ƒ /api/create-subscription-checkout
+├ ƒ /api/cron/process-price-updates
+├ ƒ /api/list-card
+├ ƒ /api/message-eligibility
+├ ƒ /api/offers
+├ ƒ /api/price-lookup
+├ ƒ /api/product
+├ ƒ /api/products
+├ ƒ /api/refresh-collection-values
+├ ƒ /api/scan-and-sell
+├ ƒ /api/scan-card
+├ ƒ /api/scan-card-v2
+├ ƒ /api/scan-pipeline
+├ ƒ /api/search-users
+├ ○ /auction
+├ ○ /auction-rules
+├ ○ /auction/id
+├ ○ /auctions
+├ ƒ /auctions/[auctionId]
+├ ○ /auctions/create
+├ ○ /auctions/live
+├ ○ /auth
+├ ○ /catalogue
+├ ○ /chat
+├ ○ /collection
+├ ○ /community-chat
+├ ○ /create-account
+├ ○ /dashboard
+├ ○ /dashboard/admin
+├ ○ /dashboard/admin/ai-card-match
+├ ○ /dashboard/admin/catalog
+├ ○ /dashboard/admin/csv-image-upload
+├ ○ /dashboard/admin/disputes
+├ ○ /dashboard/admin/dna-match
+├ ○ /dashboard/admin/pokemon-tcg-import
+├ ○ /dashboard/admin/price-update
+├ ○ /dashboard/admin/system-check
+├ ○ /dashboard/admin/universal-id
+├ ○ /dashboard/ai
+├ ○ /dashboard/analytics-integration
+├ ƒ /dashboard/api/tcg-events
+├ ○ /dashboard/auto-bid
+├ ○ /dashboard/billing
+├ ○ /dashboard/breaks
+├ ƒ /dashboard/breaks/[id]
+├ ○ /dashboard/breaks/create
+├ ○ /dashboard/buyer-recommendations
+├ ƒ /dashboard/cards/[id]
+├ ○ /dashboard/collection
+├ ○ /dashboard/collection/add
+├ ƒ /dashboard/collection/folder/[id]
+├ ○ /dashboard/discover
+├ ○ /dashboard/earnings
+├ ○ /dashboard/feature-hub
+├ ○ /dashboard/founding-wall
+├ ○ /dashboard/help
+├ ○ /dashboard/help/how-values-work
+├ ○ /dashboard/inbox
+├ ○ /dashboard/market
+├ ○ /dashboard/marketplace
+├ ƒ /dashboard/marketplace/[id]
+├ ○ /dashboard/marketplace/create
+├ ○ /dashboard/notifications
+├ ○ /dashboard/payouts
+├ ○ /dashboard/portfolio
+├ ○ /dashboard/pricing
+├ ○ /dashboard/pricing-advisor
+├ ○ /dashboard/profile
+├ ƒ /dashboard/profile/[uid]
+├ ○ /dashboard/referral-leaderboard
+├ ○ /dashboard/scan
+├ ○ /dashboard/seller-boosts
+├ ○ /dashboard/seller-tools
+├ ○ /dashboard/settings
+├ ○ /dashboard/share
+├ ○ /dashboard/subscriptions
+├ ○ /dashboard/users
+├ ○ /dashboard/watchlist
+├ ○ /env-test
+├ ○ /firebase-test
+├ ○ /inbox
+├ ○ /legal
+├ ○ /legal/auction-rules
+├ ○ /legal/community-guidelines
+├ ○ /legal/founding-member
+├ ○ /legal/payout
+├ ○ /legal/privacy
+├ ○ /legal/refund-dispute
+├ ○ /legal/terms
+├ ○ /login
+├ ○ /marketplace
+├ ○ /overview
+├ ○ /robots.txt
+├ ○ /scan
+├ ● /seo/auction/[id]
+├ ○ /signup
+├ ○ /sitemap.xml
+├ ○ /test-auth
+└ ○ /verify-age
+
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand
+
+
+[info] Building a Cloud Function to run this application. This is needed due to:
+[info]  • use of fallback /seo/auction/[id]
+[info]  • non-static component /api/admin/bulk-price-update/route
+[info]  • non-static component /api/admin/cache-management/route
+[info]  • non-static component /api/admin/run-background-updater/route
+[info]  • non-static component /api/background-price-updater/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/breaks/[id]/hits/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/breaks/[id]/join/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/breaks/[id]/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/breaks/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/cache-card/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/card-alerts/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/catalog/dna-match/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/catalog/id-lookup/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/catalog/import/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/catalog/search/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/catalog/update-prices/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/create-subscription-checkout/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/cron/process-price-updates/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/list-card/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/message-eligibility/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/offers/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/price-lookup/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/product/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/products/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/refresh-collection-values/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/scan-and-sell/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/scan-card-v2/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/scan-card/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/scan-pipeline/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /api/search-users/route
+[debug] [2026-04-22T04:31:30.764Z]  • non-static component /auctions/[auctionId]/page
+[debug] [2026-04-22T04:31:30.765Z]  • non-static component /dashboard/api/tcg-events/route
+[debug] [2026-04-22T04:31:30.765Z]  • non-static component /dashboard/breaks/[id]/page
+[debug] [2026-04-22T04:31:30.765Z]  • non-static component /dashboard/cards/[id]/page
+[debug] [2026-04-22T04:31:30.765Z]  • non-static component /dashboard/collection/folder/[id]/page
+[debug] [2026-04-22T04:31:30.765Z]  • non-static component /dashboard/marketplace/[id]/page
+[debug] [2026-04-22T04:31:30.765Z]  • non-static component /dashboard/profile/[uid]/page
+[debug] [2026-04-22T04:31:30.765Z]  • route with server action /dashboard/admin/disputes
+[info]  • and 33 other reasons, use --debug to see more
+[info] 
+[debug] [2026-04-22T04:31:32.629Z] skipping /dashboard/admin/disputes due to server action
+[debug] [2026-04-22T04:31:53.138Z] Checked if tokens are valid: true, expires at: 1776835791880
+[debug] [2026-04-22T04:31:53.139Z] Checked if tokens are valid: true, expires at: 1776835791880
+[debug] [2026-04-22T04:31:53.139Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/stacktrackpro/sites/stacktrackpro [none]
+[debug] [2026-04-22T04:31:53.798Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/stacktrackpro/sites/stacktrackpro 200
+[debug] [2026-04-22T04:31:53.798Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/stacktrackpro/sites/stacktrackpro {"name":"projects/stacktrackpro/sites/stacktrackpro","defaultUrl":"https://stacktrackpro.web.app","type":"DEFAULT_SITE"}
+[debug] [2026-04-22T04:31:59.227Z] Error: EPERM: operation not permitted, symlink 'C:\Users\argos\Documents\stacktrackpro\web\node_modules\firebase-admin' -> 'C:\Users\argos\Documents\stacktrackpro\web\.firebase\stacktrackpro\functions\.next\node_modules\firebase-admin-a14c8a5423a75469'

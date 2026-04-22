@@ -1,19 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCachedCardMetadata, updateCachePricing, isPricingStale } from "@/lib/cardCache";
-
-interface PriceChartingProduct {
-  status: "success" | "error";
-  "product-name"?: string;
-  "console-name"?: string;
-  "loose-price"?: number; // in pennies
-  "cib-price"?: number;
-  "new-price"?: number;
-  "graded-price"?: number;
-  "box-only-price"?: number;
-  "manual-only-price"?: number;
-  id?: string;
-  "error-message"?: string;
-}
+import { buildPriceChartingSearchQuery, fetchPriceChartingProduct, type PriceChartingProductRecord } from "@/lib/pricecharting";
 
 // CORS headers
 function corsResponse(data: any, status = 200) {
@@ -42,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { cardName, sport, year, player, brand, condition, stacktrackId, skipCache } = body;
+    const { cardName, sport, year, player, brand, condition, stacktrackId, skipCache, game } = body;
 
     if (!cardName) {
       return corsResponse({ error: "cardName is required" }, 400);
@@ -84,57 +71,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Build search query for PriceCharting
-    // Format: "Player Year Brand CardName" or just "CardName Sport"
-    let searchQuery = cardName;
-    
-    if (player) {
-      searchQuery = `${player} ${searchQuery}`;
-    }
-    if (year) {
-      searchQuery = `${year} ${searchQuery}`;
-    }
-    if (brand) {
-      searchQuery = `${brand} ${searchQuery}`;
-    }
-
-    // PriceCharting uses console-name for sports card categories
-    // Common mappings: "Baseball Cards", "Basketball Cards", etc.
-    const consoleName = sport ? `${sport} Cards` : "Baseball Cards";
-
-    console.log(`[Price Lookup] Cache MISS${stacktrackId ? ` for ${stacktrackId}` : ""} - Query: "${searchQuery}" | Console: "${consoleName}"`);
-
-    // Call PriceCharting API
-    const url = new URL("https://www.pricecharting.com/api/product");
-    url.searchParams.append("t", apiKey);
-    url.searchParams.append("q", searchQuery);
-    url.searchParams.append("console", consoleName);
-
-    const response = await fetch(url.toString(), {
-      method: "GET",
-      headers: {
-        "User-Agent": "StackTrackPro/1.0",
-      },
+    const searchQuery = buildPriceChartingSearchQuery({
+      name: cardName,
+      sport,
+      year,
+      player,
+      brand,
+      game,
+      condition,
     });
 
-    if (!response.ok) {
-      console.error(`[Price Lookup] PriceCharting API error: ${response.status}`);
-      return corsResponse(
-        { 
-          error: "PriceCharting API request failed",
-          status: response.status 
-        },
-        response.status
-      );
-    }
+    console.log(`[Price Lookup] Cache MISS${stacktrackId ? ` for ${stacktrackId}` : ""} - Query: "${searchQuery}"`);
 
-    const data: PriceChartingProduct = await response.json();
+    const data: PriceChartingProductRecord | null = await fetchPriceChartingProduct({ q: searchQuery });
 
-    if (data.status === "error") {
-      console.log(`[Price Lookup] No results: ${data["error-message"]}`);
+    if (!data) {
+      console.log("[Price Lookup] No results returned from PriceCharting");
       return corsResponse({
         found: false,
-        message: data["error-message"] || "Card not found in price database",
+        message: "Card not found in price database",
       });
     }
 

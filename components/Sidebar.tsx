@@ -14,6 +14,7 @@ interface SidebarProps {
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: "⌂" },
+  { href: "/dashboard/feature-hub", label: "Feature Hub", icon: "★" },
   { href: "/dashboard/collection", label: "My Collection", icon: "▣" },
   { href: "/dashboard/marketplace", label: "Marketplace", icon: "◫" },
   { href: "/dashboard/breaks", label: "Breaks", icon: "◍" },
