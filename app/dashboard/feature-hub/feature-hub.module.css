@@ -1,0 +1,259 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 10px 0 24px;
+}
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  padding: 26px 24px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(79, 195, 247, 0.28), transparent 48%),
+    radial-gradient(circle at 85% 8%, rgba(255, 167, 38, 0.25), transparent 42%),
+    linear-gradient(140deg, rgba(6, 32, 58, 0.96), rgba(14, 52, 84, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow:
+    0 12px 40px rgba(4, 30, 53, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.heroTopRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 12px;
+  color: rgba(208, 236, 255, 0.78);
+}
+
+.title {
+  margin: 8px 0 0;
+  font-size: clamp(2rem, 4vw, 2.7rem);
+  line-height: 1.1;
+  color: #f4fbff;
+}
+
+.subtitle {
+  margin: 12px 0 0;
+  max-width: 720px;
+  color: rgba(234, 247, 255, 0.85);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.quickActionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.quickActionBtn {
+  text-decoration: none;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.quickActionBtn:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.notice {
+  margin: 14px 0 0;
+  display: inline-block;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 250, 230, 0.95);
+  background: rgba(255, 166, 0, 0.24);
+  border: 1px solid rgba(255, 206, 120, 0.4);
+}
+
+.statsStrip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.statCard {
+  padding: 16px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(8, 35, 65, 0.86), rgba(8, 27, 49, 0.88));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 10px 34px rgba(1, 18, 35, 0.2);
+}
+
+.statLabel {
+  display: block;
+  font-size: 12px;
+  color: rgba(214, 231, 245, 0.75);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 6px;
+}
+
+.statCard strong {
+  color: #f7fcff;
+  font-size: 1.2rem;
+}
+
+.searchPanel {
+  border-radius: 16px;
+  background: rgba(8, 27, 49, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 14px;
+}
+
+.searchInput {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  padding: 12px 14px;
+  font-size: 14px;
+}
+
+.searchInput::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.spotlightSection,
+.group {
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(135deg, rgba(8, 35, 65, 0.86), rgba(8, 27, 49, 0.88));
+  box-shadow: 0 10px 34px rgba(1, 18, 35, 0.35);
+  padding: 18px;
+}
+
+.grid {
+  display: grid;
+  gap: 20px;
+}
+
+.groupHeader h2 {
+  margin: 2px 0 14px;
+  font-size: 1.1rem;
+  color: rgba(236, 246, 255, 0.95);
+}
+
+.spotlightGrid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.spotlightCard,
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-decoration: none;
+  border-radius: 14px;
+  padding: 14px;
+  background: linear-gradient(145deg, rgba(30, 144, 255, 0.95), rgba(15, 91, 177, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #f7fcff;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.card:nth-child(even),
+.spotlightCard:nth-child(even) {
+  background: linear-gradient(145deg, rgba(255, 140, 0, 0.95), rgba(198, 92, 8, 0.92));
+}
+
+.spotlightCard:hover,
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.cardIcon,
+.spotlightIcon {
+  font-size: 1.4rem;
+}
+
+.tag {
+  align-self: flex-start;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.card h3,
+.spotlightCard h3 {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.card p,
+.spotlightCard p {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(245, 252, 255, 0.88);
+  line-height: 1.5;
+}
+
+.open {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (min-width: 768px) {
+  .group,
+  .spotlightSection {
+    padding: 20px;
+  }
+
+  .spotlightGrid,
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .spotlightGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .cards {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

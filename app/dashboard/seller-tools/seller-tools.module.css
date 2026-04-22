@@ -290,6 +290,78 @@
   font-size: 1.2rem;
 }
 
+.sectionCard {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 20px;
+}
+
+.formRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.input,
+.select {
+  flex: 1;
+  min-width: 220px;
+  padding: 12px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  font-size: 0.95rem;
+}
+
+.helperText {
+  margin: 12px 0 4px;
+  color: #6b7280;
+}
+
+.statusMessage {
+  margin: 0;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.statTile {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.statTile strong {
+  font-size: 1.3rem;
+  color: #111827;
+}
+
+.statTile span {
+  color: #6b7280;
+}
+
+.offerBadge {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
 @media (max-width: 768px) {
   .header h1 {
     font-size: 1.8rem;
@@ -314,6 +386,10 @@
   .impact {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .formRow {
+    flex-direction: column;
   }
 }
 

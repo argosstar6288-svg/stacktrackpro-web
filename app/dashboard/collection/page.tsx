@@ -189,7 +189,7 @@ export default function CollectionPage() {
 
       <div className={styles.valueInfoBanner}>
         <span className={styles.valueInfoText}>
-          Want to know where your collection values come from?
+          Collection prices are refreshed from PriceCharting and displayed in Canadian dollars.
         </span>
         <Link href="/dashboard/help/how-values-work" className={styles.valueInfoLink}>
           Learn how StackTrack values cards

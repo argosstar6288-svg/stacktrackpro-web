@@ -53,6 +53,14 @@ interface WatchlistItem {
   addedAt?: any;
 }
 
+interface DashboardEventItem {
+  id: string;
+  title: string;
+  date: string;
+  detail: string;
+  href?: string;
+}
+
 interface FlatCollectionFolder {
   id: string;
   userID?: string;
@@ -137,6 +145,32 @@ const loadMasterCardsByIds = async (cardIds: string[]) => {
   return masterByCardId;
 };
 
+const tcgCalendarSource = "https://tcgshowsnearme.com/calendar";
+
+const fallbackEvents: DashboardEventItem[] = [
+  {
+    id: "hobby-con-scarborough-2026-04-26",
+    date: "Apr 26",
+    title: "Hobby Con Scarborough",
+    detail: "10:00-17:00 • Scarborough, Ontario",
+    href: `${tcgCalendarSource}/hobby-con-scarborough-scarborough-2026-04-26`,
+  },
+  {
+    id: "capital-trade-pokemon-shows-ottawa-2026-04-26",
+    date: "Apr 26",
+    title: "Capital Trade Pokemon Shows",
+    detail: "10:00-15:00 • Ottawa, Ontario",
+    href: `${tcgCalendarSource}/capital-trade-pokemon-shows-ottawa-2026-04-26`,
+  },
+  {
+    id: "living-sky-collectibles-card-show-moose-jaw-2026-04-26",
+    date: "Apr 26",
+    title: "Living Sky Collectibles Card Show",
+    detail: "10:00-15:00 • Moose Jaw, Saskatchewan",
+    href: `${tcgCalendarSource}/living-sky-collectibles-card-show-moose-jaw-2026-04-26`,
+  },
+];
+
 export default function DashboardPage() {
   const { user, loading: authLoading } = useCurrentUser();
   const { currency } = useCurrency();
@@ -146,6 +180,8 @@ export default function DashboardPage() {
   const [marketplaceListings, setMarketplaceListings] = useState<MarketplaceListing[]>([]);
   const [auctionItems, setAuctionItems] = useState<AuctionItem[]>([]);
   const [watchlistItems, setWatchlistItems] = useState<WatchlistItem[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<DashboardEventItem[]>(fallbackEvents);
+  const [eventsLoading, setEventsLoading] = useState(true);
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -385,6 +421,38 @@ export default function DashboardPage() {
     }
   }, [authLoading, user?.uid]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const loadEvents = async () => {
+      try {
+        setEventsLoading(true);
+        const response = await fetch("/dashboard/api/tcg-events?limit=3&country=CAN", {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = (await response.json()) as { events?: DashboardEventItem[] };
+        if (Array.isArray(payload.events) && payload.events.length > 0) {
+          setUpcomingEvents(payload.events);
+        }
+      } catch {
+        // Keep fallback events when source is unavailable.
+      } finally {
+        if (!controller.signal.aborted) {
+          setEventsLoading(false);
+        }
+      }
+    };
+
+    loadEvents();
+
+    return () => controller.abort();
+  }, []);
+
   const totalValue = useMemo(
     () => cards.reduce((sum, card) => sum + Number(card.marketPrice ?? card.value ?? 0), 0),
     [cards]
@@ -512,11 +580,35 @@ export default function DashboardPage() {
 
   const marketTrendLabel = `${changePercent >= 0 ? "+" : ""}${changePercent.toFixed(1)}%`;
 
+  const newsFeed = [
+    {
+      id: "news-1",
+      title: "AI pricing model updated for modern rookie classes",
+      meta: "2h ago • Product",
+    },
+    {
+      id: "news-2",
+      title: "Marketplace now supports faster listing draft recovery",
+      meta: "5h ago • Marketplace",
+    },
+    {
+      id: "news-3",
+      title: "System check improvements reduce scan queue delays",
+      meta: "Today • Platform",
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/dashboard/feature-hub"
+            className="inline-flex items-center justify-center rounded-full border border-white/30 bg-white/15 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/25"
+          >
+            Feature Hub
+          </Link>
           <Link
             href="/dashboard/watchlist"
             className="inline-flex items-center justify-center rounded-full border border-sky-300/40 bg-sky-500/20 px-4 py-2 text-sm font-semibold text-sky-100 transition hover:bg-sky-500/35"
@@ -564,6 +656,82 @@ export default function DashboardPage() {
         <MarketplacePreview listings={marketplacePreview} loading={loading} />
         <AuctionPreview auctions={auctionPreview} loading={loading} />
         <Watchlist items={watchlistPreview} loading={loading} />
+
+        <div className="card" style={{ background: "linear-gradient(145deg, rgba(30, 144, 255, 0.95), rgba(10, 54, 114, 0.94))" }}>
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-lg font-bold text-white">Event Calendar</h3>
+            <div className="flex items-center gap-3">
+              <Link
+                href={tcgCalendarSource}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs font-semibold uppercase tracking-wide text-sky-100 hover:text-white"
+              >
+                Source
+              </Link>
+              <Link
+                href="/dashboard/breaks"
+                className="text-xs font-semibold uppercase tracking-wide text-sky-100 hover:text-white"
+              >
+                View all
+              </Link>
+            </div>
+          </div>
+          <div className="mt-4 space-y-3">
+            {eventsLoading && (
+              <p className="text-xs text-sky-100/80">Refreshing latest events...</p>
+            )}
+            {upcomingEvents.map((event) => (
+              <div
+                key={event.id}
+                className="flex items-start justify-between gap-4 rounded-xl border border-white/20 bg-white/10 px-3 py-3"
+              >
+                <div>
+                  {event.href ? (
+                    <Link
+                      href={event.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm font-semibold text-white hover:text-sky-100"
+                    >
+                      {event.title}
+                    </Link>
+                  ) : (
+                    <p className="text-sm font-semibold text-white">{event.title}</p>
+                  )}
+                  <p className="mt-1 text-xs text-sky-100/90">{event.detail}</p>
+                </div>
+                <span className="rounded-md bg-white/20 px-2 py-1 text-xs font-bold text-white">
+                  {event.date}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card" style={{ background: "linear-gradient(145deg, rgba(255, 140, 0, 0.95), rgba(145, 63, 4, 0.94))" }}>
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-lg font-bold text-white">News Feed</h3>
+            <Link
+              href="/dashboard/discover"
+              className="text-xs font-semibold uppercase tracking-wide text-orange-100 hover:text-white"
+            >
+              More news
+            </Link>
+          </div>
+          <div className="mt-4 space-y-3">
+            {newsFeed.map((news) => (
+              <article
+                key={news.id}
+                className="rounded-xl border border-white/20 bg-white/10 px-3 py-3"
+              >
+                <p className="text-sm font-semibold text-white">{news.title}</p>
+                <p className="mt-1 text-xs text-orange-100/90">{news.meta}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+
         <div className="col-span-full">
           <CommunityChatFeed />
         </div>

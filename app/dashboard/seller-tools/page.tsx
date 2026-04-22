@@ -1,162 +1,197 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styles from "./seller-tools.module.css";
-import {
-  getSellerOptimization,
-  SellerOptimization,
-} from "../../lib/revenueMetrics";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 
-interface SellerAuction {
-  id: string;
-  name: string;
-  currentPrice: number;
-  description: string;
-  imageCount: number;
-  category: string;
+interface SellerOffer {
+  "condition-string"?: string;
+  "console-name"?: string;
+  "ended-time"?: string;
+  "include-string"?: string;
+  "is-available"?: boolean;
+  "is-ended"?: boolean;
+  "is-shipped"?: boolean;
+  "is-sold"?: boolean;
+  "offer-id"?: string;
+  "offer-status"?: string;
+  "offer-url"?: string;
+  price?: number;
+  "product-name"?: string;
+  "sale-time"?: string;
+  "shipped-time"?: string;
+  sku?: string;
+}
+
+type OfferStatus = "sold" | "available" | "ended" | "collection";
+
+function formatOfferPrice(cents?: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(Number(cents || 0) / 100);
 }
 
 export default function SellerOptimizationTools() {
-  const { user } = useCurrentUser();
-  const [auctions, setAuctions] = useState<SellerAuction[]>([]);
-  const [optimizations, setOptimizations] = useState<Map<string, SellerOptimization | null>>(new Map());
-  const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useCurrentUser();
+  const [sellerId, setSellerId] = useState("");
+  const [status, setStatus] = useState<OfferStatus>("sold");
+  const [offers, setOffers] = useState<SellerOffer[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("Enter your PriceCharting seller ID to sync offers.");
 
   useEffect(() => {
-    loadSellerAuctions();
+    const saved = window.localStorage.getItem("pc-seller-id");
+    if (saved) {
+      setSellerId(saved);
+    }
   }, []);
 
-  const loadSellerAuctions = async () => {
+  const stats = useMemo(() => {
+    const sold = offers.filter((offer) => offer["is-sold"]).length;
+    const shipped = offers.filter((offer) => offer["is-shipped"]).length;
+    const totalValue = offers.reduce((sum, offer) => sum + Number(offer.price || 0), 0);
+    return { sold, shipped, totalValue };
+  }, [offers]);
+
+  const loadOffers = async () => {
+    const trimmedSellerId = sellerId.trim();
+    if (!trimmedSellerId) {
+      setMessage("A seller ID is required.");
+      return;
+    }
+
     try {
       setLoading(true);
-      // Mock seller auctions - in production would query Firestore
-      const mockAuctions: SellerAuction[] = [
-        {
-          id: "1",
-          name: "Vintage Action Figure",
-          currentPrice: 89.99,
-          description: "Figure",
-          imageCount: 2,
-          category: "Toys",
-        },
-        {
-          id: "2",
-          name: "Rare Trading Card",
-          currentPrice: 45.00,
-          description: "A rare card from the 1990s. Good condition.",
-          imageCount: 4,
-          category: "Cards",
-        },
-      ];
-      setAuctions(mockAuctions);
+      setMessage("Syncing offers from PriceCharting...");
+      window.localStorage.setItem("pc-seller-id", trimmedSellerId);
 
-      // Load optimizations for each
-      const opts = new Map<string, SellerOptimization | null>();
-      for (const auction of mockAuctions) {
-        const opt = await getSellerOptimization(auction.id);
-        opts.set(auction.id, opt);
+      const response = await fetch(
+        `/api/offers?seller=${encodeURIComponent(trimmedSellerId)}&status=${encodeURIComponent(status)}`,
+        { cache: "no-store" }
+      );
+      const data = await response.json();
+
+      if (!response.ok || data?.status === "error") {
+        throw new Error(data?.error || data?.["error-message"] || "Failed to load seller offers");
       }
-      setOptimizations(opts);
+
+      const nextOffers = Array.isArray(data?.offers) ? data.offers : [];
+      setOffers(nextOffers);
+      setMessage(`${data?.cached ? "Cached" : "Live"} sync complete. ${nextOffers.length} ${status} offers loaded.`);
     } catch (error) {
-      console.error("Error loading seller auctions:", error);
+      console.error("Error loading seller offers:", error);
+      setOffers([]);
+      setMessage(error instanceof Error ? error.message : "Unable to load seller offers.");
     } finally {
       setLoading(false);
     }
   };
 
-  const getQualityColor = (score: number) => {
-    if (score >= 80) return "#10b981";
-    if (score >= 60) return "#f59e0b";
-    return "#ef4444";
-  };
-
-  if (loading) {
-    return <div className={styles.container}><div className={styles.loading}>Analyzing your listings...</div></div>;
+  if (authLoading) {
+    return <div className={styles.container}><div className={styles.loading}>Loading seller tools...</div></div>;
   }
 
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1>🛠️ AI Seller Optimization</h1>
-        <p>Get AI-powered suggestions to boost your sales</p>
+        <h1>📦 Seller Offer Center</h1>
+        <p>Check sold, active, ended, or collection offers from PriceCharting with built-in 5 minute throttling.</p>
+      </div>
+
+      <div className={styles.sectionCard}>
+        <div className={styles.formRow}>
+          <input
+            className={styles.input}
+            value={sellerId}
+            onChange={(event) => setSellerId(event.target.value)}
+            placeholder="Enter your PriceCharting seller ID"
+          />
+
+          <select
+            className={styles.select}
+            value={status}
+            onChange={(event) => setStatus(event.target.value as OfferStatus)}
+          >
+            <option value="sold">Sold</option>
+            <option value="available">Available</option>
+            <option value="ended">Ended</option>
+            <option value="collection">Collection</option>
+          </select>
+
+          <button className={styles.updateBtn} onClick={loadOffers} disabled={loading}>
+            {loading ? "Syncing..." : "Sync Offers"}
+          </button>
+        </div>
+
+        <p className={styles.helperText}>
+          Signed in as {user?.email || "seller"}. Use the code from your PriceCharting items-for-sale page.
+        </p>
+        <p className={styles.statusMessage}>{message}</p>
+      </div>
+
+      <div className={styles.statsRow}>
+        <div className={styles.statTile}>
+          <strong>{offers.length}</strong>
+          <span>Offers Loaded</span>
+        </div>
+        <div className={styles.statTile}>
+          <strong>{stats.sold}</strong>
+          <span>Sold</span>
+        </div>
+        <div className={styles.statTile}>
+          <strong>{stats.shipped}</strong>
+          <span>Shipped</span>
+        </div>
+        <div className={styles.statTile}>
+          <strong>{formatOfferPrice(stats.totalValue)}</strong>
+          <span>Total Value</span>
+        </div>
       </div>
 
       <div className={styles.listingsContainer}>
-        {auctions.map(auction => {
-          const opt = optimizations.get(auction.id);
-          return (
-            <div key={auction.id} className={styles.listingCard}>
-              <div className={styles.listingHeader}>
-                <div>
-                  <h3>{auction.name}</h3>
-                  <p className={styles.category}>{auction.category}</p>
-                </div>
-                {opt && (
-                  <div
-                    className={styles.qualityScore}
-                    style={{ borderColor: getQualityColor(opt.listingQualityScore) }}
-                  >
-                    <span>{opt.listingQualityScore}</span>
-                    <p>Quality</p>
-                  </div>
-                )}
+        {offers.map((offer) => (
+          <div key={offer["offer-id"]} className={styles.listingCard}>
+            <div className={styles.listingHeader}>
+              <div>
+                <h3>{offer["product-name"] || "Unknown item"}</h3>
+                <p className={styles.category}>
+                  {offer["console-name"] || "Unknown category"} • {offer["include-string"] || "Normal wear"}
+                </p>
               </div>
-
-              {opt ? (
-                <>
-                  <div className={styles.priceAnalysis}>
-                    <div className={styles.priceItem}>
-                      <span>Current Price</span>
-                      <strong>${opt.currentPrice}</strong>
-                    </div>
-                    <div className={styles.arrow}>→</div>
-                    <div className={styles.priceItem}>
-                      <span>Optimal Price</span>
-                      <strong>${opt.optimalPrice}</strong>
-                    </div>
-                    <div
-                      className={`${styles.adjustment} ${opt.priceAdjustment > 0 ? styles.increase : styles.decrease}`}
-                    >
-                      {opt.priceAdjustment > 0 ? "+" : ""}{opt.priceAdjustment}%
-                    </div>
-                  </div>
-
-                  <div className={styles.impact}>
-                    <strong>Estimated Impact:</strong>
-                    <span className={opt.estimatedSalesIncrease > 0 ? styles.positive : styles.negative}>
-                      {opt.estimatedSalesIncrease > 0 ? "+" : ""}{opt.estimatedSalesIncrease}% sales increase
-                    </span>
-                  </div>
-
-                  <div className={styles.titleSuggestion}>
-                    <strong>Recommended Title:</strong>
-                    <p>{opt.recommendedTitle}</p>
-                  </div>
-
-                  <div className={styles.improvements}>
-                    <strong>Improvements Needed:</strong>
-                    <ul>
-                      {opt.improvements.map((improvement, i) => (
-                        <li key={i}>{improvement}</li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <button className={styles.updateBtn}>
-                    Review & Update Listing
-                  </button>
-                </>
-              ) : (
-                <div className={styles.noOpt}>Unable to generate optimization</div>
-              )}
+              <div className={styles.offerBadge}>{offer["offer-status"] || status}</div>
             </div>
-          );
-        })}
+
+            <div className={styles.priceAnalysis}>
+              <div className={styles.priceItem}>
+                <span>Price</span>
+                <strong>{formatOfferPrice(offer.price)}</strong>
+              </div>
+              <div className={styles.priceItem}>
+                <span>Sale Time</span>
+                <strong>{offer["sale-time"] || "—"}</strong>
+              </div>
+              <div className={styles.priceItem}>
+                <span>Shipped</span>
+                <strong>{offer["is-shipped"] ? (offer["shipped-time"] || "Yes") : "No"}</strong>
+              </div>
+            </div>
+
+            <div className={styles.improvements}>
+              <strong>Offer details</strong>
+              <ul>
+                <li>Condition: {offer["condition-string"] || "Normal wear"}</li>
+                <li>Offer ID: {offer["offer-id"] || "—"}</li>
+                <li>SKU: {offer.sku || "—"}</li>
+                <li>Ended: {offer["ended-time"] || "—"}</li>
+              </ul>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {auctions.length === 0 && (
-        <div className={styles.empty}>No active listings. Create a new auction to get optimization tips.</div>
+      {!loading && offers.length === 0 && (
+        <div className={styles.empty}>No offers to show yet. Sync your seller ID to check marketplace activity.</div>
       )}
     </div>
   );
