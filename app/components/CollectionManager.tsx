@@ -788,6 +788,9 @@ export function CollectionManager({ sportFilter, folderId }: CollectionManagerPr
     if (sortBy === "value") {
       const aValue = Number((a as any).marketPrice ?? a.value ?? 0);
       const bValue = Number((b as any).marketPrice ?? b.value ?? 0);
+      // Handle NaN cases
+      if (isNaN(aValue)) return 1;
+      if (isNaN(bValue)) return -1;
       return bValue - aValue;
     }
     if (sortBy === "date") return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);

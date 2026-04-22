@@ -234,16 +234,51 @@ export async function deleteCard(cardId: string): Promise<void> {
     throw error;
   }
 }
+// Helper function to safely extract card value
+function getCardValue(card: Card): number {
+  // Try marketPrice first (current market value from PriceCharting)
+  const marketPrice = (card as any).marketPrice;
+  if (marketPrice != null && !isNaN(marketPrice)) {
+    const val = Number(marketPrice);
+    if (val > 0) return val;
+  }
+  
+  // Fall back to regular value
+  const value = card.value;
+  if (value != null && !isNaN(value)) {
+    const val = Number(value);
+    if (val > 0) return val;
+  }
+  
+  return 0;
+}
+
 // Calculate portfolio stats
 export function calculatePortfolioStats(cards: Card[]) {
-  const totalValue = cards.reduce((sum, card) => sum + Number((card as any).marketPrice ?? card.value ?? 0), 0);
-  const highestValue = cards.length > 0 ? Math.max(...cards.map(card => Number((card as any).marketPrice ?? card.value ?? 0))) : 0;
+  if (!cards || cards.length === 0) {
+    return {
+      cardCount: 0,
+      totalValue: 0,
+      averageValue: 0,
+      highestValue: 0,
+      rarityBreakdown: {
+        common: 0,
+        uncommon: 0,
+        rare: 0,
+        legendary: 0,
+      },
+    };
+  }
+
+  const cardValues = cards.map(card => getCardValue(card));
+  const totalValue = cardValues.reduce((sum, val) => sum + val, 0);
+  const highestValue = Math.max(...cardValues);
   
   return {
     cardCount: cards.length,
-    totalValue,
-    averageValue: cards.length > 0 ? Math.round(totalValue / cards.length) : 0,
-    highestValue,
+    totalValue: Math.round(totalValue * 100) / 100, // Round to 2 decimals
+    averageValue: cards.length > 0 ? Math.round((totalValue / cards.length) * 100) / 100 : 0,
+    highestValue: Math.round(highestValue * 100) / 100,
     rarityBreakdown: {
       common: cards.filter(c => c.rarity === "Common").length,
       uncommon: cards.filter(c => c.rarity === "Uncommon").length,
