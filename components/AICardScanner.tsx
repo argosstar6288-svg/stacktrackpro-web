@@ -764,14 +764,6 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
     }
   }
 
-  const frameStateClass = scanning
-    ? styles.frameCapturing
-    : scannerView !== "scanner"
-    ? styles.frameSuccess
-    : hasSelectedImage
-    ? styles.frameDetected
-    : "";
-
   return (
     <div className={styles.shell}>
       <header className={styles.topBar}>
@@ -823,16 +815,6 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
               ) : (
                 <div className={styles.cameraPlaceholder}>Camera View</div>
               )}
-
-              <div className={`${styles.detectionFrame} ${frameStateClass}`}>
-                <span className={styles.frameLabel}>Card detection frame</span>
-                <div className={styles.edgeCorners}>
-                  <span className={styles.cornerTl} />
-                  <span className={styles.cornerTr} />
-                  <span className={styles.cornerBl} />
-                  <span className={styles.cornerBr} />
-                </div>
-              </div>
             </div>
           </section>
 
