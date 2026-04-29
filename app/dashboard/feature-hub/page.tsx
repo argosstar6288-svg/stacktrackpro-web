@@ -7,9 +7,10 @@ import { isAdminEmail } from "../../../lib/adminAccess";
 import { formatCurrency } from "../../../lib/currency";
 import { db } from "../../../lib/firebase";
 import { FLAT_COLLECTIONS } from "../../../lib/flatCollections";
-import { getUserCards, getUserFolders } from "../../../lib/cards";
+import { useUserCards, getUserFolders } from "../../../lib/cards";
 import { useCurrentUser } from "../../../lib/useCurrentUser";
 import { useCurrency } from "../../../hooks/useCurrency";
+import StatCard from "@/components/StatCard";
 import styles from "./feature-hub.module.css";
 
 type FeatureItem = {
@@ -150,6 +151,7 @@ const quickActions = [
 export default function FeatureHubPage() {
   const { user, loading } = useCurrentUser();
   const { currency } = useCurrency();
+  const { cards: userCards, loading: cardsLoading } = useUserCards();
   const isAdmin = isAdminEmail(user?.email);
   const [searchTerm, setSearchTerm] = useState("");
   const [stats, setStats] = useState<FeatureStats>({
@@ -171,17 +173,17 @@ export default function FeatureHubPage() {
       try {
         setStatsLoading(true);
 
-        const [cards, folders, listingsSnapshot, watchlistSnapshot] = await Promise.all([
-          getUserCards(user.uid),
-          getUserFolders(user.uid),
+        const folders = await getUserFolders(user.uid);
+
+        const [listingsSnapshot, watchlistSnapshot] = await Promise.all([
           getDocs(query(collection(db, FLAT_COLLECTIONS.marketListings), where("userId", "==", user.uid), limit(100))).catch(() => ({ docs: [] } as any)),
           getDocs(query(collection(db, FLAT_COLLECTIONS.watchlists), where("userID", "==", user.uid), limit(100))).catch(() => ({ docs: [] } as any)),
         ]);
 
-        const collectionValue = cards.reduce((sum, card) => sum + Number(card.marketPrice ?? card.value ?? 0), 0);
+        const collectionValue = userCards.reduce((sum, card) => sum + Number(card.marketPrice ?? card.value ?? 0), 0);
 
         setStats({
-          collectionCount: cards.length,
+          collectionCount: userCards.length,
           folderCount: folders.length,
           listingCount: listingsSnapshot?.docs?.length || 0,
           watchlistCount: watchlistSnapshot?.docs?.length || 0,
@@ -195,7 +197,7 @@ export default function FeatureHubPage() {
     };
 
     void loadStats();
-  }, [user?.uid]);
+  }, [user?.uid, userCards]);
 
   const visibleGroups = useMemo(() => {
     const queryText = searchTerm.trim().toLowerCase();
@@ -248,26 +250,15 @@ export default function FeatureHubPage() {
       </section>
 
       <section className={styles.statsStrip}>
-        <div className={styles.statCard}>
-          <span className={styles.statLabel}>Collection Value</span>
-          <strong>{statsLoading ? "Loading..." : formatCurrency(stats.collectionValue, currency)}</strong>
-        </div>
-        <div className={styles.statCard}>
-          <span className={styles.statLabel}>Cards</span>
-          <strong>{statsLoading ? "—" : stats.collectionCount}</strong>
-        </div>
-        <div className={styles.statCard}>
-          <span className={styles.statLabel}>Folders</span>
-          <strong>{statsLoading ? "—" : stats.folderCount}</strong>
-        </div>
-        <div className={styles.statCard}>
-          <span className={styles.statLabel}>Listings</span>
-          <strong>{statsLoading ? "—" : stats.listingCount}</strong>
-        </div>
-        <div className={styles.statCard}>
-          <span className={styles.statLabel}>Watchlist</span>
-          <strong>{statsLoading ? "—" : stats.watchlistCount}</strong>
-        </div>
+        <StatCard
+          label="Collection Value"
+          value={formatCurrency(stats.collectionValue, currency)}
+          loading={statsLoading}
+        />
+        <StatCard label="Cards" value={stats.collectionCount} loading={statsLoading} />
+        <StatCard label="Folders" value={stats.folderCount} loading={statsLoading} />
+        <StatCard label="Listings" value={stats.listingCount} loading={statsLoading} />
+        <StatCard label="Watchlist" value={stats.watchlistCount} loading={statsLoading} />
       </section>
 
       <section className={styles.searchPanel}>

@@ -1,13 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { auth } from "../../lib/firebase";
+import { auth, db } from "../../lib/firebase";
+import { collection, getDocs, limit, query, where } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { CollectionManager } from "../../components/CollectionManager";
 import { RefreshCollectionButton } from "@/components/RefreshCollectionButton";
-import { useUserFolders, createFolder, deleteFolder, addCardToFolder, updateFolderVisibility, type Folder } from "@/lib/cards";
+import { useUserCards, useUserFolders, createFolder, deleteFolder, addCardToFolder, updateFolderVisibility, type Folder } from "@/lib/cards";
+import { formatCurrency } from "@/lib/currency";
+import { FLAT_COLLECTIONS } from "@/lib/flatCollections";
+import { useCurrency } from "@/hooks/useCurrency";
+import StatCard from "@/components/StatCard";
 import styles from "./collection.module.css";
 
 const sportCategories = [
@@ -29,6 +34,7 @@ const tradingCardCategories = [
 
 export default function CollectionPage() {
   const router = useRouter();
+  const { currency } = useCurrency();
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const { folders, loading: foldersLoading, refreshFolders } = useUserFolders();
@@ -39,6 +45,15 @@ export default function CollectionPage() {
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [folderVisibilityFilter, setFolderVisibilityFilter] = useState<"all" | "public" | "private">("all");
   const [scanSaveMessage, setScanSaveMessage] = useState("");
+  const { cards, loading: cardsLoading } = useUserCards();
+  const [listingCount, setListingCount] = useState(0);
+  const [watchlistCount, setWatchlistCount] = useState(0);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  const collectionValue = useMemo(
+    () => cards.reduce((sum, card) => sum + Number(card.marketPrice ?? card.value ?? 0), 0),
+    [cards]
+  );
 
   const customFolders = folders.filter(
     (folder) => !tradingCardCategories.some((category) => category.name === folder.name)
@@ -85,6 +100,34 @@ export default function CollectionPage() {
 
     return () => unsubscribe();
   }, [router]);
+
+  useEffect(() => {
+    if (!userId) {
+      setListingCount(0);
+      setWatchlistCount(0);
+      setStatsLoading(false);
+      return;
+    }
+
+    const loadCounts = async () => {
+      setStatsLoading(true);
+      try {
+        const [listingsSnapshot, watchlistSnapshot] = await Promise.all([
+          getDocs(query(collection(db, FLAT_COLLECTIONS.marketListings), where("userId", "==", userId), limit(100))).catch(() => ({ docs: [] } as any)),
+          getDocs(query(collection(db, FLAT_COLLECTIONS.watchlists), where("userID", "==", userId), limit(100))).catch(() => ({ docs: [] } as any)),
+        ]);
+
+        setListingCount(listingsSnapshot.docs.length || 0);
+        setWatchlistCount(watchlistSnapshot.docs.length || 0);
+      } catch (error) {
+        console.error("Error loading collection stats:", error);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    void loadCounts();
+  }, [userId]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -171,6 +214,18 @@ export default function CollectionPage() {
             + Add Card
           </button>
         </div>
+      </div>
+
+      <div className={styles.statsStrip}>
+        <StatCard
+          label="Collection Value"
+          value={formatCurrency(collectionValue, currency)}
+          loading={statsLoading}
+        />
+        <StatCard label="Cards" value={cards.length} loading={cardsLoading} />
+        <StatCard label="Folders" value={folders.length} loading={foldersLoading} />
+        <StatCard label="Listings" value={listingCount} loading={statsLoading} />
+        <StatCard label="Watchlist" value={watchlistCount} loading={statsLoading} />
       </div>
 
       {scanSaveMessage && (

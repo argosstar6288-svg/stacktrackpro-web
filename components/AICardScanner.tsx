@@ -7,6 +7,7 @@ import { useCurrency } from "@/hooks/useCurrency";
 import { formatCurrency } from "@/lib/currency";
 import { auth } from "@/lib/firebase";
 import { detectCardBounds, cropCanvas } from "@/lib/imagePreprocessing";
+import { convertPDFToImages, isPDF, isImage } from "@/lib/pdfUtils";
 import styles from "./AICardScanner.module.css";
 
 interface CardScanResult {
@@ -304,9 +305,33 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
     const labels: string[] = [];
     let hasError = false;
 
+    // First, convert PDFs to images if any
+    const allFiles: File[] = [];
+    for (const file of files) {
+      if (isPDF(file)) {
+        try {
+          const pdfPages = await convertPDFToImages(file, { maxPages: MAX_CARDS_PER_BATCH });
+          // Create File objects from PDF pages (as blob references with labels)
+          allFiles.push(
+            ...pdfPages.map(
+              (page, idx) =>
+                new File([page.dataUrl], `${file.name.replace(".pdf", "")}_page_${idx + 1}.jpg`, {
+                  type: "image/jpeg",
+                })
+            )
+          );
+        } catch (pdfError) {
+          setError(`Failed to process PDF "${file.name}": ${pdfError instanceof Error ? pdfError.message : "Unknown error"}`);
+          hasError = true;
+        }
+      } else {
+        allFiles.push(file);
+      }
+    }
+
     const processedImages = await Promise.all(
-      files.map(async (file) => {
-        if (!file.type.startsWith("image/")) {
+      allFiles.map(async (file) => {
+        if (!isImage(file)) {
           setError(`File ${file.name} is not a valid image`);
           hasError = true;
           return null;
@@ -826,7 +851,7 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
               onClick={() => galleryInputRef.current?.click()}
               disabled={scanning}
             >
-              {bulkMode ? "Upload Batch" : "Upload Image"}
+              {bulkMode ? "Upload Batch" : "Upload Image or PDF"}
             </button>
           </div>
 
@@ -979,7 +1004,7 @@ export default function AICardScanner({ onScanComplete, onCancel, userId }: AICa
       <input
         ref={galleryInputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,.pdf"
         multiple={bulkMode}
         className={styles.hiddenInput}
         onChange={handleGalleryInput}

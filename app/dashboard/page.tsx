@@ -14,14 +14,14 @@ import {
 import AuctionPreview from "../../components/dashboard/AuctionPreview";
 import CardGrid from "../../components/CardGrid";
 import CollectionGrid from "../../components/dashboard/CollectionGrid";
-import CommunityChatFeed from "../../components/dashboard/CommunityChatFeed";
 import MarketplacePreview from "../../components/dashboard/MarketplacePreview";
 import MarketMovers from "../../components/dashboard/MarketMovers";
 import PortfolioValue from "../../components/dashboard/PortfolioValue";
 import RecentScans from "../../components/dashboard/RecentScans";
+import StatCard from "@/components/StatCard";
 import Watchlist from "../../components/dashboard/Watchlist";
-import { getUserCards, getUserFolders, type Card, type Folder } from "../../lib/cards";
-import { FLAT_COLLECTIONS, type FlatMasterCard, type FlatUserCard } from "../../lib/flatCollections";
+import { useUserCards, getUserCards, getUserFolders, type Card, type Folder } from "../../lib/cards";
+import { FLAT_COLLECTIONS } from "../../lib/flatCollections";
 import { formatCurrency } from "../../lib/currency";
 import { db } from "../../lib/firebase";
 import { useCurrentUser } from "../../lib/useCurrentUser";
@@ -59,13 +59,6 @@ interface DashboardEventItem {
   date: string;
   detail: string;
   href?: string;
-}
-
-interface FlatCollectionFolder {
-  id: string;
-  userID?: string;
-  name?: string;
-  created?: any;
 }
 
 const toMillis = (value: any): number => {
@@ -109,42 +102,6 @@ const resolveDashboardImageUrl = (
   return selected?.trim() || DASHBOARD_PLACEHOLDER_IMAGE;
 };
 
-const loadMasterCardsByIds = async (cardIds: string[]) => {
-  const uniqueCardIds = Array.from(new Set(cardIds.filter(Boolean)));
-  const masterByCardId = new Map<string, FlatMasterCard>();
-
-  for (const chunk of chunkArray(uniqueCardIds, 10)) {
-    const byDocIdQuery = query(
-      collection(db, FLAT_COLLECTIONS.cards),
-      where(documentId(), "in", chunk)
-    );
-    const snapshot = await getDocs(byDocIdQuery);
-
-    snapshot.docs.forEach((docSnapshot) => {
-      const data = { id: docSnapshot.id, ...docSnapshot.data() } as FlatMasterCard;
-      const resolvedCardID = String(data.cardID || docSnapshot.id);
-      masterByCardId.set(resolvedCardID, data);
-    });
-  }
-
-  const unresolved = uniqueCardIds.filter((cardId) => !masterByCardId.has(cardId));
-  for (const chunk of chunkArray(unresolved, 10)) {
-    const byCardIdQuery = query(
-      collection(db, FLAT_COLLECTIONS.cards),
-      where("cardID", "in", chunk)
-    );
-    const snapshot = await getDocs(byCardIdQuery);
-
-    snapshot.docs.forEach((docSnapshot) => {
-      const data = { id: docSnapshot.id, ...docSnapshot.data() } as FlatMasterCard;
-      const resolvedCardID = String(data.cardID || docSnapshot.id);
-      masterByCardId.set(resolvedCardID, data);
-    });
-  }
-
-  return masterByCardId;
-};
-
 const tcgCalendarSource = "https://tcgshowsnearme.com/calendar";
 
 const fallbackEvents: DashboardEventItem[] = [
@@ -174,19 +131,20 @@ const fallbackEvents: DashboardEventItem[] = [
 export default function DashboardPage() {
   const { user, loading: authLoading } = useCurrentUser();
   const { currency } = useCurrency();
+  const { cards: userCards, loading: cardsLoading } = useUserCards();
   const [loading, setLoading] = useState(true);
-  const [cards, setCards] = useState<Card[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [marketplaceListings, setMarketplaceListings] = useState<MarketplaceListing[]>([]);
   const [auctionItems, setAuctionItems] = useState<AuctionItem[]>([]);
   const [watchlistItems, setWatchlistItems] = useState<WatchlistItem[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<DashboardEventItem[]>(fallbackEvents);
   const [eventsLoading, setEventsLoading] = useState(true);
+  const [listingCount, setListingCount] = useState(0);
+  const [watchlistCount, setWatchlistCount] = useState(0);
 
   useEffect(() => {
     const loadDashboardData = async () => {
       if (!user?.uid) {
-        setCards([]);
         setFolders([]);
         setMarketplaceListings([]);
         setAuctionItems([]);
@@ -197,18 +155,7 @@ export default function DashboardPage() {
 
       setLoading(true);
       try {
-        const userCardsQuery = query(
-          collection(db, FLAT_COLLECTIONS.userCards),
-          where("userID", "==", user.uid),
-          orderBy("added", "desc"),
-          limit(200)
-        );
-
-        const collectionsQuery = query(
-          collection(db, FLAT_COLLECTIONS.collections),
-          where("userID", "==", user.uid),
-          limit(30)
-        );
+        const userFolders = await getUserFolders(user.uid);
 
         const marketListingsQuery = query(
           collection(db, FLAT_COLLECTIONS.marketListings),
@@ -231,161 +178,54 @@ export default function DashboardPage() {
           limit(3)
         );
 
-        let normalizedCards: Card[] = [];
-        let normalizedFolders: Folder[] = [];
-        let normalizedMarketplace: MarketplaceListing[] = [];
-        let normalizedAuctions: AuctionItem[] = [];
-        let normalizedWatchlist: WatchlistItem[] = [];
+        const [marketListingsSnap, auctionsLiveSnap, watchlistsSnap] = await Promise.all([
+          getDocs(marketListingsQuery),
+          getDocs(auctionsLiveQuery),
+          getDocs(watchlistsQuery),
+        ]);
 
-        try {
-          const [userCardsSnap, collectionsSnap, marketListingsSnap, auctionsLiveSnap, watchlistsSnap] =
-            await Promise.all([
-              getDocs(userCardsQuery),
-              getDocs(collectionsQuery),
-              getDocs(marketListingsQuery),
-              getDocs(auctionsLiveQuery),
-              getDocs(watchlistsQuery),
-            ]);
-
-          const userCardsData = userCardsSnap.docs.map(
-            (snapshot) => ({ id: snapshot.id, ...snapshot.data() }) as FlatUserCard
-          );
-
-          const cardIds = Array.from(
-            new Set(userCardsData.map((record) => record.cardID).filter(Boolean))
-          ) as string[];
-
-          const masterById = await loadMasterCardsByIds(cardIds);
-
-          normalizedCards = userCardsData.map((entry) => {
-            const master = masterById.get(entry.cardID) || null;
-            const entryWithImage = entry as FlatUserCard & {
-              imageUrl?: string;
-              photoUrl?: string;
-              image?: string;
-              frontImageUrl?: string;
-              thumbnailUrl?: string;
-            };
-            const cardImage = resolveDashboardImageUrl(
-              entryWithImage.imageUrl,
-              entryWithImage.photoUrl,
-              entryWithImage.image,
-              entryWithImage.frontImageUrl,
-              entryWithImage.thumbnailUrl,
-              master?.image
-            );
-
-            return {
-              id: entry.id || entry.cardID,
-              userId: entry.userID,
-              name: master?.name || "Unnamed card",
-              player: "",
-              cardNumber: master?.number || "",
-              sport: "Other",
-              brand: master?.set || "",
-              year: Number(master?.year || new Date().getFullYear()),
-              rarity: "Uncommon",
-              condition: (entry.condition as Card["condition"]) || "Good",
-              value: Number(entry.value ?? master?.avgPrice ?? 0),
-              marketPrice: Number((entry as any).marketPrice ?? entry.value ?? master?.avgPrice ?? 0),
-              imageUrl: cardImage,
-              photoUrl: cardImage,
-              folderId: entry.folder,
-              folderIds: entry.folder ? [entry.folder] : [],
-              createdAt: entry.added,
-              updatedAt: entry.added,
-            };
-          });
-
-          normalizedFolders = collectionsSnap.docs.map((snapshot) => {
-            const data = snapshot.data() as FlatCollectionFolder;
-            return {
-              id: snapshot.id,
-              name: data.name || "Collection",
-              userId: data.userID || user.uid,
-              createdAt: data.created,
-            } as Folder;
-          });
-
-          normalizedMarketplace = marketListingsSnap.docs.map((snapshot) => {
-            const data = snapshot.data() as any;
-            return {
-              id: snapshot.id,
-              cardName: data.cardName || data.name || data.cardID,
-              imageUrl: resolveDashboardImageUrl(
-                data.imageUrl,
-                data.image,
-                data.photoUrl,
-                data.frontImageUrl,
-                data.thumbnailUrl
-              ),
-              price: Number(data.price || 0),
-              status: data.status,
-              createdAt: data.created,
-            } as MarketplaceListing;
-          });
-
-          normalizedAuctions = auctionsLiveSnap.docs.map((snapshot) => ({
+        const normalizedMarketplace = marketListingsSnap.docs.map((snapshot) => {
+          const data = snapshot.data() as any;
+          return {
             id: snapshot.id,
-            ...(snapshot.data() as any),
-          })) as AuctionItem[];
+            cardName: data.cardName || data.name || data.cardID,
+            imageUrl: resolveDashboardImageUrl(
+              data.imageUrl,
+              data.image,
+              data.photoUrl,
+              data.frontImageUrl,
+              data.thumbnailUrl
+            ),
+            price: Number(data.price || 0),
+            status: data.status,
+            createdAt: data.created,
+          } as MarketplaceListing;
+        });
 
-          normalizedWatchlist = watchlistsSnap.docs
-            .map((snapshot) => ({ id: snapshot.id, ...(snapshot.data() as any) }) as WatchlistItem)
-            .filter((item) => !item.deleted);
-        } catch (flatError) {
-          console.warn("Flat schema read failed, falling back to legacy collections:", flatError);
+        const normalizedAuctions = auctionsLiveSnap.docs.map((snapshot) => ({
+          id: snapshot.id,
+          ...(snapshot.data() as any),
+        })) as AuctionItem[];
 
-          const legacyMarketplaceQuery = query(
-            collection(db, "marketplace"),
-            where("status", "==", "active"),
-            orderBy("createdAt", "desc"),
-            limit(3)
-          );
+        const normalizedWatchlist = watchlistsSnap.docs
+          .map((snapshot) => ({ id: snapshot.id, ...(snapshot.data() as any) }) as WatchlistItem)
+          .filter((item) => !item.deleted);
 
-          const legacyAuctionsQuery = query(
-            collection(db, "auctions"),
-            where("ended", "==", false),
-            orderBy("endTime", "asc"),
-            limit(3)
-          );
-
-          const legacyWatchlistQuery = query(
-            collection(db, "users", user.uid, "watchlist"),
-            orderBy("addedAt", "desc"),
-            limit(3)
-          );
-
-          const [legacyCards, legacyFolders, legacyMarketplaceSnap, legacyAuctionsSnap, legacyWatchlistSnap] =
-            await Promise.all([
-              getUserCards(user.uid),
-              getUserFolders(user.uid),
-              getDocs(legacyMarketplaceQuery),
-              getDocs(legacyAuctionsQuery),
-              getDocs(legacyWatchlistQuery),
-            ]);
-
-          normalizedCards = legacyCards;
-          normalizedFolders = legacyFolders;
-          normalizedMarketplace = legacyMarketplaceSnap.docs.map(
-            (snapshot) => ({ id: snapshot.id, ...snapshot.data() }) as MarketplaceListing
-          );
-          normalizedAuctions = legacyAuctionsSnap.docs.map(
-            (snapshot) => ({ id: snapshot.id, ...snapshot.data() }) as AuctionItem
-          );
-          normalizedWatchlist = legacyWatchlistSnap.docs
-            .map((snapshot) => ({ id: snapshot.id, ...snapshot.data() }) as WatchlistItem)
-            .filter((item) => !item.deleted);
-        }
-
-        setCards(normalizedCards);
-        setFolders(normalizedFolders);
+        setFolders(userFolders);
         setMarketplaceListings(normalizedMarketplace);
         setAuctionItems(normalizedAuctions);
         setWatchlistItems(normalizedWatchlist);
 
+        const [listingCountSnapshot, watchlistCountSnapshot] = await Promise.all([
+          getDocs(query(collection(db, FLAT_COLLECTIONS.marketListings), where("userId", "==", user.uid), limit(100))).catch(() => ({ docs: [] } as any)),
+          getDocs(query(collection(db, FLAT_COLLECTIONS.watchlists), where("userID", "==", user.uid), limit(100))).catch(() => ({ docs: [] } as any)),
+        ]);
+
+        setListingCount(listingCountSnapshot.docs.length || 0);
+        setWatchlistCount(watchlistCountSnapshot.docs.length || 0);
+
         // Auto-refresh collection prices in background so card values match PriceCharting
-        if (normalizedCards.length > 0 && user?.uid) {
+        if (userCards.length > 0 && user?.uid) {
           try {
             // Trigger authenticated background refresh without blocking UI.
             user.getIdToken().then((token) => {
@@ -454,20 +294,20 @@ export default function DashboardPage() {
   }, []);
 
   const totalValue = useMemo(
-    () => cards.reduce((sum, card) => sum + Number(card.marketPrice ?? card.value ?? 0), 0),
-    [cards]
+    () => userCards.reduce((sum, card) => sum + Number(card.marketPrice ?? card.value ?? 0), 0),
+    [userCards]
   );
 
   const baseValue = useMemo(
-    () => cards.reduce((sum, card) => sum + Number(card.value ?? 0), 0),
-    [cards]
+    () => userCards.reduce((sum, card) => sum + Number(card.value ?? 0), 0),
+    [userCards]
   );
 
   const changePercent =
     baseValue > 0 ? ((totalValue - baseValue) / baseValue) * 100 : 0;
 
   const recentScans = useMemo(() => {
-    return [...cards]
+    return [...userCards]
       .sort((left, right) => toMillis(right.addedAt) - toMillis(left.addedAt))
       .slice(0, 4)
       .map((card) => ({
@@ -479,10 +319,10 @@ export default function DashboardPage() {
           .join(" • "),
         value: Number(card.marketPrice ?? card.value ?? 0),
       }));
-  }, [cards]);
+  }, [userCards]);
 
   const movers = useMemo(() => {
-    return cards
+    return userCards
       .filter((card) => Number(card.value) > 0 && typeof card.marketPrice === "number")
       .map((card) => {
         const originalValue = Number(card.value || 0);
@@ -500,10 +340,10 @@ export default function DashboardPage() {
       })
       .sort((left, right) => Math.abs(right.changePercent) - Math.abs(left.changePercent))
       .slice(0, 4);
-  }, [cards]);
+  }, [userCards]);
 
   const trendPoints = useMemo(() => {
-    const values = [...cards]
+    const values = [...userCards]
       .sort((left, right) => toMillis(left.addedAt) - toMillis(right.addedAt))
       .map((card) => Number(card.marketPrice ?? card.value ?? 0))
       .filter((value) => value > 0)
@@ -523,10 +363,10 @@ export default function DashboardPage() {
     }
 
     return normalized.map((value) => Math.round(value));
-  }, [cards]);
+  }, [userCards]);
 
   const folderPreview = useMemo(() => {
-    const cardCountsByFolder = cards.reduce<Record<string, number>>((accumulator, card) => {
+    const cardCountsByFolder = userCards.reduce<Record<string, number>>((accumulator, card) => {
       (card.folderIds || []).forEach((folderId) => {
         accumulator[folderId] = (accumulator[folderId] || 0) + 1;
       });
@@ -538,10 +378,10 @@ export default function DashboardPage() {
       name: folder.name,
       count: cardCountsByFolder[folder.id || ""] || 0,
     }));
-  }, [cards, folders]);
+  }, [userCards, folders]);
 
   const collectionCards = useMemo(() => {
-    return [...cards]
+    return [...userCards]
       .sort((left, right) => toMillis(right.addedAt) - toMillis(left.addedAt))
       .slice(0, 4)
       .map((card) => ({
@@ -549,7 +389,7 @@ export default function DashboardPage() {
         name: card.name || "Unnamed card",
         imageUrl: resolveDashboardImageUrl(card.imageUrl, card.photoUrl),
       }));
-  }, [cards]);
+  }, [userCards]);
 
   const marketplacePreview = useMemo(() => {
     return marketplaceListings.map((listing) => ({
@@ -580,24 +420,6 @@ export default function DashboardPage() {
 
   const marketTrendLabel = `${changePercent >= 0 ? "+" : ""}${changePercent.toFixed(1)}%`;
 
-  const newsFeed = [
-    {
-      id: "news-1",
-      title: "AI pricing model updated for modern rookie classes",
-      meta: "2h ago • Product",
-    },
-    {
-      id: "news-2",
-      title: "Marketplace now supports faster listing draft recovery",
-      meta: "5h ago • Marketplace",
-    },
-    {
-      id: "news-3",
-      title: "System check improvements reduce scan queue delays",
-      meta: "Today • Platform",
-    },
-  ];
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -624,16 +446,20 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="card" style={{ background: "linear-gradient(140deg, rgba(28, 55, 104, 0.85), rgba(12, 28, 56, 0.92))" }}>
-          <h3 className="text-gray-300 text-xs uppercase tracking-wide">Collection Value</h3>
-          <p className="text-3xl font-extrabold text-white">{formatCurrency(Math.round(totalValue), currency)}</p>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4">
+        <StatCard
+          label="Collection Value"
+          value={formatCurrency(Math.round(totalValue), currency)}
+          loading={loading}
+        />
 
-        <div className="card" style={{ background: "linear-gradient(140deg, rgba(24, 32, 52, 0.9), rgba(11, 16, 28, 0.94))" }}>
-          <h3 className="text-gray-300 text-xs uppercase tracking-wide">Cards Owned</h3>
-          <p className="text-3xl font-extrabold">{cards.length}</p>
-        </div>
+        <StatCard label="Cards Owned" value={userCards.length} loading={cardsLoading} />
+
+        <StatCard label="Folders" value={folders.length} loading={loading} />
+
+        <StatCard label="Active Listings" value={listingCount} loading={loading} />
+
+        <StatCard label="Watchlist" value={watchlistCount} loading={loading} />
 
         <div className="card" style={{ background: "linear-gradient(145deg, rgba(63, 30, 7, 0.95), rgba(28, 16, 7, 0.98))", borderColor: "rgba(255,143,0,0.35)" }}>
           <h3 className="text-orange-200 text-xs uppercase tracking-wide">Market Trend</h3>
@@ -707,33 +533,6 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
-        </div>
-
-        <div className="card" style={{ background: "linear-gradient(145deg, rgba(255, 140, 0, 0.95), rgba(145, 63, 4, 0.94))" }}>
-          <div className="flex items-center justify-between gap-3">
-            <h3 className="text-lg font-bold text-white">News Feed</h3>
-            <Link
-              href="/dashboard/discover"
-              className="text-xs font-semibold uppercase tracking-wide text-orange-100 hover:text-white"
-            >
-              More news
-            </Link>
-          </div>
-          <div className="mt-4 space-y-3">
-            {newsFeed.map((news) => (
-              <article
-                key={news.id}
-                className="rounded-xl border border-white/20 bg-white/10 px-3 py-3"
-              >
-                <p className="text-sm font-semibold text-white">{news.title}</p>
-                <p className="mt-1 text-xs text-orange-100/90">{news.meta}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-
-        <div className="col-span-full">
-          <CommunityChatFeed />
         </div>
       </CardGrid>
     </div>

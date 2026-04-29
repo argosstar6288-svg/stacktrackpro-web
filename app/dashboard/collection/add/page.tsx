@@ -22,6 +22,7 @@ import { useCurrentUser } from "../../../../lib/useCurrentUser";
 import { FLAT_COLLECTIONS, type FlatMasterCard } from "../../../../lib/flatCollections";
 import { buildCardLookup, buildSetID, inferGameID } from "../../../../lib/cardSchema";
 import { generateStackTrackId } from "../../../../lib/universal-card-id";
+import { convertPDFToImages, isPDF } from "../../../../lib/pdfUtils";
 import AICardScanner from "../../../../components/AICardScanner";
 import styles from "./collection-add.module.css";
 
@@ -823,8 +824,14 @@ export default function CollectionAddPage() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Handle PDF files by extracting first page
+    if (isPDF(file)) {
+      handlePDFUpload(file);
+      return;
+    }
+
     if (!file.type.startsWith("image/")) {
-      setError("Please upload a valid image file.");
+      setError("Please upload a valid image or PDF file.");
       return;
     }
 
@@ -836,6 +843,36 @@ export default function CollectionAddPage() {
     setCardImageFile(file);
     setCardImagePreview(URL.createObjectURL(file));
     setError("");
+  };
+
+  const handlePDFUpload = async (file: File) => {
+    try {
+      setError("Extracting image from PDF...");
+      const pages = await convertPDFToImages(file, { maxPages: 1 });
+      
+      if (pages.length === 0) {
+        setError("Could not extract image from PDF");
+        return;
+      }
+
+      const { dataUrl, label } = pages[0];
+      
+      // Convert data URL to a Blob and create a File object
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      const extractedFile = new File([blob], `${label}.jpg`, { type: "image/jpeg" });
+      
+      if (extractedFile.size > 8 * 1024 * 1024) {
+        setError("Extracted image exceeds 8MB limit.");
+        return;
+      }
+
+      setCardImageFile(extractedFile);
+      setCardImagePreview(dataUrl);
+      setError("");
+    } catch (err) {
+      setError(`Failed to process PDF: ${err instanceof Error ? err.message : "Unknown error"}`);
+    }
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -938,10 +975,10 @@ export default function CollectionAddPage() {
         <form className={`panel ${styles.panel}`} onSubmit={handleSubmit}>
         <div className={styles.imageSection}>
           <label className={styles.field}>
-            <span>Card Photo (optional)</span>
+            <span>Card Photo or PDF (optional)</span>
             <input
               type="file"
-              accept="image/*"
+              accept="image/*,.pdf"
               onChange={handleImageChange}
             />
           </label>
