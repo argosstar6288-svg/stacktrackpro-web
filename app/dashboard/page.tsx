@@ -432,6 +432,12 @@ export default function DashboardPage() {
             Feature Hub
           </Link>
           <Link
+            href="/dashboard/tournaments"
+            className="inline-flex items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-500/20 px-4 py-2 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-500/35"
+          >
+            Tournaments
+          </Link>
+          <Link
             href="/dashboard/watchlist"
             className="inline-flex items-center justify-center rounded-full border border-sky-300/40 bg-sky-500/20 px-4 py-2 text-sm font-semibold text-sky-100 transition hover:bg-sky-500/35"
           >

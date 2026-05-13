@@ -190,5 +190,44 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow write: if isAdmin();
     }
+
+    // ========================================================================
+    // TOURNAMENT SYSTEM
+    // ========================================================================
+
+    // Tournaments: Public read, admin-only write
+    match /tournaments/{tournamentId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+
+      // Entries subcollection: Users can read/write their own
+      match /entries/{entryId} {
+        allow read: if isSignedIn() && request.auth.uid == resource.data.userId;
+        allow read: if isAdmin();
+        allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+        allow update, delete: if false; // Entries are immutable after creation
+      }
+    }
+
+    // Flat tournament entries collection
+    match /tournament_entries/{entry} {
+      allow read: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow read: if isAdmin();
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if false;
+    }
+
+    // Tournament scores (leaderboard): Public read, function-only write
+    match /tournament_scores/{scoreId} {
+      allow read: if isSignedIn();
+      allow write: if false; // Only Cloud Functions can write
+    }
+
+    // Tournament rewards: Users can read their own, admin can read all
+    match /tournament_rewards/{rewardId} {
+      allow read: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow read: if isAdmin();
+      allow write: if false; // Only Cloud Functions can write
+    }
   }
 }
